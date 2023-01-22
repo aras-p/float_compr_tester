@@ -3,6 +3,9 @@
 #include <algorithm>
 #include "compressors.h"
 
+#define SOKOL_TIME_IMPL
+#include "../libs/sokol_time.h"
+
 const int kWidth = 2048;
 const int kHeight = 2048;
 const int kChannels = 4;
@@ -101,39 +104,70 @@ static void DumpInputVisualizations()
 
 static void TestCompressors()
 {
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, false));	// 23.044
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, false));	// 21.800
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, false));	// 32.669
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, true));	// 22.267
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, true));	// 21.670
-	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, 0, false)); // 17.535
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 3, false)); // 14.324
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 10, false)); // 13.786
+	const int kRuns = 3;
+
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, false));	// 23.044 0.187 0.064
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, false));	// 21.800 1.240 0.060
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, false));	// 32.669 0.062 0.016
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, true));	// 22.267 0.140 0.064
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, true));	// 21.670 0.496 0.060
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, 0, false)); // 17.535 0.113 0.017
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 3, false));  // 14.324 0.221 0.034
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 10, false)); // 13.786 0.459 0.035
 
 	std::vector<float> decompressed(kWidth * kHeight * kChannels);
+	std::vector<size_t> sizes(g_Compressors.size());
+	std::vector<double> cmpTimes(g_Compressors.size());
+	std::vector<double> decompTimes(g_Compressors.size());
 
 	char cmpName[1000];
-	printf("%-10s %6.3f MB\n", "Raw", kTotalFloats * 4 / (1024.0 * 1024.0));
-	for (auto* cmp : g_Compressors)
+	for (int ir = 0; ir < kRuns; ++ir)
 	{
-		size_t compressedSize = 0;
-		uint8_t* compressed = cmp->Compress(g_FileData.data(), kWidth, kHeight, kChannels, compressedSize);
-		memset(decompressed.data(), 0, 4 * decompressed.size());
-		cmp->Decompress(compressed, compressedSize, decompressed.data(), kWidth, kHeight, kChannels);
-		cmp->PrintName(1000, cmpName);
-		printf("%-10s %6.3f MB\n", cmpName, compressedSize / (1024.0 * 1024.0));
-		if (memcmp(g_FileData.data(), decompressed.data(), 4 * decompressed.size()) != 0)
-			printf("  ERROR, did not decompress back to input\n");
-		delete[] compressed;
+		printf("Run %i/%i on %zi compressors...\n", ir+1, kRuns, g_Compressors.size());
+		for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
+		{
+			Compressor* cmp = g_Compressors[ic];
+			// compress
+			size_t compressedSize = 0;
+			uint64_t t0 = stm_now();
+			uint8_t* compressed = cmp->Compress(g_FileData.data(), kWidth, kHeight, kChannels, compressedSize);
+			double tComp = stm_sec(stm_since(t0));
+
+			// decompress
+			memset(decompressed.data(), 0, 4 * decompressed.size());
+			t0 = stm_now();
+			cmp->Decompress(compressed, compressedSize, decompressed.data(), kWidth, kHeight, kChannels);
+			double tDecomp = stm_sec(stm_since(t0));
+
+			// stats
+			sizes[ic] += compressedSize;
+			cmpTimes[ic] += tComp;
+			decompTimes[ic] += tDecomp;
+
+			// check validity
+			if (memcmp(g_FileData.data(), decompressed.data(), 4 * decompressed.size()) != 0)
+			{
+				cmp->PrintName(sizeof(cmpName), cmpName);
+				printf("  ERROR, %s did not decompress back to input\n", cmpName);
+			}
+			delete[] compressed;
+		}
 	}
 
-	for (auto* cmp : g_Compressors)
+	printf("%-15s %6.3f MB\n", "Raw", kTotalFloats * 4 / (1024.0 * 1024.0));
+	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
+	{
+		Compressor* cmp = g_Compressors[ic];
+		cmp->PrintName(sizeof(cmpName), cmpName);
+		printf("%-15s %6.3f MB cmp %.3f s dec %.3f s\n", cmpName, sizes[ic]/kRuns / (1024.0 * 1024.0), cmpTimes[ic]/kRuns, decompTimes[ic]/kRuns);
 		delete cmp;
+	}
 	g_Compressors.clear();
 }
 
 int main()
 {
+	stm_setup();
 	FILE* inFile = fopen("../../../data/2048_sq_float4.bin", "rb");
 	if (inFile == nullptr)
 	{
