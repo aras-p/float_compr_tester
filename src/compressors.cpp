@@ -4,6 +4,9 @@
 #include <fpzip.h>
 #include <zfp.h>
 
+#include <assert.h> // ndzip needs it
+#include <ndzip/ndzip.hh>
+
 
 uint8_t* GenericCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
 {
@@ -254,4 +257,33 @@ void ZfpCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, 
 void ZfpCompressor::PrintName(size_t bufSize, char* buf) const
 {
 	snprintf(buf, bufSize, "zfp");
+}
+
+uint8_t* NdzipCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+{
+	// ndzip seems to have trouble if we try to do channels*width*height 3 dimensions
+	// (does not handle dimension size < 16?), so do a 2D case instead
+	ndzip::extent ext(2);
+	ext[0] = width * channels;
+	ext[1] = height;
+	auto compressor = ndzip::make_compressor<float>(2, 1);
+	size_t bound = ndzip::compressed_length_bound<float>(ext) * 4;
+	uint8_t* cmp = new uint8_t[bound];
+	size_t cmpSize = compressor->compress(data, ext, (uint32_t*)cmp) * 4;
+	outSize = cmpSize;
+	return cmp;
+}
+
+void NdzipCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
+{
+	ndzip::extent ext(2);
+	ext[0] = width * channels;
+	ext[1] = height;
+	auto decompressor = ndzip::make_decompressor<float>(2, 1);
+	decompressor->decompress((const uint32_t*)cmp, data, ext);
+}
+
+void NdzipCompressor::PrintName(size_t bufSize, char* buf) const
+{
+	snprintf(buf, bufSize, "ndzip");
 }

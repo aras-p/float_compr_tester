@@ -109,17 +109,18 @@ static void TestCompressors()
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3));	// 23.044 0.187 0.064
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10));	// 21.800 1.240 0.060
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0));	// 32.669 0.062 0.016
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitFloats));	// 22.267 0.148 0.072
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitFloats));	// 21.670 0.474 0.069
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, GenericCompressor::kFlagSplitFloats));		// 27.306 0.052 0.034
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitBytes));		// 15.142 0.161 0.096
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitBytes));	// 14.338 0.606 0.092
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, GenericCompressor::kFlagSplitBytes));		// 17.791 0.093 0.078
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitFloats));	// 22.267 0.148 0.072
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitFloats));	// 21.670 0.474 0.069
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, GenericCompressor::kFlagSplitFloats));		// 27.306 0.052 0.034
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitBytes));		// 15.142 0.161 0.096
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitBytes));	// 14.338 0.606 0.092
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, GenericCompressor::kFlagSplitBytes));		// 17.791 0.093 0.078
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, 0)); // 17.535 0.113 0.017
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 3));  // 14.324 0.221 0.034
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 10)); // 13.786 0.459 0.035
 	//g_Compressors.emplace_back(new FpzipCompressor()); // 46.544 0.511 0.559
-	//g_Compressors.emplace_back(new ZfpCompressor()); // 59.872 0.256 0.152
+	g_Compressors.emplace_back(new ZfpCompressor()); // 59.872 0.256 0.152
+	g_Compressors.emplace_back(new NdzipCompressor()); // 52.415 0.206 0.232
 
 	std::vector<float> decompressed(kWidth * kHeight * kChannels);
 	std::vector<size_t> sizes(g_Compressors.size());

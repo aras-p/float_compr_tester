@@ -49,3 +49,10 @@ struct ZfpCompressor : public Compressor
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual void PrintName(size_t bufSize, char* buf) const;
 };
+
+struct NdzipCompressor : public Compressor
+{
+	virtual uint8_t* Compress(const float* data, int width, int height, int channels, size_t& outSize);
+	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
+	virtual void PrintName(size_t bufSize, char* buf) const;
+};
