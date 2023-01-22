@@ -30,6 +30,30 @@ uint8_t* GenericCompressor::Compress(const float* data, int width, int height, i
 					dst += 1;
 				}
 			}
+			if ((m_Flags & kFlagDeltaDiff) != 0)
+			{
+				uint32_t prev = 0;
+				uint32_t* ptr = (uint32_t*)tmp;
+				for (size_t i = 0; i < dataElems; ++i)
+				{
+					uint32_t v = *ptr;
+					*ptr = v - prev;
+					prev = v;
+					++ptr;
+				}
+			}
+			if ((m_Flags & kFlagDeltaXor) != 0)
+			{
+				uint32_t prev = 0;
+				uint32_t* ptr = (uint32_t*)tmp;
+				for (size_t i = 0; i < dataElems; ++i)
+				{
+					uint32_t v = *ptr;
+					*ptr = v ^ prev;
+					prev = v;
+					++ptr;
+				}
+			}
 		}
 		if ((m_Flags & kFlagSplitBytes) != 0)
 		{
@@ -72,6 +96,32 @@ void GenericCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 	{
 		if ((m_Flags & kFlagSplitFloats) != 0)
 		{
+			if ((m_Flags & kFlagDeltaDiff) != 0)
+			{
+				uint32_t prev = 0;
+				uint32_t* ptr = (uint32_t*)tmp;
+				for (size_t i = 0; i < dataElems; ++i)
+				{
+					uint32_t v = *ptr;
+					v = prev + v;
+					*ptr = v;
+					prev = v;
+					++ptr;
+				}
+			}
+			if ((m_Flags & kFlagDeltaXor) != 0)
+			{
+				uint32_t prev = 0;
+				uint32_t* ptr = (uint32_t*)tmp;
+				for (size_t i = 0; i < dataElems; ++i)
+				{
+					uint32_t v = *ptr;
+					v = prev ^ v;
+					*ptr = v;
+					prev = v;
+					++ptr;
+				}
+			}
 			const float* src = (const float*)tmp;
 			for (int ich = 0; ich < channels; ++ich)
 			{
@@ -115,7 +165,12 @@ void GenericCompressor::PrintName(size_t bufSize, char* buf) const
 		flag = "sf";
 	if ((m_Flags & kFlagSplitBytes) != 0)
 		flag = "sb";
-	snprintf(buf, bufSize, "%s-%i%s", kCompressionFormatNames[m_Format], m_Level, flag);
+	const char* delta = "";
+	if ((m_Flags & kFlagDeltaDiff) != 0)
+		delta = "_dif";
+	if ((m_Flags & kFlagDeltaXor) != 0)
+		delta = "_xor";
+	snprintf(buf, bufSize, "%s-%i%s%s", kCompressionFormatNames[m_Format], m_Level, flag, delta);
 }
 
 uint8_t* MeshOptCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)

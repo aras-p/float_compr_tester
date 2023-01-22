@@ -14,8 +14,10 @@ struct GenericCompressor : public Compressor
 {
 	enum Flags {
 		kFlagNone = 0,
-		kFlagSplitFloats = (1<<0),
-		kFlagSplitBytes = (1<<1),
+		kFlagSplitFloats = (1 << 0),
+		kFlagSplitBytes = (1 << 1),
+		kFlagDeltaDiff = (1 << 2),
+		kFlagDeltaXor = (1 << 3),
 	};
 	GenericCompressor(CompressionFormat format, int level, uint32_t flags = kFlagNone) : m_Format(format), m_Level(level), m_Flags(flags) {}
 	virtual uint8_t* Compress(const float* data, int width, int height, int channels, size_t& outSize);

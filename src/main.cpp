@@ -109,9 +109,13 @@ static void TestCompressors()
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3));	// 23.044 0.187 0.064
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10));	// 21.800 1.240 0.060
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0));	// 32.669 0.062 0.016
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitFloats));	// 22.267 0.148 0.072
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitFloats));	// 22.267 0.148 0.072
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitFloats));	// 21.670 0.474 0.069
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, GenericCompressor::kFlagSplitFloats));		// 27.306 0.052 0.034
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitFloats | GenericCompressor::kFlagDeltaDiff));	// 16.295 0.181 0.080
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitFloats | GenericCompressor::kFlagDeltaDiff));	// 15.403 0.805 0.086
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitFloats | GenericCompressor::kFlagDeltaXor));	// 17.472 0.189 0.085
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitFloats | GenericCompressor::kFlagDeltaXor));	// 16.743 0.798 0.084
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitBytes));		// 15.142 0.161 0.096
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitBytes));	// 14.338 0.606 0.092
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, GenericCompressor::kFlagSplitBytes));		// 17.791 0.093 0.078
