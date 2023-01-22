@@ -31,3 +31,17 @@ struct MeshOptCompressor : public Compressor
 	int m_Level;
 	bool m_SplitChannels;
 };
+
+struct FpzipCompressor : public Compressor
+{
+	virtual uint8_t* Compress(const float* data, int width, int height, int channels, size_t& outSize);
+	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
+	virtual void PrintName(size_t bufSize, char* buf) const;
+};
+
+struct ZfpCompressor : public Compressor
+{
+	virtual uint8_t* Compress(const float* data, int width, int height, int channels, size_t& outSize);
+	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
+	virtual void PrintName(size_t bufSize, char* buf) const;
+};

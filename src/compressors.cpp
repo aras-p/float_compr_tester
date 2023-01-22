@@ -1,6 +1,10 @@
 ﻿#include "compressors.h"
 #include <stdio.h>
 
+#include <fpzip.h>
+#include <zfp.h>
+
+
 uint8_t* GenericCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
 {
 	if (!m_SplitChannels)
@@ -113,4 +117,99 @@ void MeshOptCompressor::PrintName(size_t bufSize, char* buf) const
 		snprintf(buf, bufSize, "meshopt");
 	else
 		snprintf(buf, bufSize, "meshopt-%s-%i%s", kCompressionFormatNames[m_Format], m_Level, m_SplitChannels ? "-s" : "");
+}
+
+uint8_t* FpzipCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+{
+	size_t dataSize = width * height * channels * sizeof(float);
+	size_t bound = dataSize; //@TODO: what's the max compression bound?
+	uint8_t* cmp = new uint8_t[bound];
+	FPZ* fpz = fpzip_write_to_buffer(cmp, bound);
+	fpz->type = FPZIP_TYPE_FLOAT;
+	fpz->prec = 0;
+	fpz->nx = width;
+	fpz->ny = height;
+	fpz->nz = 1;
+	fpz->nf = channels;
+	size_t cmpSize = fpzip_write(fpz, data);
+	fpzip_write_close(fpz);
+	outSize = cmpSize;
+	return cmp;
+}
+
+void FpzipCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
+{
+	FPZ* fpz = fpzip_read_from_buffer(cmp);
+	fpz->type = FPZIP_TYPE_FLOAT;
+	fpz->prec = 0;
+	fpz->nx = width;
+	fpz->ny = height;
+	fpz->nz = 1;
+	fpz->nf = channels;
+	fpzip_read(fpz, data);
+	fpzip_read_close(fpz);
+}
+
+void FpzipCompressor::PrintName(size_t bufSize, char* buf) const
+{
+	snprintf(buf, bufSize, "fpzip");
+}
+
+uint8_t* ZfpCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+{
+	zfp_field field = {};
+	field.type = zfp_type_float;
+	field.nx = width;
+	field.ny = height;
+	field.sx = channels;
+	field.sy = channels * width;
+
+	zfp_stream* zfp = zfp_stream_open(NULL);
+	zfp_stream_set_reversible(zfp);
+	//const float kAccuracy = 0.1f;
+	//zfp_stream_set_accuracy(zfp, kAccuracy);
+
+	size_t bound = zfp_stream_maximum_size(zfp, &field) * channels;
+	uint8_t* cmp = new uint8_t[bound];
+
+	bitstream* stream = stream_open(cmp, bound);
+	zfp_stream_set_bit_stream(zfp, stream);
+	zfp_stream_rewind(zfp);
+
+	outSize = 0;
+	for (int ich = 0; ich < channels; ++ich)
+	{
+		field.data = (void*)(data + ich);
+		outSize += zfp_compress(zfp, &field);
+	}
+	stream_close(stream);
+	zfp_stream_close(zfp);
+	return cmp;
+}
+
+void ZfpCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
+{
+	zfp_field field = {};
+	field.type = zfp_type_float;
+	field.nx = width;
+	field.ny = height;
+	field.sx = channels;
+	field.sy = channels * width;
+	zfp_stream* zfp = zfp_stream_open(NULL);
+	zfp_stream_set_reversible(zfp);
+	bitstream* stream = stream_open((void*)cmp, cmpSize);
+	zfp_stream_set_bit_stream(zfp, stream);
+	zfp_stream_rewind(zfp);
+	for (int ich = 0; ich < channels; ++ich)
+	{
+		field.data = (void*)(data + ich);
+		zfp_decompress(zfp, &field);
+	}
+	stream_close(stream);
+	zfp_stream_close(zfp);
+}
+
+void ZfpCompressor::PrintName(size_t bufSize, char* buf) const
+{
+	snprintf(buf, bufSize, "zfp");
 }

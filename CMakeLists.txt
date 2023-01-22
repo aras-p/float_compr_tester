@@ -46,6 +46,27 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(meshopt)
 
+# fpzip
+FetchContent_Declare(
+	fpzip
+	URL https://github.com/LLNL/fpzip/archive/refs/tags/1.3.0.zip # latest at time of writing (2019 Dec)
+)
+set(BUILD_SHARED_LIBS OFF)
+set(BUILD_TESTING OFF)
+set(BUILD_UTILITIES OFF)
+FetchContent_MakeAvailable(fpzip)
+
+# zfp
+FetchContent_Declare(
+	zfp
+	URL https://github.com/LLNL/zfp/archive/refs/tags/1.0.0.zip # latest at time of writing (2022 Aug)
+)
+set(BUILD_SHARED_LIBS OFF)
+set(BUILD_TESTING OFF)
+set(BUILD_UTILITIES OFF)
+FetchContent_MakeAvailable(zfp)
+
+
 project ("float_compr_tester")
 
 add_executable (float_compr_tester
@@ -65,6 +86,8 @@ target_link_libraries(float_compr_tester PRIVATE
 	libzstd_static
     lz4_static
 	meshoptimizer
+	fpzip
+	zfp
 )
 
 target_compile_definitions(float_compr_tester PRIVATE

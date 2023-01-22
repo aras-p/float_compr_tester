@@ -107,13 +107,15 @@ static void TestCompressors()
 	const int kRuns = 3;
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, false));	// 23.044 0.187 0.064
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, false));	// 21.800 1.240 0.060
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, false));	// 32.669 0.062 0.016
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, true));	// 22.267 0.140 0.064
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, true));	// 21.670 0.496 0.060
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, 0, false)); // 17.535 0.113 0.017
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 3, false));  // 14.324 0.221 0.034
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 10, false)); // 13.786 0.459 0.035
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, false));	// 21.800 1.240 0.060
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, false));	// 32.669 0.062 0.016
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, true));	// 22.267 0.140 0.064
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, true));	// 21.670 0.496 0.060
+	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, 0, false)); // 17.535 0.113 0.017
+	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 3, false));  // 14.324 0.221 0.034
+	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 10, false)); // 13.786 0.459 0.035
+	g_Compressors.emplace_back(new FpzipCompressor()); // 46.544 0.511 0.559
+	g_Compressors.emplace_back(new ZfpCompressor()); // 59.872 0.256 0.152
 
 	std::vector<float> decompressed(kWidth * kHeight * kChannels);
 	std::vector<size_t> sizes(g_Compressors.size());
