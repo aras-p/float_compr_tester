@@ -12,24 +12,28 @@ struct Compressor
 
 struct GenericCompressor : public Compressor
 {
-	GenericCompressor(CompressionFormat format, int level, bool splitChannels) : m_Format(format), m_Level(level), m_SplitChannels(splitChannels) {}
+	enum Flags {
+		kFlagNone = 0,
+		kFlagSplitFloats = (1<<0),
+		kFlagSplitBytes = (1<<1),
+	};
+	GenericCompressor(CompressionFormat format, int level, uint32_t flags = kFlagNone) : m_Format(format), m_Level(level), m_Flags(flags) {}
 	virtual uint8_t* Compress(const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual void PrintName(size_t bufSize, char* buf) const;
 	CompressionFormat m_Format;
 	int m_Level;
-	bool m_SplitChannels;
+	uint32_t m_Flags;
 };
 
 struct MeshOptCompressor : public Compressor
 {
-	MeshOptCompressor(CompressionFormat format, int level, bool splitChannels) : m_Format(format), m_Level(level), m_SplitChannels(splitChannels) {}
+	MeshOptCompressor(CompressionFormat format, int level) : m_Format(format), m_Level(level) {}
 	virtual uint8_t* Compress(const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual void PrintName(size_t bufSize, char* buf) const;
 	CompressionFormat m_Format;
 	int m_Level;
-	bool m_SplitChannels;
 };
 
 struct FpzipCompressor : public Compressor

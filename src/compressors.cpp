@@ -7,57 +7,94 @@
 
 uint8_t* GenericCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
 {
-	if (!m_SplitChannels)
+	size_t planeElems = width * height;
+	size_t dataElems = planeElems * channels;
+	size_t dataSize = dataElems * sizeof(float);
+	uint8_t* tmp = (uint8_t*)data;
+	if (m_Flags != kFlagNone)
 	{
-		size_t dataSize = width * height * channels * sizeof(float);
-		size_t bound = compress_calc_bound(dataSize, m_Format);
-		uint8_t* cmp = new uint8_t[bound];
-		outSize = compress_data(data, dataSize, cmp, bound, m_Format, m_Level);
-		return cmp;
-	}
-	else
-	{
-		size_t channelSize = width * height * sizeof(float);
-		size_t channelBound = compress_calc_bound(channelSize, m_Format);
-		size_t bound = channelBound * channels + 4 * channels;
-		uint8_t* cmp = new uint8_t[bound];
-		float* tmp = new float[width * height];
-		outSize = 4 * channels;
-		for (int ich = 0; ich < channels; ++ich)
+		tmp = new uint8_t[dataSize];
+		if ((m_Flags & kFlagSplitFloats) != 0)
 		{
-			const float* dataPtr = data + ich;
-			for (int j = 0; j < width * height; ++j, dataPtr += channels)
-				tmp[j] = *dataPtr;
-			size_t cmpSize = compress_data(tmp, channelSize, cmp + outSize, channelBound, m_Format, m_Level);
-			*(uint32_t*)(cmp + ich * 4) = cmpSize;
-			outSize += cmpSize;
+			float* dst = (float*)tmp;
+			for (int ich = 0; ich < channels; ++ich)
+			{
+				const float* src = data + ich;
+				for (int ip = 0; ip < planeElems; ++ip)
+				{
+					*dst = *src;
+					src += channels;
+					dst += 1;
+				}
+			}
 		}
-		delete[] tmp;
-		return cmp;
+		if ((m_Flags & kFlagSplitBytes) != 0)
+		{
+			int stride = channels * sizeof(float);
+			uint8_t* dst = tmp;
+			for (int is = 0; is < stride; ++is)
+			{
+				const uint8_t* src = (const uint8_t*)data + is;
+				for (int ip = 0; ip < planeElems; ++ip)
+				{
+					*dst = *src;
+					src += stride;
+					dst += 1;
+				}
+			}
+		}
 	}
+
+	size_t bound = compress_calc_bound(dataSize, m_Format);
+	uint8_t* cmp = new uint8_t[bound];
+	outSize = compress_data(tmp, dataSize, cmp, bound, m_Format, m_Level);
+
+	if (m_Flags != kFlagNone)
+		delete[] tmp;
+	return cmp;
 }
 
 void GenericCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
 {
-	if (!m_SplitChannels)
-	{
-		size_t dataSize = width * height * channels * sizeof(float);
-		decompress_data(cmp, cmpSize, data, dataSize, m_Format);
-	}
-	else
-	{
-		size_t channelSize = width * height * sizeof(float);
-		float* tmp = new float[width * height];
-		const uint8_t* cmpPtr = cmp + channels * 4;
-		for (int ich = 0; ich < channels; ++ich)
-		{
-			uint32_t cmpChannelSize = *(uint32_t*)(cmp + ich * 4);
-			decompress_data(cmpPtr, cmpChannelSize, tmp, width * height * 4, m_Format);
-			cmpPtr += cmpChannelSize;
+	size_t planeElems = width * height;
+	size_t dataElems = planeElems * channels;
+	size_t dataSize = dataElems * sizeof(float);
+	uint8_t* tmp = (uint8_t*)data;
+	if (m_Flags != kFlagNone)
+		tmp = new uint8_t[dataSize];
 
-			float* dataPtr = data + ich;
-			for (int j = 0; j < width * height; ++j, dataPtr += channels)
-				*dataPtr = tmp[j];
+	decompress_data(cmp, cmpSize, tmp, dataSize, m_Format);
+
+	if (m_Flags != kFlagNone)
+	{
+		if ((m_Flags & kFlagSplitFloats) != 0)
+		{
+			const float* src = (const float*)tmp;
+			for (int ich = 0; ich < channels; ++ich)
+			{
+				float* dst = data + ich;
+				for (int ip = 0; ip < planeElems; ++ip)
+				{
+					*dst = *src;
+					src += 1;
+					dst += channels;
+				}
+			}
+		}
+		if ((m_Flags & kFlagSplitBytes) != 0)
+		{
+			int stride = channels * sizeof(float);
+			const uint8_t* src = tmp;
+			for (int is = 0; is < stride; ++is)
+			{
+				uint8_t* dst = (uint8_t*)data + is;
+				for (int ip = 0; ip < planeElems; ++ip)
+				{
+					*dst = *src;
+					src += 1;
+					dst += stride;
+				}
+			}
 		}
 		delete[] tmp;
 	}
@@ -70,7 +107,12 @@ static const char* kCompressionFormatNames[kCompressionCount] = {
 
 void GenericCompressor::PrintName(size_t bufSize, char* buf) const
 {
-	snprintf(buf, bufSize, "%s-%i%s", kCompressionFormatNames[m_Format], m_Level, m_SplitChannels ? "-s" : "");
+	const char* flag = "";
+	if ((m_Flags & kFlagSplitFloats) != 0)
+		flag = "sf";
+	if ((m_Flags & kFlagSplitBytes) != 0)
+		flag = "sb";
+	snprintf(buf, bufSize, "%s-%i%s", kCompressionFormatNames[m_Format], m_Level, flag);
 }
 
 uint8_t* MeshOptCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
@@ -116,7 +158,7 @@ void MeshOptCompressor::PrintName(size_t bufSize, char* buf) const
 	if (m_Format == kCompressionCount)
 		snprintf(buf, bufSize, "meshopt");
 	else
-		snprintf(buf, bufSize, "meshopt-%s-%i%s", kCompressionFormatNames[m_Format], m_Level, m_SplitChannels ? "-s" : "");
+		snprintf(buf, bufSize, "meshopt-%s-%i", kCompressionFormatNames[m_Format], m_Level);
 }
 
 uint8_t* FpzipCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
