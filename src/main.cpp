@@ -101,9 +101,14 @@ static void DumpInputVisualizations()
 
 static void TestCompressors()
 {
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, false));	// 23.044
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, false));	// 21.800
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, false));	// 32.669
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, true));	// 22.267
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, true));	// 21.670
+	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, 0, false)); // 17.535
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 3, false)); // 14.324
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 10, false)); // 13.786
 
 	std::vector<float> decompressed(kWidth * kHeight * kChannels);
 
@@ -116,13 +121,9 @@ static void TestCompressors()
 		memset(decompressed.data(), 0, 4 * decompressed.size());
 		cmp->Decompress(compressed, compressedSize, decompressed.data(), kWidth, kHeight, kChannels);
 		cmp->PrintName(1000, cmpName);
-		printf("%-10s ", cmpName);
+		printf("%-10s %6.3f MB\n", cmpName, compressedSize / (1024.0 * 1024.0));
 		if (memcmp(g_FileData.data(), decompressed.data(), 4 * decompressed.size()) != 0)
-		{
-			printf("ERROR, did not decompress back to input\n");
-			continue;
-		}
-		printf("%6.3f MB\n", compressedSize / (1024.0 * 1024.0));
+			printf("  ERROR, did not decompress back to input\n");
 		delete[] compressed;
 	}
 
