@@ -187,6 +187,34 @@ void GenericCompressor::PrintName(size_t bufSize, char* buf) const
 	snprintf(buf, bufSize, "%s-%i%s%s", kCompressionFormatNames[m_Format], m_Level, flag, delta);
 }
 
+static uint8_t* CompressGeneric(CompressionFormat format, int level, uint8_t* data, size_t dataSize, size_t& outSize)
+{
+	if (format == kCompressionCount)
+	{
+		outSize = dataSize;
+		return data;
+	}
+	size_t bound = compress_calc_bound(dataSize, format);
+	uint8_t* cmp = new uint8_t[bound];
+	outSize = compress_data(data, dataSize, cmp, bound, format, level);
+	delete[] data;
+	return cmp;
+}
+
+static uint8_t* DecompressGeneric(CompressionFormat format, int level, const uint8_t* cmp, size_t cmpSize, size_t& outSize)
+{
+	if (format == kCompressionCount)
+	{
+		outSize = cmpSize;
+		return (uint8_t*)cmp;
+	}
+	size_t bound = decompress_calc_bound(cmp, cmpSize, format);
+	uint8_t* decomp = new uint8_t[bound];
+	outSize = decompress_data(cmp, cmpSize, decomp, bound, format);
+	return decomp;
+}
+
+
 uint8_t* MeshOptCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
 {
 	uint8_t* tmp = CompressionFilter(m_Filter, data, width, height, channels);
@@ -198,38 +226,24 @@ uint8_t* MeshOptCompressor::Compress(const float* data, int width, int height, i
 	uint8_t* moCmp = new uint8_t[moBound];
 	size_t moSize = compress_meshopt_vertex_attribute(tmp, vertexCount, stride, moCmp, moBound);
 	if (m_Filter != kFilterNone) delete[] tmp;
-	if (m_Format == kCompressionCount)
-	{
-		outSize = moSize;
-		return moCmp;
-	}
-
-	size_t bound = compress_calc_bound(moSize, m_Format);
-	uint8_t* cmp = new uint8_t[bound];
-	outSize = compress_data(moCmp, moSize, cmp, bound, m_Format, m_Level);
-	delete[] moCmp;
-	return cmp;
+	return CompressGeneric(m_Format, m_Level, moCmp, moSize, outSize);
 }
 
 void MeshOptCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
 {
 	size_t dataSize = width * height * channels * sizeof(float);
-	uint8_t* tmp = (uint8_t*)data;
-	if (m_Filter != kFilterNone) tmp = new uint8_t[dataSize];
 
 	int stride = (m_Filter & kFilterSplitFloats) ? sizeof(float) : channels * sizeof(float);
 	int vertexCount = dataSize / stride;
-	if (m_Format == kCompressionCount)
-	{
-		decompress_meshopt_vertex_attribute(cmp, cmpSize, vertexCount, stride, tmp);
-	}
-	else
-	{
-		uint8_t* decomp = new uint8_t[dataSize];
-		size_t decompSize = decompress_data(cmp, cmpSize, decomp, dataSize, m_Format);
-		decompress_meshopt_vertex_attribute(decomp, decompSize, vertexCount, stride, tmp);
-		delete[] decomp;
-	}
+
+	size_t decompSize;
+	uint8_t* decomp = DecompressGeneric(m_Format, m_Level, cmp, cmpSize, decompSize);
+
+	uint8_t* tmp = (uint8_t*)data;
+	if (m_Filter != kFilterNone) tmp = new uint8_t[dataSize];
+	decompress_meshopt_vertex_attribute(decomp, decompSize, vertexCount, stride, tmp);
+	if (decomp != cmp) delete[] decomp;
+
 	DecompressionFilter(m_Filter, tmp, data, width, height, channels);
 }
 
@@ -370,20 +384,26 @@ uint8_t* StreamVByteCompressor::Compress(const float* data, int width, int heigh
 	uint32_t dataElems = width * height * channels;
 	size_t bound = streamvbyte_max_compressedbytes(dataElems);
 	uint8_t* cmp = new uint8_t[bound];
+	size_t cmpSize = 0;
 	if (m_Delta)
-		outSize = streamvbyte_delta_encode((const uint32_t*)data, dataElems, cmp, 0);
+		cmpSize = streamvbyte_delta_encode((const uint32_t*)data, dataElems, cmp, 0);
 	else
-		outSize = streamvbyte_encode((const uint32_t*)data, dataElems, cmp);
-	return cmp;
+		cmpSize = streamvbyte_encode((const uint32_t*)data, dataElems, cmp);
+
+	return CompressGeneric(m_Format, m_Level, cmp, cmpSize, outSize);
 }
 
 void StreamVByteCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
 {
+	size_t decompSize;
+	uint8_t* decomp = DecompressGeneric(m_Format, m_Level, cmp, cmpSize, decompSize);
+
 	uint32_t dataElems = width * height * channels;
 	if (m_Delta)
-		streamvbyte_delta_decode(cmp, (uint32_t*)data, dataElems, 0);
+		streamvbyte_delta_decode(decomp, (uint32_t*)data, dataElems, 0);
 	else
-		streamvbyte_decode(cmp, (uint32_t*)data, dataElems);
+		streamvbyte_decode(decomp, (uint32_t*)data, dataElems);
+	if (decomp != cmp) delete[] decomp;
 }
 
 void StreamVByteCompressor::PrintName(size_t bufSize, char* buf) const

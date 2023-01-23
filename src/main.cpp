@@ -139,8 +139,10 @@ static void TestCompressors()
 	//g_Compressors.emplace_back(new FpzipCompressor());																// 46.544 0.511 0.559
 	//g_Compressors.emplace_back(new ZfpCompressor());																	// 59.872 0.256 0.152
 	//g_Compressors.emplace_back(new NdzipCompressor());																// 52.415 0.206 0.232
-	g_Compressors.emplace_back(new StreamVByteCompressor(false));														// 51.525 0.011 0.007
-	g_Compressors.emplace_back(new StreamVByteCompressor(true));														// 62.582 0.014 0.008
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, 0, false));									// 51.525 0.011 0.007
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, 3, false));									// 24.358 0.163 0.079
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, 0, true));									// 62.582 0.014 0.008
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, 3, true));									// 32.662 0.129 0.086
 
 	std::vector<float> decompressed(kWidth * kHeight * kChannels);
 	std::vector<size_t> sizes(g_Compressors.size());

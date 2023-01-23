@@ -62,9 +62,11 @@ struct NdzipCompressor : public Compressor
 
 struct StreamVByteCompressor : public Compressor
 {
-	StreamVByteCompressor(bool delta) : m_Delta(delta) {}
+	StreamVByteCompressor(CompressionFormat format, int level, bool delta) : m_Format(format), m_Level(level), m_Delta(delta) {}
 	virtual uint8_t* Compress(const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual void PrintName(size_t bufSize, char* buf) const;
+	CompressionFormat m_Format;
+	int m_Level;
 	bool m_Delta;
 };
