@@ -6,6 +6,9 @@
 
 #include <assert.h> // ndzip needs it
 #include <ndzip/ndzip.hh>
+#include <streamvbyte.h>
+#include <streamvbytedelta.h>
+
 
 template<typename T>
 static void EncodeDeltaDif(T* data, size_t dataElems)
@@ -360,4 +363,30 @@ void NdzipCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data
 void NdzipCompressor::PrintName(size_t bufSize, char* buf) const
 {
 	snprintf(buf, bufSize, "ndzip");
+}
+
+uint8_t* StreamVByteCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+{
+	uint32_t dataElems = width * height * channels;
+	size_t bound = streamvbyte_max_compressedbytes(dataElems);
+	uint8_t* cmp = new uint8_t[bound];
+	if (m_Delta)
+		outSize = streamvbyte_delta_encode((const uint32_t*)data, dataElems, cmp, 0);
+	else
+		outSize = streamvbyte_encode((const uint32_t*)data, dataElems, cmp);
+	return cmp;
+}
+
+void StreamVByteCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
+{
+	uint32_t dataElems = width * height * channels;
+	if (m_Delta)
+		streamvbyte_delta_decode(cmp, (uint32_t*)data, dataElems, 0);
+	else
+		streamvbyte_decode(cmp, (uint32_t*)data, dataElems);
+}
+
+void StreamVByteCompressor::PrintName(size_t bufSize, char* buf) const
+{
+	snprintf(buf, bufSize, m_Delta ? "streamvbyte_d" : "streamvbyte");
 }

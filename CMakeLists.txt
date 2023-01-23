@@ -78,6 +78,14 @@ set(NDZIP_WITH_CUDA OFF)
 set(NDZIP_WITH_3RDPARTY_BENCHMARKS OFF)
 FetchContent_MakeAvailable(ndzip)
 
+# streamvbyte
+FetchContent_Declare(
+	streamvbyte
+	URL https://github.com/lemire/streamvbyte/archive/04a32663dad2393b8be5eecae5d767169cfb3c37.zip # latest main branch at time of writing (2023 Jan)
+)
+set(STREAMVBYTE_ENABLE_TESTS OFF)
+FetchContent_MakeAvailable(streamvbyte)
+
 
 project ("float_compr_tester")
 
@@ -101,6 +109,7 @@ target_link_libraries(float_compr_tester PRIVATE
 	fpzip
 	zfp
 	ndzip
+	streamvbyte_static
 )
 
 target_compile_definitions(float_compr_tester PRIVATE
