@@ -61,107 +61,107 @@ static void DecodeDeltaXor(T* data, size_t dataElems)
 	}
 }
 
-uint8_t* GenericCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+template<typename T>
+static void Transpose(const T* src, T* dst, int channels, int planeElems)
 {
-	size_t planeElems = width * height;
-	size_t dataElems = planeElems * channels;
-	size_t dataSize = dataElems * sizeof(float);
-	uint8_t* tmp = (uint8_t*)data;
-	if (m_Flags != kFlagNone)
+	for (int ich = 0; ich < channels; ++ich)
 	{
-		tmp = new uint8_t[dataSize];
-		if ((m_Flags & kFlagSplitFloats) != 0)
+		const T* ptr = src + ich;
+		for (int ip = 0; ip < planeElems; ++ip)
 		{
-			float* dst = (float*)tmp;
-			for (int ich = 0; ich < channels; ++ich)
-			{
-				const float* src = data + ich;
-				for (int ip = 0; ip < planeElems; ++ip)
-				{
-					*dst = *src;
-					src += channels;
-					dst += 1;
-				}
-			}
-			if ((m_Flags & kFlagDeltaDiff) != 0) EncodeDeltaDif((uint32_t*)tmp, dataElems);
-			if ((m_Flags & kFlagDeltaXor) != 0) EncodeDeltaXor((uint32_t*)tmp, dataElems);
-		}
-		if ((m_Flags & kFlagSplitBytes) != 0)
-		{
-			int stride = channels * sizeof(float);
-			uint8_t* dst = tmp;
-			for (int is = 0; is < stride; ++is)
-			{
-				const uint8_t* src = (const uint8_t*)data + is;
-				for (int ip = 0; ip < planeElems; ++ip)
-				{
-					*dst = *src;
-					src += stride;
-					dst += 1;
-				}
-			}
-			if ((m_Flags & kFlagDeltaDiff) != 0) EncodeDeltaDif((uint8_t*)tmp, dataSize);
-			if ((m_Flags & kFlagDeltaXor) != 0) EncodeDeltaXor((uint8_t*)tmp, dataSize);
+			*dst = *ptr;
+			ptr += channels;
+			dst += 1;
 		}
 	}
+}
+
+template<typename T>
+static void UnTranspose(const T* src, T* dst, int channels, int planeElems)
+{
+	for (int ich = 0; ich < channels; ++ich)
+	{
+		T* ptr = dst + ich;
+		for (int ip = 0; ip < planeElems; ++ip)
+		{
+			*ptr = *src;
+			src += 1;
+			ptr += channels;
+		}
+	}
+}
+
+static uint8_t* CompressionFilter(uint32_t filter, const float* data, int width, int height, int channels)
+{
+	uint8_t* tmp = (uint8_t*)data;
+	if (filter != kFilterNone)
+	{
+		int planeElems = width * height;
+		int dataSize = planeElems * channels * sizeof(float);
+		tmp = new uint8_t[dataSize];
+		if ((filter & kFilterSplitFloats) != 0)
+		{
+			int dataElems = planeElems * channels;
+			Transpose(data, (float*)tmp, channels, planeElems);
+			if ((filter & kFilterDeltaDiff) != 0) EncodeDeltaDif((uint32_t*)tmp, dataElems);
+			if ((filter & kFilterDeltaXor) != 0) EncodeDeltaXor((uint32_t*)tmp, dataElems);
+		}
+		if ((filter & kFilterSplitBytes) != 0)
+		{
+			Transpose((uint8_t*)data, tmp, channels * sizeof(float), planeElems);
+			if ((filter & kFilterDeltaDiff) != 0) EncodeDeltaDif((uint8_t*)tmp, dataSize);
+			if ((filter & kFilterDeltaXor) != 0) EncodeDeltaXor((uint8_t*)tmp, dataSize);
+		}
+	}
+	return tmp;
+}
+
+static void DecompressionFilter(uint32_t filter, uint8_t* tmp, float* data, int width, int height, int channels)
+{
+	if (filter != kFilterNone)
+	{
+		int planeElems = width * height;
+		if ((filter & kFilterSplitFloats) != 0)
+		{
+			int dataElems = planeElems * channels;
+			if ((filter & kFilterDeltaDiff) != 0) DecodeDeltaDif((uint32_t*)tmp, dataElems);
+			if ((filter & kFilterDeltaXor) != 0) DecodeDeltaXor((uint32_t*)tmp, dataElems);
+			UnTranspose((const float*)tmp, data, channels, planeElems);
+		}
+		if ((filter & kFilterSplitBytes) != 0)
+		{
+			int dataSize = planeElems * channels * sizeof(float);
+			if ((filter & kFilterDeltaDiff) != 0) DecodeDeltaDif(tmp, dataSize);
+			if ((filter & kFilterDeltaXor) != 0) DecodeDeltaXor(tmp, dataSize);
+			UnTranspose(tmp, (uint8_t*)data, channels * sizeof(float), planeElems);
+		}
+		delete[] tmp;
+	}
+}
+
+
+uint8_t* GenericCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+{
+	size_t dataSize = width * height * channels * sizeof(float);
+	uint8_t* tmp = CompressionFilter(m_Filter, data, width, height, channels);
 
 	size_t bound = compress_calc_bound(dataSize, m_Format);
 	uint8_t* cmp = new uint8_t[bound];
 	outSize = compress_data(tmp, dataSize, cmp, bound, m_Format, m_Level);
 
-	if (m_Flags != kFlagNone)
-		delete[] tmp;
+	if (m_Filter != kFilterNone) delete[] tmp;
 	return cmp;
 }
 
 void GenericCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
 {
-	size_t planeElems = width * height;
-	size_t dataElems = planeElems * channels;
-	size_t dataSize = dataElems * sizeof(float);
+	size_t dataSize = width * height * channels * sizeof(float);
 	uint8_t* tmp = (uint8_t*)data;
-	if (m_Flags != kFlagNone)
-		tmp = new uint8_t[dataSize];
+	if (m_Filter != kFilterNone) tmp = new uint8_t[dataSize];
 
 	decompress_data(cmp, cmpSize, tmp, dataSize, m_Format);
 
-	if (m_Flags != kFlagNone)
-	{
-		if ((m_Flags & kFlagSplitFloats) != 0)
-		{
-			if ((m_Flags & kFlagDeltaDiff) != 0) DecodeDeltaDif((uint32_t*)tmp, dataElems);
-			if ((m_Flags & kFlagDeltaXor) != 0) DecodeDeltaXor((uint32_t*)tmp, dataElems);
-			const float* src = (const float*)tmp;
-			for (int ich = 0; ich < channels; ++ich)
-			{
-				float* dst = data + ich;
-				for (int ip = 0; ip < planeElems; ++ip)
-				{
-					*dst = *src;
-					src += 1;
-					dst += channels;
-				}
-			}
-		}
-		if ((m_Flags & kFlagSplitBytes) != 0)
-		{
-			if ((m_Flags & kFlagDeltaDiff) != 0) DecodeDeltaDif((uint8_t*)tmp, dataSize);
-			if ((m_Flags & kFlagDeltaXor) != 0) DecodeDeltaXor((uint8_t*)tmp, dataSize);
-			int stride = channels * sizeof(float);
-			const uint8_t* src = tmp;
-			for (int is = 0; is < stride; ++is)
-			{
-				uint8_t* dst = (uint8_t*)data + is;
-				for (int ip = 0; ip < planeElems; ++ip)
-				{
-					*dst = *src;
-					src += 1;
-					dst += stride;
-				}
-			}
-		}
-		delete[] tmp;
-	}
+	DecompressionFilter(m_Filter, tmp, data, width, height, channels);
 }
 
 static const char* kCompressionFormatNames[kCompressionCount] = {
@@ -172,25 +172,29 @@ static const char* kCompressionFormatNames[kCompressionCount] = {
 void GenericCompressor::PrintName(size_t bufSize, char* buf) const
 {
 	const char* flag = "";
-	if ((m_Flags & kFlagSplitFloats) != 0)
+	if ((m_Filter & kFilterSplitFloats) != 0)
 		flag = "sf";
-	if ((m_Flags & kFlagSplitBytes) != 0)
+	if ((m_Filter & kFilterSplitBytes) != 0)
 		flag = "sb";
 	const char* delta = "";
-	if ((m_Flags & kFlagDeltaDiff) != 0)
+	if ((m_Filter & kFilterDeltaDiff) != 0)
 		delta = "_dif";
-	if ((m_Flags & kFlagDeltaXor) != 0)
+	if ((m_Filter & kFilterDeltaXor) != 0)
 		delta = "_xor";
 	snprintf(buf, bufSize, "%s-%i%s%s", kCompressionFormatNames[m_Format], m_Level, flag, delta);
 }
 
 uint8_t* MeshOptCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
 {
-	int stride = channels * sizeof(float);
-	int vertexCount = width * height;
+	uint8_t* tmp = CompressionFilter(m_Filter, data, width, height, channels);
+
+	int stride = (m_Filter & kFilterSplitFloats) ? sizeof(float) : channels * sizeof(float);
+	size_t dataSize = width * height * channels * sizeof(float);
+	int vertexCount = dataSize / stride;
 	size_t moBound = compress_meshopt_vertex_attribute_bound(vertexCount, stride);
 	uint8_t* moCmp = new uint8_t[moBound];
-	size_t moSize = compress_meshopt_vertex_attribute(data, vertexCount, stride, moCmp, moBound);
+	size_t moSize = compress_meshopt_vertex_attribute(tmp, vertexCount, stride, moCmp, moBound);
+	if (m_Filter != kFilterNone) delete[] tmp;
 	if (m_Format == kCompressionCount)
 	{
 		outSize = moSize;
@@ -206,20 +210,24 @@ uint8_t* MeshOptCompressor::Compress(const float* data, int width, int height, i
 
 void MeshOptCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
 {
-	int stride = channels * sizeof(float);
-	int vertexCount = width * height;
+	size_t dataSize = width * height * channels * sizeof(float);
+	uint8_t* tmp = (uint8_t*)data;
+	if (m_Filter != kFilterNone) tmp = new uint8_t[dataSize];
+
+	int stride = (m_Filter & kFilterSplitFloats) ? sizeof(float) : channels * sizeof(float);
+	int vertexCount = dataSize / stride;
 	if (m_Format == kCompressionCount)
 	{
-		decompress_meshopt_vertex_attribute(cmp, cmpSize, vertexCount, stride, data);
+		decompress_meshopt_vertex_attribute(cmp, cmpSize, vertexCount, stride, tmp);
 	}
 	else
 	{
-		size_t dataSize = width * height * channels * sizeof(float);
-		uint8_t* tmp = new uint8_t[dataSize];
-		size_t tmpSize = decompress_data(cmp, cmpSize, tmp, dataSize, m_Format);
-		decompress_meshopt_vertex_attribute(tmp, tmpSize, vertexCount, stride, data);
-		delete[] tmp;
+		uint8_t* decomp = new uint8_t[dataSize];
+		size_t decompSize = decompress_data(cmp, cmpSize, decomp, dataSize, m_Format);
+		decompress_meshopt_vertex_attribute(decomp, decompSize, vertexCount, stride, tmp);
+		delete[] decomp;
 	}
+	DecompressionFilter(m_Filter, tmp, data, width, height, channels);
 }
 
 void MeshOptCompressor::PrintName(size_t bufSize, char* buf) const
