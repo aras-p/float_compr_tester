@@ -7,6 +7,59 @@
 #include <assert.h> // ndzip needs it
 #include <ndzip/ndzip.hh>
 
+template<typename T>
+static void EncodeDeltaDif(T* data, size_t dataElems)
+{
+	T prev = 0;
+	for (size_t i = 0; i < dataElems; ++i)
+	{
+		T v = *data;
+		*data = v - prev;
+		prev = v;
+		++data;
+	}
+}
+
+template<typename T>
+static void DecodeDeltaDif(T* data, size_t dataElems)
+{
+	T prev = 0;
+	for (size_t i = 0; i < dataElems; ++i)
+	{
+		T v = *data;
+		v = prev + v;
+		*data = v;
+		prev = v;
+		++data;
+	}
+}
+
+template<typename T>
+static void EncodeDeltaXor(T* data, size_t dataElems)
+{
+	T prev = 0;
+	for (size_t i = 0; i < dataElems; ++i)
+	{
+		T v = *data;
+		*data = v ^ prev;
+		prev = v;
+		++data;
+	}
+}
+
+template<typename T>
+static void DecodeDeltaXor(T* data, size_t dataElems)
+{
+	T prev = 0;
+	for (size_t i = 0; i < dataElems; ++i)
+	{
+		T v = *data;
+		v = prev ^ v;
+		*data = v;
+		prev = v;
+		++data;
+	}
+}
 
 uint8_t* GenericCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
 {
@@ -30,30 +83,8 @@ uint8_t* GenericCompressor::Compress(const float* data, int width, int height, i
 					dst += 1;
 				}
 			}
-			if ((m_Flags & kFlagDeltaDiff) != 0)
-			{
-				uint32_t prev = 0;
-				uint32_t* ptr = (uint32_t*)tmp;
-				for (size_t i = 0; i < dataElems; ++i)
-				{
-					uint32_t v = *ptr;
-					*ptr = v - prev;
-					prev = v;
-					++ptr;
-				}
-			}
-			if ((m_Flags & kFlagDeltaXor) != 0)
-			{
-				uint32_t prev = 0;
-				uint32_t* ptr = (uint32_t*)tmp;
-				for (size_t i = 0; i < dataElems; ++i)
-				{
-					uint32_t v = *ptr;
-					*ptr = v ^ prev;
-					prev = v;
-					++ptr;
-				}
-			}
+			if ((m_Flags & kFlagDeltaDiff) != 0) EncodeDeltaDif((uint32_t*)tmp, dataElems);
+			if ((m_Flags & kFlagDeltaXor) != 0) EncodeDeltaXor((uint32_t*)tmp, dataElems);
 		}
 		if ((m_Flags & kFlagSplitBytes) != 0)
 		{
@@ -69,6 +100,8 @@ uint8_t* GenericCompressor::Compress(const float* data, int width, int height, i
 					dst += 1;
 				}
 			}
+			if ((m_Flags & kFlagDeltaDiff) != 0) EncodeDeltaDif((uint8_t*)tmp, dataSize);
+			if ((m_Flags & kFlagDeltaXor) != 0) EncodeDeltaXor((uint8_t*)tmp, dataSize);
 		}
 	}
 
@@ -96,32 +129,8 @@ void GenericCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 	{
 		if ((m_Flags & kFlagSplitFloats) != 0)
 		{
-			if ((m_Flags & kFlagDeltaDiff) != 0)
-			{
-				uint32_t prev = 0;
-				uint32_t* ptr = (uint32_t*)tmp;
-				for (size_t i = 0; i < dataElems; ++i)
-				{
-					uint32_t v = *ptr;
-					v = prev + v;
-					*ptr = v;
-					prev = v;
-					++ptr;
-				}
-			}
-			if ((m_Flags & kFlagDeltaXor) != 0)
-			{
-				uint32_t prev = 0;
-				uint32_t* ptr = (uint32_t*)tmp;
-				for (size_t i = 0; i < dataElems; ++i)
-				{
-					uint32_t v = *ptr;
-					v = prev ^ v;
-					*ptr = v;
-					prev = v;
-					++ptr;
-				}
-			}
+			if ((m_Flags & kFlagDeltaDiff) != 0) DecodeDeltaDif((uint32_t*)tmp, dataElems);
+			if ((m_Flags & kFlagDeltaXor) != 0) DecodeDeltaXor((uint32_t*)tmp, dataElems);
 			const float* src = (const float*)tmp;
 			for (int ich = 0; ich < channels; ++ich)
 			{
@@ -136,6 +145,8 @@ void GenericCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 		}
 		if ((m_Flags & kFlagSplitBytes) != 0)
 		{
+			if ((m_Flags & kFlagDeltaDiff) != 0) DecodeDeltaDif((uint8_t*)tmp, dataSize);
+			if ((m_Flags & kFlagDeltaXor) != 0) DecodeDeltaXor((uint8_t*)tmp, dataSize);
 			int stride = channels * sizeof(float);
 			const uint8_t* src = tmp;
 			for (int is = 0; is < stride; ++is)

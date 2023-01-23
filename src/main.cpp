@@ -119,12 +119,18 @@ static void TestCompressors()
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitBytes));		// 15.142 0.161 0.096
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitBytes));	// 14.338 0.606 0.092
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, GenericCompressor::kFlagSplitBytes));		// 17.791 0.093 0.078
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitBytes | GenericCompressor::kFlagDeltaDiff));		// 13.415 0.188 0.127
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitBytes | GenericCompressor::kFlagDeltaDiff));	// 12.864 0.731 0.119
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, GenericCompressor::kFlagSplitBytes | GenericCompressor::kFlagDeltaDiff));		// 17.000 0.119 0.098
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, GenericCompressor::kFlagSplitBytes | GenericCompressor::kFlagDeltaXor));		// 14.081 0.191 0.121
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, GenericCompressor::kFlagSplitBytes | GenericCompressor::kFlagDeltaXor));		// 13.522 0.695 0.117
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, GenericCompressor::kFlagSplitBytes | GenericCompressor::kFlagDeltaXor));		// 17.637 0.117 0.101
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, 0)); // 17.535 0.113 0.017
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 3));  // 14.324 0.221 0.034
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 10)); // 13.786 0.459 0.035
 	//g_Compressors.emplace_back(new FpzipCompressor()); // 46.544 0.511 0.559
-	g_Compressors.emplace_back(new ZfpCompressor()); // 59.872 0.256 0.152
-	g_Compressors.emplace_back(new NdzipCompressor()); // 52.415 0.206 0.232
+	//g_Compressors.emplace_back(new ZfpCompressor()); // 59.872 0.256 0.152
+	//g_Compressors.emplace_back(new NdzipCompressor()); // 52.415 0.206 0.232
 
 	std::vector<float> decompressed(kWidth * kHeight * kChannels);
 	std::vector<size_t> sizes(g_Compressors.size());
