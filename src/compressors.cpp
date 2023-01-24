@@ -174,17 +174,13 @@ static const char* kCompressionFormatNames[kCompressionCount] = {
 
 void GenericCompressor::PrintName(size_t bufSize, char* buf) const
 {
-	const char* flag = "";
-	if ((m_Filter & kFilterSplitFloats) != 0)
-		flag = "sf";
-	if ((m_Filter & kFilterSplitBytes) != 0)
-		flag = "sb";
+	const char* split = "";
+	if ((m_Filter & kFilterSplitFloats) != 0) split = "sf";
+	if ((m_Filter & kFilterSplitBytes) != 0) split = "sb";
 	const char* delta = "";
-	if ((m_Filter & kFilterDeltaDiff) != 0)
-		delta = "_dif";
-	if ((m_Filter & kFilterDeltaXor) != 0)
-		delta = "_xor";
-	snprintf(buf, bufSize, "%s-%i%s%s", kCompressionFormatNames[m_Format], m_Level, flag, delta);
+	if ((m_Filter & kFilterDeltaDiff) != 0) delta = "_dif";
+	if ((m_Filter & kFilterDeltaXor) != 0) delta = "_xor";
+	snprintf(buf, bufSize, "%s-%i%s%s", kCompressionFormatNames[m_Format], m_Level, split, delta);
 }
 
 static uint8_t* CompressGeneric(CompressionFormat format, int level, uint8_t* data, size_t dataSize, size_t& outSize)
@@ -249,10 +245,16 @@ void MeshOptCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 
 void MeshOptCompressor::PrintName(size_t bufSize, char* buf) const
 {
+	const char* split = "";
+	if ((m_Filter & kFilterSplitFloats) != 0) split = "_sf";
+	if ((m_Filter & kFilterSplitBytes) != 0) split = "_sb";
+	const char* delta = "";
+	if ((m_Filter & kFilterDeltaDiff) != 0) delta = "_dif";
+	if ((m_Filter & kFilterDeltaXor) != 0) delta = "_xor";
 	if (m_Format == kCompressionCount)
-		snprintf(buf, bufSize, "meshopt");
+		snprintf(buf, bufSize, "meshopt%s%s", split, delta);
 	else
-		snprintf(buf, bufSize, "meshopt-%s-%i", kCompressionFormatNames[m_Format], m_Level);
+		snprintf(buf, bufSize, "meshopt-%s-%i%s%s", kCompressionFormatNames[m_Format], m_Level, split, delta);
 }
 
 uint8_t* FpzipCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
@@ -408,5 +410,8 @@ void StreamVByteCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float
 
 void StreamVByteCompressor::PrintName(size_t bufSize, char* buf) const
 {
-	snprintf(buf, bufSize, m_Delta ? "streamvbyte_d" : "streamvbyte");
+	if (m_Format == kCompressionCount)
+		snprintf(buf, bufSize, "streamvbyte%s", m_Delta ? "_d" : "");
+	else
+		snprintf(buf, bufSize, "streamvbyte-%s-%i%s", kCompressionFormatNames[m_Format], m_Level, m_Delta ? "_d" : "");	
 }

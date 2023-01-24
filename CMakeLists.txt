@@ -114,4 +114,5 @@ target_link_libraries(float_compr_tester PRIVATE
 
 target_compile_definitions(float_compr_tester PRIVATE
 	_CRT_SECURE_NO_DEPRECATE
+	NOMINMAX
 )
