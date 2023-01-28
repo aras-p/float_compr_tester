@@ -9,6 +9,9 @@
 #include <streamvbyte.h>
 #include <streamvbytedelta.h>
 
+static const int kZstdLevelMin = -5;
+static const int kZstdLevelMax = 15; //@TODO: 21
+
 
 template<typename T>
 static void EncodeDeltaDif(T* data, size_t dataElems)
@@ -143,14 +146,14 @@ static void DecompressionFilter(uint32_t filter, uint8_t* tmp, float* data, int 
 }
 
 
-uint8_t* GenericCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+uint8_t* GenericCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
 	size_t dataSize = width * height * channels * sizeof(float);
 	uint8_t* tmp = CompressionFilter(m_Filter, data, width, height, channels);
 
 	size_t bound = compress_calc_bound(dataSize, m_Format);
 	uint8_t* cmp = new uint8_t[bound];
-	outSize = compress_data(tmp, dataSize, cmp, bound, m_Format, m_Level);
+	outSize = compress_data(tmp, dataSize, cmp, bound, m_Format, level);
 
 	if (m_Filter != kFilterNone) delete[] tmp;
 	return cmp;
@@ -180,8 +183,89 @@ void GenericCompressor::PrintName(size_t bufSize, char* buf) const
 	const char* delta = "";
 	if ((m_Filter & kFilterDeltaDiff) != 0) delta = "_dif";
 	if ((m_Filter & kFilterDeltaXor) != 0) delta = "_xor";
-	snprintf(buf, bufSize, "%s-%i%s%s", kCompressionFormatNames[m_Format], m_Level, split, delta);
+	snprintf(buf, bufSize, "%s%s%s", kCompressionFormatNames[m_Format], split, delta);
 }
+
+/*
+'#04640e', green
+'#0c9618',
+'#12b520',
+'#3fd24c',
+'#b0b0b0', gray
+'#00ecdf', cyan
+'#00bfa7',
+'#00786a',
+purple:
+'#e0b7cc',
+'#d57292',
+'#a66476',
+'#6d525b',
+orange:
+'#ffac8d', 
+'#ff6454',
+'#de5546',
+'#a64436',
+blue:
+'#006fb1',
+'#0094ef',
+'#00b2ff',
+'#49ddff',
+purple:
+'#ffb0ff', 
+'#dc74ff',
+'#8a4b9d',
+*/
+
+uint32_t GenericCompressor::GetColor() const
+{
+	if (m_Format == kCompressionZstd)
+	{
+		// green
+		//if (m_Level <=  3) return 0x04640e;
+		//if (m_Level <=  7) return 0x0c9618;
+		//if (m_Level <= 11) return 0x12b520;
+		//if (m_Level <= 15) return 0x3fd24c;
+		//return 0x7ce685;
+		return 0x0c9618;
+	}
+	if (m_Format == kCompressionLZ4)
+	{
+		// yellow: 6f6500 b19f00 dcd35e
+		return 0xb19f00;
+	}
+	return 0;
+}
+
+static const char* GetGenericShape(uint filter)
+{
+	if ((filter & kFilterSplitBytes) && (filter & kFilterDeltaDiff)) return "{type:'square', rotation: 45}}";
+	if ((filter & kFilterSplitBytes) && (filter & kFilterDeltaXor))  return "{type:'star', sides:4, dent: 0.5}}";
+	if ((filter & kFilterSplitBytes)) return "'square'";
+	if ((filter & kFilterSplitFloats) && (filter & kFilterDeltaDiff)) return "{type:'triangle', rotation: 30}}";
+	if ((filter & kFilterSplitFloats) && (filter & kFilterDeltaXor))  return "{type:'triangle', rotation: -30}}";
+	if ((filter & kFilterSplitFloats)) return "'triangle'";
+	return "'circle'";
+}
+
+const char* GenericCompressor::GetShapeString() const
+{
+	return GetGenericShape(m_Filter);
+}
+
+static void GetGenericLevelRange(CompressionFormat format, int& outMin, int& outMax)
+{
+	switch (format)
+	{
+	case kCompressionZstd: outMin = kZstdLevelMin; outMax = kZstdLevelMax; break;
+	default: outMin = 0; outMax = 0; break;
+	}
+}
+
+void GenericCompressor::GetLevelRange(int& outMin, int& outMax) const
+{
+	GetGenericLevelRange(m_Format, outMin, outMax);
+}
+
 
 static uint8_t* CompressGeneric(CompressionFormat format, int level, uint8_t* data, size_t dataSize, size_t& outSize)
 {
@@ -197,7 +281,7 @@ static uint8_t* CompressGeneric(CompressionFormat format, int level, uint8_t* da
 	return cmp;
 }
 
-static uint8_t* DecompressGeneric(CompressionFormat format, int level, const uint8_t* cmp, size_t cmpSize, size_t& outSize)
+static uint8_t* DecompressGeneric(CompressionFormat format, const uint8_t* cmp, size_t cmpSize, size_t& outSize)
 {
 	if (format == kCompressionCount)
 	{
@@ -211,7 +295,7 @@ static uint8_t* DecompressGeneric(CompressionFormat format, int level, const uin
 }
 
 
-uint8_t* MeshOptCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+uint8_t* MeshOptCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
 	uint8_t* tmp = CompressionFilter(m_Filter, data, width, height, channels);
 
@@ -222,7 +306,7 @@ uint8_t* MeshOptCompressor::Compress(const float* data, int width, int height, i
 	uint8_t* moCmp = new uint8_t[moBound];
 	size_t moSize = compress_meshopt_vertex_attribute(tmp, vertexCount, stride, moCmp, moBound);
 	if (m_Filter != kFilterNone) delete[] tmp;
-	return CompressGeneric(m_Format, m_Level, moCmp, moSize, outSize);
+	return CompressGeneric(m_Format, level, moCmp, moSize, outSize);
 }
 
 void MeshOptCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
@@ -233,7 +317,7 @@ void MeshOptCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 	int vertexCount = dataSize / stride;
 
 	size_t decompSize;
-	uint8_t* decomp = DecompressGeneric(m_Format, m_Level, cmp, cmpSize, decompSize);
+	uint8_t* decomp = DecompressGeneric(m_Format, cmp, cmpSize, decompSize);
 
 	uint8_t* tmp = (uint8_t*)data;
 	if (m_Filter != kFilterNone) tmp = new uint8_t[dataSize];
@@ -241,6 +325,11 @@ void MeshOptCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 	if (decomp != cmp) delete[] decomp;
 
 	DecompressionFilter(m_Filter, tmp, data, width, height, channels);
+}
+
+void MeshOptCompressor::GetLevelRange(int& outMin, int& outMax) const
+{
+	GetGenericLevelRange(m_Format, outMin, outMax);
 }
 
 void MeshOptCompressor::PrintName(size_t bufSize, char* buf) const
@@ -254,10 +343,23 @@ void MeshOptCompressor::PrintName(size_t bufSize, char* buf) const
 	if (m_Format == kCompressionCount)
 		snprintf(buf, bufSize, "meshopt%s%s", split, delta);
 	else
-		snprintf(buf, bufSize, "meshopt-%s-%i%s%s", kCompressionFormatNames[m_Format], m_Level, split, delta);
+		snprintf(buf, bufSize, "meshopt-%s%s%s", kCompressionFormatNames[m_Format], split, delta);
 }
 
-uint8_t* FpzipCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+uint32_t MeshOptCompressor::GetColor() const
+{
+	// blue
+	if (m_Format == kCompressionZstd) return 0x00b2ff;
+	if (m_Format == kCompressionLZ4) return 0x49ddff;
+	return 0x006fb1;
+}
+
+const char* MeshOptCompressor::GetShapeString() const
+{
+	return GetGenericShape(m_Filter);
+}
+
+uint8_t* FpzipCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
 	size_t dataSize = width * height * channels * sizeof(float);
 	size_t bound = dataSize; //@TODO: what's the max compression bound?
@@ -293,7 +395,7 @@ void FpzipCompressor::PrintName(size_t bufSize, char* buf) const
 	snprintf(buf, bufSize, "fpzip");
 }
 
-uint8_t* ZfpCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+uint8_t* ZfpCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
 	zfp_field field = {};
 	field.type = zfp_type_float;
@@ -352,7 +454,7 @@ void ZfpCompressor::PrintName(size_t bufSize, char* buf) const
 	snprintf(buf, bufSize, "zfp");
 }
 
-uint8_t* NdzipCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+uint8_t* NdzipCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
 	// ndzip seems to have trouble if we try to do channels*width*height 3 dimensions
 	// (does not handle dimension size < 16?), so do a 2D case instead
@@ -381,7 +483,7 @@ void NdzipCompressor::PrintName(size_t bufSize, char* buf) const
 	snprintf(buf, bufSize, "ndzip");
 }
 
-uint8_t* StreamVByteCompressor::Compress(const float* data, int width, int height, int channels, size_t& outSize)
+uint8_t* StreamVByteCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
 	uint32_t dataElems = width * height * channels;
 	size_t bound = streamvbyte_max_compressedbytes(dataElems);
@@ -392,13 +494,13 @@ uint8_t* StreamVByteCompressor::Compress(const float* data, int width, int heigh
 	else
 		cmpSize = streamvbyte_encode((const uint32_t*)data, dataElems, cmp);
 
-	return CompressGeneric(m_Format, m_Level, cmp, cmpSize, outSize);
+	return CompressGeneric(m_Format, level, cmp, cmpSize, outSize);
 }
 
 void StreamVByteCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
 {
 	size_t decompSize;
-	uint8_t* decomp = DecompressGeneric(m_Format, m_Level, cmp, cmpSize, decompSize);
+	uint8_t* decomp = DecompressGeneric(m_Format, cmp, cmpSize, decompSize);
 
 	uint32_t dataElems = width * height * channels;
 	if (m_Delta)
@@ -408,10 +510,15 @@ void StreamVByteCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float
 	if (decomp != cmp) delete[] decomp;
 }
 
+void StreamVByteCompressor::GetLevelRange(int& outMin, int& outMax) const
+{
+	GetGenericLevelRange(m_Format, outMin, outMax);
+}
+
 void StreamVByteCompressor::PrintName(size_t bufSize, char* buf) const
 {
 	if (m_Format == kCompressionCount)
 		snprintf(buf, bufSize, "streamvbyte%s", m_Delta ? "_d" : "");
 	else
-		snprintf(buf, bufSize, "streamvbyte-%s-%i%s", kCompressionFormatNames[m_Format], m_Level, m_Delta ? "_d" : "");	
+		snprintf(buf, bufSize, "streamvbyte-%s%s", kCompressionFormatNames[m_Format], m_Delta ? "_d" : "");	
 }

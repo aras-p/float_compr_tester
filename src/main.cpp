@@ -142,6 +142,37 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 {
 	const int kRuns = 1;
 
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
+	/*
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitFloats));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes | kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes | kFilterDeltaXor));
+
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount));
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, kFilterSplitFloats));
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd,  kFilterSplitFloats));
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, kFilterSplitFloats | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd,  kFilterSplitFloats | kFilterDeltaDiff));
+
+	g_Compressors.emplace_back(new FpzipCompressor());
+	g_Compressors.emplace_back(new ZfpCompressor());
+	g_Compressors.emplace_back(new NdzipCompressor());
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false));
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false));
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, true));
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true));
+	*/
+
+	/*
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3));											// 23.044 0.187 0.064
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10));										// 21.800 1.240 0.060
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0));											// 32.669 0.062 0.016
@@ -179,6 +210,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, 3, false));								// 24.358 0.163 0.079
 	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, 0, true));								// 62.582 0.014 0.008
 	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, 3, true));								// 32.662 0.129 0.086
+	*/
 
 	size_t maxFloats = 0, totalFloats = 0;
 	for (int tfi = 0; tfi < testFileCount; ++tfi)
@@ -192,9 +224,22 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	}
 
 	std::vector<float> decompressed(maxFloats);
-	std::vector<size_t> sizes(g_Compressors.size());
-	std::vector<double> cmpTimes(g_Compressors.size());
-	std::vector<double> decompTimes(g_Compressors.size());
+
+	struct Result
+	{
+		size_t size = 0;
+		double cmpTime = 0;
+		double decTime = 0;
+	};
+	typedef std::vector<Result> LevelResults;
+	std::vector<LevelResults> results;
+	for (auto* cmp : g_Compressors)
+	{
+		int levelMin, levelMax;
+		cmp->GetLevelRange(levelMin, levelMax);
+		LevelResults res(levelMax - levelMin + 1);
+		results.emplace_back(res);
+	}
 
 	char cmpName[1000];
 	for (int ir = 0; ir < kRuns; ++ir)
@@ -203,44 +248,56 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 		{
 			Compressor* cmp = g_Compressors[ic];
-			printf(".");
-			for (int tfi = 0; tfi < testFileCount; ++tfi)
+			cmp->PrintName(sizeof(cmpName), cmpName);
+			int levelMin, levelMax;
+			cmp->GetLevelRange(levelMin, levelMax);
+			printf("%s: %i levels: ", cmpName, levelMax-levelMin+1);
+			for (int level = levelMin; level <= levelMax; ++level)
 			{
-				const TestFile& tf = testFiles[tfi];
-
-				// compress
-				size_t compressedSize = 0;
-				uint64_t t0 = stm_now();
-				uint8_t* compressed = cmp->Compress(tf.fileData.data(), tf.width, tf.height, tf.channels, compressedSize);
-				double tComp = stm_sec(stm_since(t0));
-
-				// decompress
-				memset(decompressed.data(), 0, 4 * tf.fileData.size());
-				t0 = stm_now();
-				cmp->Decompress(compressed, compressedSize, decompressed.data(), tf.width, tf.height, tf.channels);
-				double tDecomp = stm_sec(stm_since(t0));
-
-				// stats
-				sizes[ic] += compressedSize;
-				cmpTimes[ic] += tComp;
-				decompTimes[ic] += tDecomp;
-
-				// check validity
-				if (memcmp(tf.fileData.data(), decompressed.data(), 4 * tf.fileData.size()) != 0)
+				if (cmp->ShouldSkipLevel(level))
+					continue;
+				printf(".");
+				for (int tfi = 0; tfi < testFileCount; ++tfi)
 				{
-					cmp->PrintName(sizeof(cmpName), cmpName);
-					printf("  ERROR, %s did not decompress back to input\n", cmpName);
-					exit(1);
+					const TestFile& tf = testFiles[tfi];
+
+					// compress
+					size_t compressedSize = 0;
+					uint64_t t0 = stm_now();
+					uint8_t* compressed = cmp->Compress(level, tf.fileData.data(), tf.width, tf.height, tf.channels, compressedSize);
+					double tComp = stm_sec(stm_since(t0));
+
+					// decompress
+					memset(decompressed.data(), 0, 4 * tf.fileData.size());
+					t0 = stm_now();
+					cmp->Decompress(compressed, compressedSize, decompressed.data(), tf.width, tf.height, tf.channels);
+					double tDecomp = stm_sec(stm_since(t0));
+
+					// stats
+					auto& res = results[ic][level - levelMin];
+					res.size += compressedSize;
+					res.cmpTime += tComp;
+					res.decTime += tDecomp;
+
+					// check validity
+					if (memcmp(tf.fileData.data(), decompressed.data(), 4 * tf.fileData.size()) != 0)
+					{
+						cmp->PrintName(sizeof(cmpName), cmpName);
+						printf("  ERROR, %s level %i did not decompress back to input\n", cmpName, level);
+						exit(1);
+					}
+					delete[] compressed;
 				}
-				delete[] compressed;
 			}
 		}
 		printf("\n");
 	}
 
 	double oneMB = 1024.0 * 1024.0;
-	printf("Compressor             SizeMB CTimeS  DTimeS Ratio CMB/s DMB/s\n");
 	double rawSize = (double)(totalFloats * 4);
+	// print results to screen
+	/*
+	printf("Compressor             SizeMB CTimeS  DTimeS Ratio CMB/s DMB/s\n");
 	printf("%-22s %7.3f\n", "Raw", rawSize / oneMB);
 	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 	{
@@ -253,6 +310,90 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		double cspeed = rawSize / ctime;
 		double dspeed = rawSize / dtime;
 		printf("%-22s %7.3f %6.3f %6.3f %6.3f %5.0f %5.0f\n", cmpName, csize / oneMB, ctime, dtime, ratio, cspeed / oneMB, dspeed / oneMB);
+	}
+	*/
+
+	// print to HTML report page
+	FILE* fout = fopen("../../report.html", "wb");
+	fprintf(fout, "<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>\n");
+	fprintf(fout, "<center style='font-family: Arial;'>\n");
+	fprintf(fout, "<div id='chart_div' style='width: 1280px; height: 720px;'></div>\n");
+	fprintf(fout, "<p>TODO macOS, Intel(R) Core(TM) i9-8950HK CPU @ 2.90GHz</p>\n");
+	fprintf(fout, "<script type='text/javascript'>\n");
+	fprintf(fout, "google.charts.load('current', {'packages':['corechart']});\n");
+	fprintf(fout, "google.charts.setOnLoadCallback(drawChart);\n");
+	fprintf(fout, "function drawChart() {\n");
+	fprintf(fout, "var data = new google.visualization.DataTable();\n");
+	fprintf(fout, "data.addColumn('number', 'Throughput');\n");
+	for (auto* cmp : g_Compressors)
+	{
+		cmp->PrintName(sizeof(cmpName), cmpName);
+		fprintf(fout, "data.addColumn('number', '%s'); data.addColumn({type:'string', role:'tooltip'}); data.addColumn({type:'string', role:'style'});\n", cmpName);
+	}
+	fprintf(fout, "data.addRows([\n");
+	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
+	{
+		Compressor* cmp = g_Compressors[ic];
+		cmp->PrintName(sizeof(cmpName), cmpName);
+		int levelMin, levelMax;
+		cmp->GetLevelRange(levelMin, levelMax);
+		for (size_t ir = 0; ir < results[ic].size(); ++ir)
+		{
+			if (cmp->ShouldSkipLevel(ir + levelMin))
+				continue;
+			const Result& res = results[ic][ir];
+			double csize = (double)(res.size / kRuns);
+			double ctime = res.cmpTime / kRuns;
+			double dtime = res.decTime / kRuns;
+			double ratio = rawSize / csize;
+			double cspeed = rawSize / ctime;
+			double dspeed = rawSize / dtime;
+			fprintf(fout, "  [%.1f", cspeed / oneMB);
+			for (size_t j = 0; j < ic; ++j) fprintf(fout, ",null,null,null");
+			if (levelMin == levelMax)
+				fprintf(fout, ", %.3f,'%s','' ", ratio, cmpName);
+			else
+				fprintf(fout, ", %.3f,'%s %i','' ", ratio, cmpName, (int)(levelMin + ir));
+			for (size_t j = ic + 1; j < g_Compressors.size(); ++j) fprintf(fout, ",null,null,null");
+			fprintf(fout, "]%s\n", (ic == g_Compressors.size() - 1) && (ir == results[ic].size() - 1) ? "" : ",");
+		}
+	}
+	fprintf(fout, "]);\n");
+	fprintf(fout, "var options = {\n");
+	fprintf(fout, "title: 'Compression Ratio vs Throughput (%i runs, %zi files)',\n", kRuns, testFileCount);
+	fprintf(fout, "pointSize: 6,\n");
+	fprintf(fout, "series: {\n");
+	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
+	{
+		const Compressor* cmp = g_Compressors[ic];
+		fprintf(fout, "  %zi: {pointShape: %s},\n", ic, cmp->GetShapeString());
+	}
+	fprintf(fout, "  %zi: {},\n", g_Compressors.size());
+	fprintf(fout, "},\n");
+	//fprintf(fout, "colors: ['#12b520','#b0b0b0','#dcd35e','#b19f00','#6f6500','#00ecdf','#00bfa7','#00786a','#7ce685','#3fd24c','#12b520','#0c9618','#046f0e','#e0b7cc','#d57292','#a66476','#6d525b','#ffac8d','#ff6454','#de5546','#a64436','#49ddff','#00b2ff','#0094ef','#006fb1','#12b520','#046f0e','#ffb0ff','#dc74ff','#8a4b9d','#49ddff','#00b2ff','#0094ef','#006fb1','#12b520','#046f0e','#49ddff','#00b2ff','#0094ef','#006fb1','#12b520','#046f0e','#ffb0ff','#dc74ff','#8a4b9d','#ff9a44','#c86926','#00ebfc','#00becd','#007781','#808080'],\n");
+	fprintf(fout, "colors: [");
+	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
+	{
+		const Compressor* cmp = g_Compressors[ic];
+		uint32_t col = cmp->GetColor();
+		fprintf(fout, "'%02x%02x%02x'%s", (col >> 16)&0xFF, (col >> 8)&0xFF, col&0xFF, ic== g_Compressors.size()-1?"":",");
+	}
+	fprintf(fout, "],\n");
+	fprintf(fout, "hAxis: {title: 'Compression MB/s', logScale: true, viewWindow: {min:0.0,max:20000}},\n");
+	fprintf(fout, "vAxis: {title: 'Ratio', viewWindow: {min:0,max:6}},\n");
+	fprintf(fout, "chartArea: {left:60, right:250, top:50, bottom:50},\n");
+	fprintf(fout, "lineWidth: 1\n");
+	fprintf(fout, "};\n");
+	fprintf(fout, "var chart = new google.visualization.ScatterChart(document.getElementById('chart_div'));\n");
+	fprintf(fout, "chart.draw(data, options);\n");
+	fprintf(fout, "}\n");
+	fprintf(fout, "</script>\n");
+	fclose(fout);
+
+	// cleanup
+	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
+	{
+		Compressor* cmp = g_Compressors[ic];
 		delete cmp;
 	}
 	g_Compressors.clear();
@@ -263,9 +404,9 @@ int main()
 	stm_setup();
 
 	TestFile testFiles[] = {
-		{"../../../data/2048_sq_float4.bin", 2048, 2048, 4}, // water sim: X height, Y&Z velocity, W pollution
-		{"../../../data/1024_sq_float4.bin", 1024, 1024, 4}, // snow sim: X amount, Y in water amount, Z ground height, W unused
-		{"../../../data/232630_float4.bin", 232630, 1, 4}, // all sorts of float4 data (quaternions, colors, etc.)
+		//{"../../../data/2048_sq_float4.bin", 2048, 2048, 4}, // water sim: X height, Y&Z velocity, W pollution
+		//{"../../../data/1024_sq_float4.bin", 1024, 1024, 4}, // snow sim: X amount, Y in water amount, Z ground height, W unused
+		//{"../../../data/232630_float4.bin", 232630, 1, 4}, // all sorts of float4 data (quaternions, colors, etc.)
 		{"../../../data/953134_float3.bin", 953134, 1, 3}, // all sorts of float3 data (positions, scales, directions, ...)
 	};
 	for (auto& tf : testFiles)
