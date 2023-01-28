@@ -321,7 +321,6 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "<center style='font-family: Arial;'>\n");
 	fprintf(fout, "<div id='chart_cmp' style='width: 1280px; height: 640px;'></div>\n");
 	fprintf(fout, "<div id='chart_dec' style='width: 1280px; height: 320px;'></div>\n");
-	fprintf(fout, "<p>TODO macOS, Intel(R) Core(TM) i9-8950HK CPU @ 2.90GHz</p>\n");
 	fprintf(fout, "<script type='text/javascript'>\n");
 	fprintf(fout, "google.charts.load('current', {'packages':['corechart']});\n");
 	fprintf(fout, "google.charts.setOnLoadCallback(drawChart);\n");
