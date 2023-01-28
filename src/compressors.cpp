@@ -10,11 +10,11 @@
 #include <streamvbytedelta.h>
 
 static const int kZstdLevelMin = -5;
-static const int kZstdLevelMax = 10; //@TODO: 21
+static const int kZstdLevelMax = 21; //@TODO: 21
 static const int kLz4LevelMin = -5;
-static const int kLz4LevelMax = 5; //@TODO: 12
+static const int kLz4LevelMax = 12; //@TODO: 12
 static const int kZlibLevelMin = 1;
-static const int kZlibLevelMax = 5; //@TODO: 9
+static const int kZlibLevelMax = 9; //@TODO: 9
 
 
 template<typename T>
