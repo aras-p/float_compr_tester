@@ -10,7 +10,11 @@
 #include <streamvbytedelta.h>
 
 static const int kZstdLevelMin = -5;
-static const int kZstdLevelMax = 15; //@TODO: 21
+static const int kZstdLevelMax = 10; //@TODO: 21
+static const int kLz4LevelMin = -5;
+static const int kLz4LevelMax = 5; //@TODO: 12
+static const int kZlibLevelMin = 1;
+static const int kZlibLevelMax = 5; //@TODO: 9
 
 
 template<typename T>
@@ -173,6 +177,7 @@ void GenericCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 static const char* kCompressionFormatNames[kCompressionCount] = {
 	"zstd",
 	"lz4",
+	"zlib",
 };
 
 void GenericCompressor::PrintName(size_t bufSize, char* buf) const
@@ -233,6 +238,10 @@ uint32_t GenericCompressor::GetColor() const
 		// yellow: 6f6500 b19f00 dcd35e
 		return 0xb19f00;
 	}
+	if (m_Format == kCompressionZlib)
+	{
+		return 0x00bfa7; // cyan
+	}
 	return 0;
 }
 
@@ -257,6 +266,8 @@ static void GetGenericLevelRange(CompressionFormat format, int& outMin, int& out
 	switch (format)
 	{
 	case kCompressionZstd: outMin = kZstdLevelMin; outMax = kZstdLevelMax; break;
+	case kCompressionLZ4: outMin = kLz4LevelMin; outMax = kLz4LevelMax; break;
+	case kCompressionZlib: outMin = kZlibLevelMin; outMax = kZlibLevelMax; break;
 	default: outMin = 0; outMax = 0; break;
 	}
 }

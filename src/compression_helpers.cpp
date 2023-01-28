@@ -4,6 +4,8 @@
 #include <string.h>
 #include <zstd.h>
 #include <lz4.h>
+#include <lz4hc.h>
+#include <zlib.h>
 
 
 int64_t compress_meshopt_index_buffer_bound(int indexCount, int vertexCount)
@@ -42,6 +44,7 @@ int64_t compress_calc_bound(int64_t srcSize, CompressionFormat format)
 	{
 	case kCompressionZstd: return ZSTD_compressBound(srcSize);
 	case kCompressionLZ4: return LZ4_compressBound(srcSize);
+	case kCompressionZlib: return compressBound(srcSize);
 	default: return -1;
 	}	
 }
@@ -52,7 +55,18 @@ int64_t compress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSi
 	switch (format)
 	{
 	case kCompressionZstd: return ZSTD_compress(dst, dstSize, src, srcSize, level);
-	case kCompressionLZ4: return LZ4_compress_default((const char*)src, (char*)dst, srcSize, dstSize);
+	case kCompressionLZ4:
+		if (level > 0)
+			return LZ4_compress_HC((const char*)src, (char*)dst, srcSize, dstSize, level);
+		return LZ4_compress_fast((const char*)src, (char*)dst, srcSize, dstSize, (level > 0 ? level : -level) * 10);
+	case kCompressionZlib:
+	{
+		uLongf cmpSize = dstSize;
+		int res = compress2((Bytef*)dst, &cmpSize, (const Bytef*)src, srcSize, level);
+		if (res != Z_OK)
+			cmpSize = -1;
+		return cmpSize;
+	}
 	default: return -1;
 	}
 }
@@ -64,6 +78,7 @@ int64_t decompress_calc_bound(const void* src, int64_t srcSize, CompressionForma
 	{
 	case kCompressionZstd: return ZSTD_getFrameContentSize(src, srcSize);
 	case kCompressionLZ4: return -1; // LZ4 does not know decompressed size; user must track that themselves
+	case kCompressionZlib: return -1; // zlib does not know decompressed size; user must track that themselves
 	default: return -1;
 	}	
 }
@@ -75,6 +90,14 @@ int64_t decompress_data(const void* src, int64_t srcSize, void* dst, int64_t dst
 	{
 	case kCompressionZstd: return ZSTD_decompress(dst, dstSize, src, srcSize);
 	case kCompressionLZ4: return LZ4_decompress_safe((const char*)src, (char*)dst, srcSize, dstSize);
+	case kCompressionZlib:
+	{
+		uLongf dstLen = dstSize;
+		int res = uncompress((Bytef*)dst, &dstLen, (const Bytef*)src, srcSize);
+		if (res != Z_OK)
+			return 0;
+		return dstLen;
+	}
 	default: return -1;
 	}	
 }

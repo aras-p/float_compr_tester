@@ -15,6 +15,7 @@ enum CompressionFormat
 {
 	kCompressionZstd = 0,
 	kCompressionLZ4,
+	kCompressionZlib,
 	kCompressionCount
 };
 int64_t compress_calc_bound(int64_t srcSize, CompressionFormat format);

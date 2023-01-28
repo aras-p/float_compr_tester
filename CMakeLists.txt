@@ -39,6 +39,41 @@ set(LZ4_BUILD_LEGACY_LZ4C OFF)
 set(LZ4_BUILD_CLI OFF)
 FetchContent_MakeAvailable(lz4)
 
+# zlib
+# Note: do not do FetchContent_MakeAvailable on it, since it builds "example"
+# target which clashes with streamvbyte "example" target. Instead setup manually
+FetchContent_Declare(
+	zlib
+	URL https://github.com/madler/zlib/archive/refs/tags/v1.2.13.zip # latest (2022 Oct) at time of writing
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+)
+FetchContent_GetProperties(zlib)
+if(NOT zlib_POPULATED)
+	FetchContent_Populate(zlib)
+endif()
+project(zlib LANGUAGES C)
+add_library(zlib STATIC)
+if(MSVC)
+    target_compile_options(zlib PRIVATE /MP)
+endif()
+target_sources(zlib PRIVATE
+	${zlib_SOURCE_DIR}/adler32.c
+	${zlib_SOURCE_DIR}/compress.c
+	${zlib_SOURCE_DIR}/crc32.c
+	${zlib_SOURCE_DIR}/deflate.c
+	${zlib_SOURCE_DIR}/infback.c
+	${zlib_SOURCE_DIR}/inffast.c
+	${zlib_SOURCE_DIR}/inflate.c
+	${zlib_SOURCE_DIR}/inftrees.c
+	${zlib_SOURCE_DIR}/trees.c
+	${zlib_SOURCE_DIR}/uncompr.c
+	${zlib_SOURCE_DIR}/zutil.c
+	# Note: not including gz*.c sources, we don't need them
+)
+target_include_directories(zlib PRIVATE	${zlib_BINARY_DIR})
+
+
 # meshoptimizer
 FetchContent_Declare(
 	meshopt
@@ -100,11 +135,13 @@ target_include_directories(float_compr_tester PRIVATE
 	${zstd_SOURCE_DIR}/lib
 	${lz4_SOURCE_DIR}/lib
 	${meshopt_SOURCE_DIR}
+	${zlib_SOURCE_DIR} ${zlib_BINARY_DIR}
 )
 
 target_link_libraries(float_compr_tester PRIVATE
 	libzstd_static
     lz4_static
+	zlib
 	meshoptimizer
 	fpzip
 	zfp

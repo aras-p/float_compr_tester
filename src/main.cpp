@@ -144,6 +144,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
 	/*
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitFloats));
@@ -289,6 +290,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 					delete[] compressed;
 				}
 			}
+			printf("\n");
 		}
 		printf("\n");
 	}
@@ -350,10 +352,10 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			double dspeed = rawSize / dtime;
 			fprintf(fout, "  [%.1f", cspeed / oneMB);
 			for (size_t j = 0; j < ic; ++j) fprintf(fout, ",null,null,null");
-			if (levelMin == levelMax)
-				fprintf(fout, ", %.3f,'%s','' ", ratio, cmpName);
-			else
-				fprintf(fout, ", %.3f,'%s %i','' ", ratio, cmpName, (int)(levelMin + ir));
+			fprintf(fout, ", %.3f,'%s", ratio, cmpName);
+			if (levelMin != levelMax)
+				fprintf(fout, " %i", (int)(levelMin + ir));
+			fprintf(fout, "\\n%.3fx at %.1f MB/s','' ", ratio, cspeed / oneMB);
 			for (size_t j = ic + 1; j < g_Compressors.size(); ++j) fprintf(fout, ",null,null,null");
 			fprintf(fout, "]%s\n", (ic == g_Compressors.size() - 1) && (ir == results[ic].size() - 1) ? "" : ",");
 		}
@@ -379,8 +381,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		fprintf(fout, "'%02x%02x%02x'%s", (col >> 16)&0xFF, (col >> 8)&0xFF, col&0xFF, ic== g_Compressors.size()-1?"":",");
 	}
 	fprintf(fout, "],\n");
-	fprintf(fout, "hAxis: {title: 'Compression MB/s', logScale: true, viewWindow: {min:0.0,max:20000}},\n");
-	fprintf(fout, "vAxis: {title: 'Ratio', viewWindow: {min:0,max:6}},\n");
+	fprintf(fout, "hAxis: {title: 'Compression MB/s', logScale: true, viewWindow_: {min:0.0,max:20000}},\n");
+	fprintf(fout, "vAxis: {title: 'Ratio', viewWindow: {min:1,max_:6}},\n");
 	fprintf(fout, "chartArea: {left:60, right:250, top:50, bottom:50},\n");
 	fprintf(fout, "lineWidth: 1\n");
 	fprintf(fout, "};\n");
@@ -404,7 +406,7 @@ int main()
 	stm_setup();
 
 	TestFile testFiles[] = {
-		//{"../../../data/2048_sq_float4.bin", 2048, 2048, 4}, // water sim: X height, Y&Z velocity, W pollution
+		{"../../../data/2048_sq_float4.bin", 2048, 2048, 4}, // water sim: X height, Y&Z velocity, W pollution
 		//{"../../../data/1024_sq_float4.bin", 1024, 1024, 4}, // snow sim: X amount, Y in water amount, Z ground height, W unused
 		//{"../../../data/232630_float4.bin", 232630, 1, 4}, // all sorts of float4 data (quaternions, colors, etc.)
 		{"../../../data/953134_float3.bin", 953134, 1, 3}, // all sorts of float3 data (positions, scales, directions, ...)
