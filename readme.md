@@ -6,3 +6,4 @@ Uses 3rd party libraries:
 * [zstd](https://github.com/facebook/zstd), v1.5.2, BSD or GPLv2 license.
 * [lz4](https://github.com/lz4/lz4), v1.9.3, BSD license.
 * [zlib](https://github.com/madler/zlib), 1.2.13, zlib license.
+* [sokol_time](https://github.com/floooh/sokol), zlib license.
