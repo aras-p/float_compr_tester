@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "compression_helpers.h"
+#include <stddef.h>
 
 enum Filter {
 	kFilterNone = 0,

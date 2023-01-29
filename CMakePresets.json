@@ -2,11 +2,16 @@
   "version": 3,
   "configurePresets": [
     {
-      "name": "windows-base",
+      "name": "all-base",
       "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}"
+    },
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "inherits": "all-base",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe"
@@ -17,6 +22,19 @@
         "rhs": "Windows"
       }
     },
+    {
+      "name": "mac-base",
+      "inherits": "all-base",
+      "hidden": true,
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "10.14"
+      }            
+    },    
     {
       "name": "x64-debug",
       "displayName": "x64 Debug",
@@ -54,6 +72,14 @@
         "CMAKE_C_COMPILER": "clang-cl",
         "CMAKE_CXX_COMPILER": "clang-cl"
       }
-    }
+    },
+    {
+      "name": "mac-release",
+      "displayName": "Mac Release",
+      "inherits": "mac-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }    
   ]
 }

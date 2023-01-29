@@ -4,8 +4,8 @@
 #include <fpzip.h>
 #include <zfp.h>
 
-#include <assert.h> // ndzip needs it
-#include <ndzip/ndzip.hh>
+//#include <assert.h> // ndzip needs it
+//#include <ndzip/ndzip.hh>
 //#include <streamvbyte.h>
 //#include <streamvbytedelta.h>
 

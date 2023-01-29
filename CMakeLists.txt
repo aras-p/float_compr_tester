@@ -102,16 +102,16 @@ set(BUILD_UTILITIES OFF)
 FetchContent_MakeAvailable(zfp)
 
 # ndzip
-FetchContent_Declare(
-	ndzip
-	URL https://github.com/aras-p/ndzip/archive/refs/heads/build-just-lib.zip # my fork with Windows build fixes
-)
-set(NDZIP_BUILD_COMPRESS OFF)
-set(NDZIP_WITH_MT OFF)
-set(NDZIP_WITH_HIPSYCL OFF)
-set(NDZIP_WITH_CUDA OFF)
-set(NDZIP_WITH_3RDPARTY_BENCHMARKS OFF)
-FetchContent_MakeAvailable(ndzip)
+#FetchContent_Declare(
+#	ndzip
+#	URL https://github.com/aras-p/ndzip/archive/refs/heads/build-just-lib.zip # my fork with Windows build fixes
+#)
+#set(NDZIP_BUILD_COMPRESS OFF)
+#set(NDZIP_WITH_MT OFF)
+#set(NDZIP_WITH_HIPSYCL OFF)
+#set(NDZIP_WITH_CUDA OFF)
+#set(NDZIP_WITH_3RDPARTY_BENCHMARKS OFF)
+#FetchContent_MakeAvailable(ndzip)
 
 # streamvbyte
 #FetchContent_Declare(
@@ -145,7 +145,7 @@ target_link_libraries(float_compr_tester PRIVATE
 	meshoptimizer
 	fpzip
 	zfp
-	ndzip
+	#ndzip
 	#streamvbyte_static
 )
 

@@ -245,7 +245,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	char cmpName[1000];
 	for (int ir = 0; ir < kRuns; ++ir)
 	{
-		printf("Run %i/%i, %zi compressors on %zi files: ", ir+1, kRuns, g_Compressors.size(), testFileCount);
+		printf("Run %i/%i, %zi compressors on %zi files:\n", ir+1, kRuns, g_Compressors.size(), testFileCount);
 		for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 		{
 			Compressor* cmp = g_Compressors[ic];
