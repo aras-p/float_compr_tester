@@ -319,8 +319,10 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	FILE* fout = fopen("../../report.html", "wb");
 	fprintf(fout, "<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>\n");
 	fprintf(fout, "<center style='font-family: Arial;'>\n");
-	fprintf(fout, "<div id='chart_cmp' style='width: 1280px; height: 640px;'></div>\n");
-	fprintf(fout, "<div id='chart_dec' style='width: 1280px; height: 320px;'></div>\n");
+	fprintf(fout, "<div style='border: 1px solid #ccc; width: 1290px;'>\n");
+	fprintf(fout, "<div id='chart_cmp' style='width: 640px; height: 480px; display:inline-block;'></div>\n");
+	fprintf(fout, "<div id='chart_dec' style='width: 640px; height: 480px; display:inline-block;'></div>\n");
+	fprintf(fout, "</div>\n");
 	fprintf(fout, "<script type='text/javascript'>\n");
 	fprintf(fout, "google.charts.load('current', {'packages':['corechart']});\n");
 	fprintf(fout, "google.charts.setOnLoadCallback(drawChart);\n");
@@ -393,9 +395,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		}
 	}
 	fprintf(fout, "]);\n");
-	fprintf(fout, "var titleDec = 'Decompression Ratio vs Throughput (%i runs, %zi files)';\n", kRuns, testFileCount);
+	fprintf(fout, "var titleDec = 'Decompression Ratio vs Throughput';\n");
 	fprintf(fout, "var options = {\n");
-	fprintf(fout, "title: 'Compression Ratio vs Throughput (%i runs, %zi files)',\n", kRuns, testFileCount);
+	fprintf(fout, "title: 'Compression Ratio vs Throughput',\n");
 	fprintf(fout, "pointSize: 6,\n");
 	fprintf(fout, "series: {\n");
 	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
@@ -413,15 +415,17 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		fprintf(fout, "'%02x%02x%02x'%s", (col >> 16)&0xFF, (col >> 8)&0xFF, col&0xFF, ic== g_Compressors.size()-1?"":",");
 	}
 	fprintf(fout, "],\n");
-	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.0}},\n");
+	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.0, max:5.0}},\n");
 	fprintf(fout, "vAxis: {title: 'Ratio', viewWindow: {min:1}},\n");
-	fprintf(fout, "chartArea: {left:60, right:250, top:50, bottom:50},\n");
+	fprintf(fout, "chartArea: {left:60, right:10, top:50, bottom:50},\n");
+	fprintf(fout, "legend: {position: 'top'},\n");
 	fprintf(fout, "lineWidth: 1\n");
 	fprintf(fout, "};\n");
 	fprintf(fout, "var chartCmp = new google.visualization.ScatterChart(document.getElementById('chart_cmp'));\n");
 	fprintf(fout, "chartCmp.draw(dataCmp, options);\n");
 	fprintf(fout, "options.title = titleDec;\n");
 	fprintf(fout, "options.hAxis.title = 'Decompression GB/s';\n");
+	fprintf(fout, "options.hAxis.viewWindow.max = 10.0;\n");
 	fprintf(fout, "var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));\n");
 	fprintf(fout, "chartDec.draw(dataDec, options);\n");
 	fprintf(fout, "}\n");

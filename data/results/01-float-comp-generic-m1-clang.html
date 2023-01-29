@@ -1,7 +1,9 @@
 <script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
 <center style='font-family: Arial;'>
-<div id='chart_cmp' style='width: 1280px; height: 640px;'></div>
-<div id='chart_dec' style='width: 1280px; height: 320px;'></div>
+<div style='border: 1px solid #ccc; width: 1290px;'>
+<div id='chart_cmp' style='width: 640px; height: 480px; display:inline-block;'></div>
+<div id='chart_dec' style='width: 640px; height: 480px; display:inline-block;'></div>
+</div>
 <script type='text/javascript'>
 google.charts.load('current', {'packages':['corechart']});
 google.charts.setOnLoadCallback(drawChart);
@@ -24,7 +26,7 @@ dataCmp.addRows([
   [0.740, 2.536,'zstd -1\n2.536x at 0.740 GB/s','' ,null,null,null,null,null,null],
   [0.623, 2.628,'zstd 1\n2.628x at 0.623 GB/s','' ,null,null,null,null,null,null],
   [0.528, 2.674,'zstd 2\n2.674x at 0.528 GB/s','' ,null,null,null,null,null,null],
-  [0.426, 2.699,'zstd 3\n2.699x at 0.426 GB/s','' ,null,null,null,null,null,null],
+  [0.426, 2.699,'zstd 3\n2.699x at 0.426 GB/s','point {size:10;}' ,null,null,null,null,null,null],
   [0.374, 2.697,'zstd 4\n2.697x at 0.374 GB/s','' ,null,null,null,null,null,null],
   [0.202, 2.703,'zstd 5\n2.703x at 0.202 GB/s','' ,null,null,null,null,null,null],
   [0.128, 2.784,'zstd 6\n2.784x at 0.128 GB/s','' ,null,null,null,null,null,null],
@@ -48,7 +50,7 @@ dataCmp.addRows([
   [1.354,null,null,null, 1.494,'lz4 -3\n1.494x at 1.354 GB/s','' ,null,null,null],
   [1.137,null,null,null, 1.664,'lz4 -2\n1.664x at 1.137 GB/s','' ,null,null,null],
   [1.024,null,null,null, 1.740,'lz4 -1\n1.740x at 1.024 GB/s','' ,null,null,null],
-  [0.797,null,null,null, 1.948,'lz4 0\n1.948x at 0.797 GB/s','' ,null,null,null],
+  [0.797,null,null,null, 1.948,'lz4 0\n1.948x at 0.797 GB/s','point {size:10;}' ,null,null,null],
   [0.138,null,null,null, 2.140,'lz4 1\n2.140x at 0.138 GB/s','' ,null,null,null],
   [0.138,null,null,null, 2.140,'lz4 2\n2.140x at 0.138 GB/s','' ,null,null,null],
   [0.116,null,null,null, 2.175,'lz4 3\n2.175x at 0.116 GB/s','' ,null,null,null],
@@ -66,7 +68,7 @@ dataCmp.addRows([
   [0.067,null,null,null,null,null,null, 2.434,'zlib 3\n2.434x at 0.067 GB/s','' ],
   [0.062,null,null,null,null,null,null, 2.505,'zlib 4\n2.505x at 0.062 GB/s','' ],
   [0.052,null,null,null,null,null,null, 2.578,'zlib 5\n2.578x at 0.052 GB/s','' ],
-  [0.036,null,null,null,null,null,null, 2.576,'zlib 6\n2.576x at 0.036 GB/s','' ],
+  [0.036,null,null,null,null,null,null, 2.576,'zlib 6\n2.576x at 0.036 GB/s','point {size:10;}' ],
   [0.028,null,null,null,null,null,null, 2.575,'zlib 7\n2.575x at 0.028 GB/s','' ],
   [0.009,null,null,null,null,null,null, 2.575,'zlib 8\n2.575x at 0.009 GB/s','' ],
   [0.004,null,null,null,null,null,null, 2.575,'zlib 9\n2.575x at 0.004 GB/s','' ]
@@ -126,9 +128,9 @@ dataDec.addRows([
   [0.395,null,null,null,null,null,null, 2.575,'zlib 8\n2.575x at 0.395 GB/s','' ],
   [0.395,null,null,null,null,null,null, 2.575,'zlib 9\n2.575x at 0.395 GB/s','' ]
 ]);
-var titleDec = 'Decompression Ratio vs Throughput (3 runs, 4 files)';
+var titleDec = 'Decompression Ratio vs Throughput';
 var options = {
-title: 'Compression Ratio vs Throughput (3 runs, 4 files)',
+title: 'Compression Ratio vs Throughput',
 pointSize: 6,
 series: {
   0: {pointShape: 'circle'},
@@ -137,15 +139,17 @@ series: {
   3: {},
 },
 colors: ['0c9618','b19f00','00bfa7'],
-hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.0}},
+hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.0, max:5.0}},
 vAxis: {title: 'Ratio', viewWindow: {min:1}},
-chartArea: {left:60, right:250, top:50, bottom:50},
+legend: {position: 'top'},
+chartArea: {left:60, right:10, top:50, bottom:50},
 lineWidth: 1
 };
 var chartCmp = new google.visualization.ScatterChart(document.getElementById('chart_cmp'));
 chartCmp.draw(dataCmp, options);
 options.title = titleDec;
 options.hAxis.title = 'Decompression GB/s';
+options.hAxis.viewWindow.max = 10.0;
 var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));
 chartDec.draw(dataDec, options);
 }
