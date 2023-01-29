@@ -6,8 +6,8 @@
 
 #include <assert.h> // ndzip needs it
 #include <ndzip/ndzip.hh>
-#include <streamvbyte.h>
-#include <streamvbytedelta.h>
+//#include <streamvbyte.h>
+//#include <streamvbytedelta.h>
 
 static const int kZstdLevelMin = -5;
 static const int kZstdLevelMax = 21; //@TODO: 21
@@ -465,6 +465,7 @@ void ZfpCompressor::PrintName(size_t bufSize, char* buf) const
 	snprintf(buf, bufSize, "zfp");
 }
 
+/*
 uint8_t* NdzipCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
 	// ndzip seems to have trouble if we try to do channels*width*height 3 dimensions
@@ -533,3 +534,4 @@ void StreamVByteCompressor::PrintName(size_t bufSize, char* buf) const
 	else
 		snprintf(buf, bufSize, "streamvbyte-%s%s", kCompressionFormatNames[m_Format], m_Delta ? "_d" : "");	
 }
+*/

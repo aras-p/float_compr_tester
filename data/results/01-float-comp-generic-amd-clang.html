@@ -1,0 +1,152 @@
+<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
+<center style='font-family: Arial;'>
+<div id='chart_cmp' style='width: 1280px; height: 640px;'></div>
+<div id='chart_dec' style='width: 1280px; height: 320px;'></div>
+<script type='text/javascript'>
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(drawChart);
+function drawChart() {
+var dataCmp = new google.visualization.DataTable();
+var dataDec = new google.visualization.DataTable();
+dataCmp.addColumn('number', 'Throughput');
+dataDec.addColumn('number', 'Throughput');
+dataCmp.addColumn('number', 'zstd'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zlib'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zlib'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addRows([
+  [0.885, 1.960,'zstd -5\n1.960x at 0.885 GB/s','' ,null,null,null,null,null,null],
+  [0.859, 1.985,'zstd -4\n1.985x at 0.859 GB/s','' ,null,null,null,null,null,null],
+  [0.831, 2.257,'zstd -3\n2.257x at 0.831 GB/s','' ,null,null,null,null,null,null],
+  [0.786, 2.409,'zstd -2\n2.409x at 0.786 GB/s','' ,null,null,null,null,null,null],
+  [0.707, 2.536,'zstd -1\n2.536x at 0.707 GB/s','' ,null,null,null,null,null,null],
+  [0.596, 2.628,'zstd 1\n2.628x at 0.596 GB/s','' ,null,null,null,null,null,null],
+  [0.485, 2.674,'zstd 2\n2.674x at 0.485 GB/s','' ,null,null,null,null,null,null],
+  [0.338, 2.699,'zstd 3\n2.699x at 0.338 GB/s','' ,null,null,null,null,null,null],
+  [0.295, 2.697,'zstd 4\n2.697x at 0.295 GB/s','' ,null,null,null,null,null,null],
+  [0.160, 2.703,'zstd 5\n2.703x at 0.160 GB/s','' ,null,null,null,null,null,null],
+  [0.117, 2.784,'zstd 6\n2.784x at 0.117 GB/s','' ,null,null,null,null,null,null],
+  [0.101, 2.797,'zstd 7\n2.797x at 0.101 GB/s','' ,null,null,null,null,null,null],
+  [0.085, 2.864,'zstd 8\n2.864x at 0.085 GB/s','' ,null,null,null,null,null,null],
+  [0.083, 2.885,'zstd 9\n2.885x at 0.083 GB/s','' ,null,null,null,null,null,null],
+  [0.059, 2.893,'zstd 10\n2.893x at 0.059 GB/s','' ,null,null,null,null,null,null],
+  [0.041, 2.890,'zstd 11\n2.890x at 0.041 GB/s','' ,null,null,null,null,null,null],
+  [0.032, 2.890,'zstd 12\n2.890x at 0.032 GB/s','' ,null,null,null,null,null,null],
+  [0.028, 2.886,'zstd 13\n2.886x at 0.028 GB/s','' ,null,null,null,null,null,null],
+  [0.021, 2.877,'zstd 14\n2.877x at 0.021 GB/s','' ,null,null,null,null,null,null],
+  [0.015, 2.871,'zstd 15\n2.871x at 0.015 GB/s','' ,null,null,null,null,null,null],
+  [0.010, 2.952,'zstd 16\n2.952x at 0.010 GB/s','' ,null,null,null,null,null,null],
+  [0.008, 2.953,'zstd 17\n2.953x at 0.008 GB/s','' ,null,null,null,null,null,null],
+  [0.006, 3.041,'zstd 18\n3.041x at 0.006 GB/s','' ,null,null,null,null,null,null],
+  [0.004, 3.022,'zstd 19\n3.022x at 0.004 GB/s','' ,null,null,null,null,null,null],
+  [0.004, 3.028,'zstd 20\n3.028x at 0.004 GB/s','' ,null,null,null,null,null,null],
+  [0.004, 3.022,'zstd 21\n3.022x at 0.004 GB/s','' ,null,null,null,null,null,null],
+  [1.660,null,null,null, 1.533,'lz4 -5\n1.533x at 1.660 GB/s','' ,null,null,null],
+  [1.528,null,null,null, 1.595,'lz4 -4\n1.595x at 1.528 GB/s','' ,null,null,null],
+  [1.629,null,null,null, 1.494,'lz4 -3\n1.494x at 1.629 GB/s','' ,null,null,null],
+  [1.392,null,null,null, 1.664,'lz4 -2\n1.664x at 1.392 GB/s','' ,null,null,null],
+  [1.263,null,null,null, 1.740,'lz4 -1\n1.740x at 1.263 GB/s','' ,null,null,null],
+  [0.974,null,null,null, 1.948,'lz4 0\n1.948x at 0.974 GB/s','' ,null,null,null],
+  [0.142,null,null,null, 2.140,'lz4 1\n2.140x at 0.142 GB/s','' ,null,null,null],
+  [0.144,null,null,null, 2.140,'lz4 2\n2.140x at 0.144 GB/s','' ,null,null,null],
+  [0.127,null,null,null, 2.175,'lz4 3\n2.175x at 0.127 GB/s','' ,null,null,null],
+  [0.118,null,null,null, 2.199,'lz4 4\n2.199x at 0.118 GB/s','' ,null,null,null],
+  [0.109,null,null,null, 2.209,'lz4 5\n2.209x at 0.109 GB/s','' ,null,null,null],
+  [0.099,null,null,null, 2.214,'lz4 6\n2.214x at 0.099 GB/s','' ,null,null,null],
+  [0.088,null,null,null, 2.217,'lz4 7\n2.217x at 0.088 GB/s','' ,null,null,null],
+  [0.076,null,null,null, 2.221,'lz4 8\n2.221x at 0.076 GB/s','' ,null,null,null],
+  [0.056,null,null,null, 2.223,'lz4 9\n2.223x at 0.056 GB/s','' ,null,null,null],
+  [0.026,null,null,null, 2.214,'lz4 10\n2.214x at 0.026 GB/s','' ,null,null,null],
+  [0.008,null,null,null, 2.226,'lz4 11\n2.226x at 0.008 GB/s','' ,null,null,null],
+  [0.003,null,null,null, 2.234,'lz4 12\n2.234x at 0.003 GB/s','' ,null,null,null],
+  [0.103,null,null,null,null,null,null, 2.399,'zlib 1\n2.399x at 0.103 GB/s','' ],
+  [0.095,null,null,null,null,null,null, 2.427,'zlib 2\n2.427x at 0.095 GB/s','' ],
+  [0.079,null,null,null,null,null,null, 2.434,'zlib 3\n2.434x at 0.079 GB/s','' ],
+  [0.073,null,null,null,null,null,null, 2.505,'zlib 4\n2.505x at 0.073 GB/s','' ],
+  [0.063,null,null,null,null,null,null, 2.578,'zlib 5\n2.578x at 0.063 GB/s','' ],
+  [0.045,null,null,null,null,null,null, 2.576,'zlib 6\n2.576x at 0.045 GB/s','' ],
+  [0.035,null,null,null,null,null,null, 2.575,'zlib 7\n2.575x at 0.035 GB/s','' ],
+  [0.011,null,null,null,null,null,null, 2.575,'zlib 8\n2.575x at 0.011 GB/s','' ],
+  [0.005,null,null,null,null,null,null, 2.575,'zlib 9\n2.575x at 0.005 GB/s','' ]
+]);
+dataDec.addRows([
+  [1.996, 1.960,'zstd -5\n1.960x at 1.996 GB/s','' ,null,null,null,null,null,null],
+  [2.034, 1.985,'zstd -4\n1.985x at 2.034 GB/s','' ,null,null,null,null,null,null],
+  [2.107, 2.257,'zstd -3\n2.257x at 2.107 GB/s','' ,null,null,null,null,null,null],
+  [2.098, 2.409,'zstd -2\n2.409x at 2.098 GB/s','' ,null,null,null,null,null,null],
+  [2.056, 2.536,'zstd -1\n2.536x at 2.056 GB/s','' ,null,null,null,null,null,null],
+  [1.343, 2.628,'zstd 1\n2.628x at 1.343 GB/s','' ,null,null,null,null,null,null],
+  [1.297, 2.674,'zstd 2\n2.674x at 1.297 GB/s','' ,null,null,null,null,null,null],
+  [1.280, 2.699,'zstd 3\n2.699x at 1.280 GB/s','' ,null,null,null,null,null,null],
+  [1.258, 2.697,'zstd 4\n2.697x at 1.258 GB/s','' ,null,null,null,null,null,null],
+  [1.266, 2.703,'zstd 5\n2.703x at 1.266 GB/s','' ,null,null,null,null,null,null],
+  [1.313, 2.784,'zstd 6\n2.784x at 1.313 GB/s','' ,null,null,null,null,null,null],
+  [1.302, 2.797,'zstd 7\n2.797x at 1.302 GB/s','' ,null,null,null,null,null,null],
+  [1.325, 2.864,'zstd 8\n2.864x at 1.325 GB/s','' ,null,null,null,null,null,null],
+  [1.319, 2.885,'zstd 9\n2.885x at 1.319 GB/s','' ,null,null,null,null,null,null],
+  [1.328, 2.893,'zstd 10\n2.893x at 1.328 GB/s','' ,null,null,null,null,null,null],
+  [1.325, 2.890,'zstd 11\n2.890x at 1.325 GB/s','' ,null,null,null,null,null,null],
+  [1.339, 2.890,'zstd 12\n2.890x at 1.339 GB/s','' ,null,null,null,null,null,null],
+  [1.330, 2.886,'zstd 13\n2.886x at 1.330 GB/s','' ,null,null,null,null,null,null],
+  [1.354, 2.877,'zstd 14\n2.877x at 1.354 GB/s','' ,null,null,null,null,null,null],
+  [1.353, 2.871,'zstd 15\n2.871x at 1.353 GB/s','' ,null,null,null,null,null,null],
+  [1.246, 2.952,'zstd 16\n2.952x at 1.246 GB/s','' ,null,null,null,null,null,null],
+  [1.211, 2.953,'zstd 17\n2.953x at 1.211 GB/s','' ,null,null,null,null,null,null],
+  [1.155, 3.041,'zstd 18\n3.041x at 1.155 GB/s','' ,null,null,null,null,null,null],
+  [1.126, 3.022,'zstd 19\n3.022x at 1.126 GB/s','' ,null,null,null,null,null,null],
+  [1.125, 3.028,'zstd 20\n3.028x at 1.125 GB/s','' ,null,null,null,null,null,null],
+  [1.122, 3.022,'zstd 21\n3.022x at 1.122 GB/s','' ,null,null,null,null,null,null],
+  [6.160,null,null,null, 1.533,'lz4 -5\n1.533x at 6.160 GB/s','' ,null,null,null],
+  [5.937,null,null,null, 1.595,'lz4 -4\n1.595x at 5.937 GB/s','' ,null,null,null],
+  [6.411,null,null,null, 1.494,'lz4 -3\n1.494x at 6.411 GB/s','' ,null,null,null],
+  [5.475,null,null,null, 1.664,'lz4 -2\n1.664x at 5.475 GB/s','' ,null,null,null],
+  [5.415,null,null,null, 1.740,'lz4 -1\n1.740x at 5.415 GB/s','' ,null,null,null],
+  [4.361,null,null,null, 1.948,'lz4 0\n1.948x at 4.361 GB/s','' ,null,null,null],
+  [4.821,null,null,null, 2.140,'lz4 1\n2.140x at 4.821 GB/s','' ,null,null,null],
+  [4.863,null,null,null, 2.140,'lz4 2\n2.140x at 4.863 GB/s','' ,null,null,null],
+  [5.141,null,null,null, 2.175,'lz4 3\n2.175x at 5.141 GB/s','' ,null,null,null],
+  [5.328,null,null,null, 2.199,'lz4 4\n2.199x at 5.328 GB/s','' ,null,null,null],
+  [5.429,null,null,null, 2.209,'lz4 5\n2.209x at 5.429 GB/s','' ,null,null,null],
+  [5.454,null,null,null, 2.214,'lz4 6\n2.214x at 5.454 GB/s','' ,null,null,null],
+  [5.511,null,null,null, 2.217,'lz4 7\n2.217x at 5.511 GB/s','' ,null,null,null],
+  [5.551,null,null,null, 2.221,'lz4 8\n2.221x at 5.551 GB/s','' ,null,null,null],
+  [5.563,null,null,null, 2.223,'lz4 9\n2.223x at 5.563 GB/s','' ,null,null,null],
+  [5.624,null,null,null, 2.214,'lz4 10\n2.214x at 5.624 GB/s','' ,null,null,null],
+  [5.740,null,null,null, 2.226,'lz4 11\n2.226x at 5.740 GB/s','' ,null,null,null],
+  [5.813,null,null,null, 2.234,'lz4 12\n2.234x at 5.813 GB/s','' ,null,null,null],
+  [0.486,null,null,null,null,null,null, 2.399,'zlib 1\n2.399x at 0.486 GB/s','' ],
+  [0.498,null,null,null,null,null,null, 2.427,'zlib 2\n2.427x at 0.498 GB/s','' ],
+  [0.509,null,null,null,null,null,null, 2.434,'zlib 3\n2.434x at 0.509 GB/s','' ],
+  [0.521,null,null,null,null,null,null, 2.505,'zlib 4\n2.505x at 0.521 GB/s','' ],
+  [0.548,null,null,null,null,null,null, 2.578,'zlib 5\n2.578x at 0.548 GB/s','' ],
+  [0.550,null,null,null,null,null,null, 2.576,'zlib 6\n2.576x at 0.550 GB/s','' ],
+  [0.547,null,null,null,null,null,null, 2.575,'zlib 7\n2.575x at 0.547 GB/s','' ],
+  [0.554,null,null,null,null,null,null, 2.575,'zlib 8\n2.575x at 0.554 GB/s','' ],
+  [0.551,null,null,null,null,null,null, 2.575,'zlib 9\n2.575x at 0.551 GB/s','' ]
+]);
+var titleDec = 'Decompression Ratio vs Throughput (3 runs, 4 files)';
+var options = {
+title: 'Compression Ratio vs Throughput (3 runs, 4 files)',
+pointSize: 6,
+series: {
+  0: {pointShape: 'circle'},
+  1: {pointShape: 'circle'},
+  2: {pointShape: 'circle'},
+  3: {},
+},
+colors: ['0c9618','b19f00','00bfa7'],
+hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.0}},
+vAxis: {title: 'Ratio', viewWindow: {min:1}},
+chartArea: {left:60, right:250, top:50, bottom:50},
+lineWidth: 1
+};
+var chartCmp = new google.visualization.ScatterChart(document.getElementById('chart_cmp'));
+chartCmp.draw(dataCmp, options);
+options.title = titleDec;
+options.hAxis.title = 'Decompression GB/s';
+var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));
+chartDec.draw(dataDec, options);
+}
+</script>
