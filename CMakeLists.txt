@@ -39,6 +39,13 @@ set(LZ4_BUILD_LEGACY_LZ4C OFF)
 set(LZ4_BUILD_CLI OFF)
 FetchContent_MakeAvailable(lz4)
 
+# brotli
+FetchContent_Declare(
+	brotli
+	URL https://github.com/google/brotli/archive/refs/tags/v1.0.9.zip # latest (2020 Aug) at time of writing
+)
+FetchContent_MakeAvailable(brotli)
+
 # zlib
 # Note: do not do FetchContent_MakeAvailable on it, since it builds "example"
 # target which clashes with streamvbyte "example" target. Instead setup manually
@@ -136,12 +143,14 @@ target_include_directories(float_compr_tester PRIVATE
 	${lz4_SOURCE_DIR}/lib
 	${meshopt_SOURCE_DIR}
 	${zlib_SOURCE_DIR} ${zlib_BINARY_DIR}
+	${brotli_SOURCE_DIR}/c/include
 )
 
 target_link_libraries(float_compr_tester PRIVATE
 	libzstd_static
     lz4_static
 	zlib
+	brotlienc-static brotlidec-static
 	meshoptimizer
 	fpzip
 	zfp

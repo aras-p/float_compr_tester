@@ -6,7 +6,8 @@
 #include <lz4.h>
 #include <lz4hc.h>
 #include <zlib.h>
-
+#include <brotli/encode.h>
+#include <brotli/decode.h>
 
 int64_t compress_meshopt_index_buffer_bound(int indexCount, int vertexCount)
 {
@@ -45,6 +46,7 @@ int64_t compress_calc_bound(int64_t srcSize, CompressionFormat format)
 	case kCompressionZstd: return ZSTD_compressBound(srcSize);
 	case kCompressionLZ4: return LZ4_compressBound(srcSize);
 	case kCompressionZlib: return compressBound(srcSize);
+	case kCompressionBrotli: return BrotliEncoderMaxCompressedSize(srcSize);
 	default: return -1;
 	}	
 }
@@ -67,6 +69,12 @@ int64_t compress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSi
 			cmpSize = -1;
 		return cmpSize;
 	}
+	case kCompressionBrotli:
+	{
+		size_t cmpSize = dstSize;
+		bool res = BrotliEncoderCompress(level, BROTLI_DEFAULT_WINDOW, BROTLI_DEFAULT_MODE, srcSize, (const uint8_t*)src, &cmpSize, (uint8_t*)dst);
+		return cmpSize;
+	}
 	default: return -1;
 	}
 }
@@ -79,6 +87,7 @@ int64_t decompress_calc_bound(const void* src, int64_t srcSize, CompressionForma
 	case kCompressionZstd: return ZSTD_getFrameContentSize(src, srcSize);
 	case kCompressionLZ4: return -1; // LZ4 does not know decompressed size; user must track that themselves
 	case kCompressionZlib: return -1; // zlib does not know decompressed size; user must track that themselves
+	case kCompressionBrotli: return -1; // brotli does not know decompressed size; user must track that themselves
 	default: return -1;
 	}	
 }
@@ -95,6 +104,14 @@ int64_t decompress_data(const void* src, int64_t srcSize, void* dst, int64_t dst
 		uLongf dstLen = dstSize;
 		int res = uncompress((Bytef*)dst, &dstLen, (const Bytef*)src, srcSize);
 		if (res != Z_OK)
+			return 0;
+		return dstLen;
+	}
+	case kCompressionBrotli:
+	{
+		size_t dstLen = dstSize;
+		BrotliDecoderResult res = BrotliDecoderDecompress(srcSize, (const uint8_t*)src, &dstLen, (uint8_t*)dst);
+		if (res != BROTLI_DECODER_RESULT_SUCCESS)
 			return 0;
 		return dstLen;
 	}

@@ -140,11 +140,12 @@ static void DumpInputVisualizations(int width, int height, const float* data)
 
 static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 {
-	const int kRuns = 3;
+	const int kRuns = 1;
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
 	/*
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitFloats));

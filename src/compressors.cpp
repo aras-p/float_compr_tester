@@ -10,11 +10,13 @@
 //#include <streamvbytedelta.h>
 
 static const int kZstdLevelMin = -5;
-static const int kZstdLevelMax = 21; //@TODO: 21
+static const int kZstdLevelMax = 10; //@TODO: 21
 static const int kLz4LevelMin = -5;
-static const int kLz4LevelMax = 12; //@TODO: 12
+static const int kLz4LevelMax = 1; //@TODO: 12
 static const int kZlibLevelMin = 1;
-static const int kZlibLevelMax = 9; //@TODO: 9
+static const int kZlibLevelMax = 4; //@TODO: 9
+static const int kBrotliLevelMin = 0;
+static const int kBrotliLevelMax = 11;
 
 
 template<typename T>
@@ -178,6 +180,7 @@ static const char* kCompressionFormatNames[kCompressionCount] = {
 	"zstd",
 	"lz4",
 	"zlib",
+	"brotli",
 };
 
 void GenericCompressor::PrintName(size_t bufSize, char* buf) const
@@ -242,6 +245,10 @@ uint32_t GenericCompressor::GetColor() const
 	{
 		return 0x00bfa7; // cyan
 	}
+	if (m_Format == kCompressionBrotli)
+	{
+		return 0xde5546; // orange
+	}
 	return 0;
 }
 
@@ -268,6 +275,7 @@ static void GetGenericLevelRange(CompressionFormat format, int& outMin, int& out
 	case kCompressionZstd: outMin = kZstdLevelMin; outMax = kZstdLevelMax; break;
 	case kCompressionLZ4: outMin = kLz4LevelMin; outMax = kLz4LevelMax; break;
 	case kCompressionZlib: outMin = kZlibLevelMin; outMax = kZlibLevelMax; break;
+	case kCompressionBrotli: outMin = kBrotliLevelMin; outMax = kBrotliLevelMax; break;
 	default: outMin = 0; outMax = 0; break;
 	}
 }
