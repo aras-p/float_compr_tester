@@ -5,10 +5,11 @@
 
 enum Filter {
 	kFilterNone = 0,
-	kFilterSplitFloats = (1 << 0),
-	kFilterSplitBytes = (1 << 1),
-	kFilterDeltaDiff = (1 << 2),
-	kFilterDeltaXor = (1 << 3),
+	kFilterSplit32 = (1 << 0),
+	kFilterSplit8 = (1 << 1),
+	kFilterBitShuffle = (1 << 2),
+	kFilterDeltaDiff = (1 << 3),
+	kFilterDeltaXor = (1 << 4),
 };
 
 struct Compressor

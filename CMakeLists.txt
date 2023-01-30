@@ -80,7 +80,6 @@ target_sources(zlib PRIVATE
 )
 target_include_directories(zlib PRIVATE	${zlib_BINARY_DIR})
 
-
 # meshoptimizer
 FetchContent_Declare(
 	meshopt
@@ -135,6 +134,9 @@ add_executable (float_compr_tester
 	src/main.cpp
 	src/compression_helpers.cpp
 	src/compressors.cpp
+	libs/bitshuffle/src/bitshuffle_core.c
+	libs/bitshuffle/src/bitshuffle_core.h
+	libs/bitshuffle/src/iochain.c
 )
 set_property(TARGET float_compr_tester PROPERTY CXX_STANDARD 20)
 
