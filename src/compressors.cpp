@@ -22,14 +22,19 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 	{
 	case kCompressionZstd:
 		//return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
-		return { -5, 3, 9, 15 };
+		return { -5, -3, -1, 1, 3, 5, 7, 9 }; // comp time under 2s
+		//return { -5, 3, 9, 15 };
 	case kCompressionLZ4:
 		//return { -5, -1, 0, 1, 6, 9, 12 };
-		return { -5, 0, 1, 9 };
+		return { -5, -1, 0, 1, 6, 9 }; // comp time under 2s
+		//return { -5, 0, 1, 9 };
 	case kCompressionZlib:
-		return { 1, 3, 5, 6, 9 };
+		//return { 1, 3, 5, 6, 9 };
+		return { 1, 3, 5, 6 }; // comp time under 2s
+		//return { 1, 6, 9 };
 	case kCompressionBrotli:
-		return { 0, 2, 4, 6, 9, 11 };
+		//return { 0, 2, 4, 6, 9, 11 };
+		return { 0, 2, 4 }; // comp time under 2s
 	default:
 		return { 0 };
 	}

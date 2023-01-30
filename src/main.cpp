@@ -23,32 +23,40 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
 
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitFloats));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplitFloats));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplitFloats));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplitFloats));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplitFloats));
 
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitFloats | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplitBytes));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplitBytes));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplitBytes));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplitBytes));
 
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaXor));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitFloats | kFilterDeltaXor));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes | kFilterDeltaXor));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes | kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplitFloats| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplitFloats| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplitFloats| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplitFloats| kFilterDeltaXor));
+
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplitBytes| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplitBytes| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplitBytes| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplitBytes| kFilterDeltaXor));
+
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplitFloats| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplitFloats| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplitFloats| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplitFloats| kFilterDeltaDiff));
+
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplitBytes| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplitBytes| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplitBytes| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplitBytes| kFilterDeltaDiff));
 
 	/*
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaXor));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes | kFilterDeltaXor));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes | kFilterDeltaXor));
-
 	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount));
 	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, kFilterSplitFloats));
