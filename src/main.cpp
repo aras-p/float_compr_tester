@@ -140,11 +140,11 @@ static void DumpInputVisualizations(int width, int height, const float* data)
 
 static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 {
-	const int kRuns = 1;
+	const int kRuns = 2;
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
 	/*
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats));
@@ -229,6 +229,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 
 	struct Result
 	{
+		int level = 0;
 		size_t size = 0;
 		double cmpTime = 0;
 		double decTime = 0;
@@ -237,9 +238,10 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	std::vector<LevelResults> results;
 	for (auto* cmp : g_Compressors)
 	{
-		int levelMin, levelMax;
-		cmp->GetLevelRange(levelMin, levelMax);
-		LevelResults res(levelMax - levelMin + 1);
+		auto levels = cmp->GetLevels();
+		LevelResults res(levels.size());
+		for (size_t i = 0; i < levels.size(); ++i)
+			res[i].level = levels[i];
 		results.emplace_back(res);
 	}
 
@@ -251,13 +253,10 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		{
 			Compressor* cmp = g_Compressors[ic];
 			cmp->PrintName(sizeof(cmpName), cmpName);
-			int levelMin, levelMax;
-			cmp->GetLevelRange(levelMin, levelMax);
-			printf("%s: %i levels: ", cmpName, levelMax-levelMin+1);
-			for (int level = levelMin; level <= levelMax; ++level)
+			LevelResults& levelRes = results[ic];
+			printf("%s: %zi levels:\n", cmpName, levelRes.size());
+			for (Result& res : levelRes)
 			{
-				if (cmp->ShouldSkipLevel(level))
-					continue;
 				printf(".");
 				for (int tfi = 0; tfi < testFileCount; ++tfi)
 				{
@@ -266,7 +265,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 					// compress
 					size_t compressedSize = 0;
 					uint64_t t0 = stm_now();
-					uint8_t* compressed = cmp->Compress(level, tf.fileData.data(), tf.width, tf.height, tf.channels, compressedSize);
+					uint8_t* compressed = cmp->Compress(res.level, tf.fileData.data(), tf.width, tf.height, tf.channels, compressedSize);
 					double tComp = stm_sec(stm_since(t0));
 
 					// decompress
@@ -276,7 +275,6 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 					double tDecomp = stm_sec(stm_since(t0));
 
 					// stats
-					auto& res = results[ic][level - levelMin];
 					res.size += compressedSize;
 					res.cmpTime += tComp;
 					res.decTime += tDecomp;
@@ -285,7 +283,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 					if (memcmp(tf.fileData.data(), decompressed.data(), 4 * tf.fileData.size()) != 0)
 					{
 						cmp->PrintName(sizeof(cmpName), cmpName);
-						printf("  ERROR, %s level %i did not decompress back to input\n", cmpName, level);
+						printf("  ERROR, %s level %i did not decompress back to input\n", cmpName, res.level);
 						exit(1);
 					}
 					delete[] compressed;
@@ -296,7 +294,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		printf("\n");
 	}
 
-	double oneGB = 1024.0 * 1024.0 * 1024.0;
+	double oneMB = 1024.0 * 1024.0;
+	double oneGB = oneMB * 1024.0;
 	double rawSize = (double)(totalFloats * 4);
 	// print results to screen
 	/*
@@ -321,8 +320,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>\n");
 	fprintf(fout, "<center style='font-family: Arial;'>\n");
 	fprintf(fout, "<div style='border: 1px solid #ccc; width: 1290px;'>\n");
-	fprintf(fout, "<div id='chart_cmp' style='width: 640px; height: 480px; display:inline-block;'></div>\n");
-	fprintf(fout, "<div id='chart_dec' style='width: 640px; height: 480px; display:inline-block;'></div>\n");
+	fprintf(fout, "<div id='chart_cmp' style='width: 740px; height: 480px; display:inline-block;'></div>\n");
+	fprintf(fout, "<div id='chart_dec' style='width: 540px; height: 480px; display:inline-block;'></div>\n");
 	fprintf(fout, "</div>\n");
 	fprintf(fout, "<script type='text/javascript'>\n");
 	fprintf(fout, "google.charts.load('current', {'packages':['corechart']});\n");
@@ -343,13 +342,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	{
 		Compressor* cmp = g_Compressors[ic];
 		cmp->PrintName(sizeof(cmpName), cmpName);
-		int levelMin, levelMax;
-		cmp->GetLevelRange(levelMin, levelMax);
-		for (size_t ir = 0; ir < results[ic].size(); ++ir)
+		const LevelResults& levelRes = results[ic];
+		for (const Result& res : levelRes)
 		{
-			if (cmp->ShouldSkipLevel(ir + levelMin))
-				continue;
-			const Result& res = results[ic][ir];
 			double csize = (double)(res.size / kRuns);
 			double ctime = res.cmpTime / kRuns;
 			//double dtime = res.decTime / kRuns;
@@ -359,11 +354,11 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			fprintf(fout, "  [%.3f", cspeed / oneGB);
 			for (size_t j = 0; j < ic; ++j) fprintf(fout, ",null,null,null");
 			fprintf(fout, ", %.3f,'%s", ratio, cmpName);
-			if (levelMin != levelMax)
-				fprintf(fout, " %i", (int)(levelMin + ir));
-			fprintf(fout, "\\n%.3fx at %.3f GB/s','' ", ratio, cspeed / oneGB);
+			if (levelRes.size() > 1)
+				fprintf(fout, " %i", res.level);
+			fprintf(fout, "\\n%.3fx at %.3f GB/s\\n%.1FMB %.2fs','' ", ratio, cspeed / oneGB, csize / oneMB, ctime);
 			for (size_t j = ic + 1; j < g_Compressors.size(); ++j) fprintf(fout, ",null,null,null");
-			fprintf(fout, "]%s\n", (ic == g_Compressors.size() - 1) && (ir == results[ic].size() - 1) ? "" : ",");
+			fprintf(fout, "]%s\n", (ic == g_Compressors.size() - 1) && (&res == &levelRes.back()) ? "" : ",");
 		}
 	}
 	fprintf(fout, "]);\n");
@@ -372,13 +367,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	{
 		Compressor* cmp = g_Compressors[ic];
 		cmp->PrintName(sizeof(cmpName), cmpName);
-		int levelMin, levelMax;
-		cmp->GetLevelRange(levelMin, levelMax);
-		for (size_t ir = 0; ir < results[ic].size(); ++ir)
+		const LevelResults& levelRes = results[ic];
+		for (const Result& res : levelRes)
 		{
-			if (cmp->ShouldSkipLevel(ir + levelMin))
-				continue;
-			const Result& res = results[ic][ir];
 			double csize = (double)(res.size / kRuns);
 			//double ctime = res.cmpTime / kRuns;
 			double dtime = res.decTime / kRuns;
@@ -388,11 +379,11 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			fprintf(fout, "  [%.3f", dspeed / oneGB);
 			for (size_t j = 0; j < ic; ++j) fprintf(fout, ",null,null,null");
 			fprintf(fout, ", %.3f,'%s", ratio, cmpName);
-			if (levelMin != levelMax)
-				fprintf(fout, " %i", (int)(levelMin + ir));
-			fprintf(fout, "\\n%.3fx at %.3f GB/s','' ", ratio, dspeed / oneGB);
+			if (levelRes.size() > 1)
+				fprintf(fout, " %i", res.level);
+			fprintf(fout, "\\n%.3fx at %.3f GB/s\\n%.1FMB %.2fs','' ", ratio, dspeed / oneGB, csize / oneMB, dtime);
 			for (size_t j = ic + 1; j < g_Compressors.size(); ++j) fprintf(fout, ",null,null,null");
-			fprintf(fout, "]%s\n", (ic == g_Compressors.size() - 1) && (ir == results[ic].size() - 1) ? "" : ",");
+			fprintf(fout, "]%s\n", (ic == g_Compressors.size() - 1) && (&res == &levelRes.back()) ? "" : ",");
 		}
 	}
 	fprintf(fout, "]);\n");

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "compression_helpers.h"
 #include <stddef.h>
+#include <vector>
 
 enum Filter {
 	kFilterNone = 0,
@@ -15,8 +16,7 @@ struct Compressor
 	virtual ~Compressor() {}
 	virtual uint8_t* Compress(int level, const float* data, int width, int height, int channels, size_t& outSize) = 0;
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels) = 0;
-	virtual void GetLevelRange(int& outMin, int& outMax) const { outMin = 0; outMax = 0; }
-	virtual bool ShouldSkipLevel(int level) const { return false; }
+	virtual std::vector<int> GetLevels() const { return {0}; }
 	virtual void PrintName(size_t bufSize, char* buf) const = 0;
 	virtual uint32_t GetColor() const { return 0; }
 	virtual const char* GetShapeString() const = 0;
@@ -27,8 +27,7 @@ struct GenericCompressor : public Compressor
 	GenericCompressor(CompressionFormat format, uint32_t filter = kFilterNone) : m_Format(format), m_Filter(filter) {}
 	virtual uint8_t* Compress(int level, const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
-	virtual void GetLevelRange(int& outMin, int& outMax) const;
-	virtual bool ShouldSkipLevel(int level) const { return m_Format == kCompressionZstd && level == 0; }
+	virtual std::vector<int> GetLevels() const;
 	virtual void PrintName(size_t bufSize, char* buf) const;
 	virtual uint32_t GetColor() const;
 	virtual const char* GetShapeString() const;
@@ -41,8 +40,7 @@ struct MeshOptCompressor : public Compressor
 	MeshOptCompressor(CompressionFormat format, uint32_t filter = kFilterNone) : m_Format(format), m_Filter(filter) {}
 	virtual uint8_t* Compress(int level, const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
-	virtual void GetLevelRange(int& outMin, int& outMax) const;
-	virtual bool ShouldSkipLevel(int level) const { return m_Format == kCompressionZstd && level == 0; }
+	virtual std::vector<int> GetLevels() const;
 	virtual void PrintName(size_t bufSize, char* buf) const;
 	virtual uint32_t GetColor() const;
 	virtual const char* GetShapeString() const;
@@ -82,8 +80,7 @@ struct StreamVByteCompressor : public Compressor
 	StreamVByteCompressor(CompressionFormat format, bool delta) : m_Format(format), m_Delta(delta) {}
 	virtual uint8_t* Compress(int level, const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
-	virtual void GetLevelRange(int& outMin, int& outMax) const;
-	virtual bool ShouldSkipLevel(int level) const { return m_Format == kCompressionZstd && level == 0; }
+	virtual std::vector<int> GetLevels() const;
 	virtual void PrintName(size_t bufSize, char* buf) const;
 	virtual const char* GetShapeString() const { return "'square'"; }
 	virtual uint32_t GetColor() const { return 0xffac8d; } // orange

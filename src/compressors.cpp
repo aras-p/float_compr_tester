@@ -9,14 +9,29 @@
 //#include <streamvbyte.h>
 //#include <streamvbytedelta.h>
 
-static const int kZstdLevelMin = -5;
-static const int kZstdLevelMax = 10; //@TODO: 21
 static const int kLz4LevelMin = -5;
 static const int kLz4LevelMax = 1; //@TODO: 12
 static const int kZlibLevelMin = 1;
 static const int kZlibLevelMax = 4; //@TODO: 9
 static const int kBrotliLevelMin = 0;
 static const int kBrotliLevelMax = 11;
+
+static std::vector<int> GetGenericLevelRange(CompressionFormat format)
+{
+	switch (format)
+	{
+	case kCompressionZstd:
+		return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
+	case kCompressionLZ4:
+		return { -5, -1, 0, 1, 6, 9, 12 };
+	case kCompressionZlib:
+		return { 1, 3, 5, 6, 9 };
+	case kCompressionBrotli:
+		return { 0, 2, 4, 6, 9, 11 };
+	default:
+		return { 0 };
+	}
+}
 
 
 template<typename T>
@@ -268,21 +283,9 @@ const char* GenericCompressor::GetShapeString() const
 	return GetGenericShape(m_Filter);
 }
 
-static void GetGenericLevelRange(CompressionFormat format, int& outMin, int& outMax)
+std::vector<int> GenericCompressor::GetLevels() const
 {
-	switch (format)
-	{
-	case kCompressionZstd: outMin = kZstdLevelMin; outMax = kZstdLevelMax; break;
-	case kCompressionLZ4: outMin = kLz4LevelMin; outMax = kLz4LevelMax; break;
-	case kCompressionZlib: outMin = kZlibLevelMin; outMax = kZlibLevelMax; break;
-	case kCompressionBrotli: outMin = kBrotliLevelMin; outMax = kBrotliLevelMax; break;
-	default: outMin = 0; outMax = 0; break;
-	}
-}
-
-void GenericCompressor::GetLevelRange(int& outMin, int& outMax) const
-{
-	GetGenericLevelRange(m_Format, outMin, outMax);
+	return GetGenericLevelRange(m_Format);
 }
 
 
@@ -320,7 +323,7 @@ uint8_t* MeshOptCompressor::Compress(int level, const float* data, int width, in
 
 	int stride = (m_Filter & kFilterSplitFloats) ? sizeof(float) : channels * sizeof(float);
 	size_t dataSize = width * height * channels * sizeof(float);
-	int vertexCount = dataSize / stride;
+	int vertexCount = int(dataSize / stride);
 	size_t moBound = compress_meshopt_vertex_attribute_bound(vertexCount, stride);
 	uint8_t* moCmp = new uint8_t[moBound];
 	size_t moSize = compress_meshopt_vertex_attribute(tmp, vertexCount, stride, moCmp, moBound);
@@ -333,7 +336,7 @@ void MeshOptCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 	size_t dataSize = width * height * channels * sizeof(float);
 
 	int stride = (m_Filter & kFilterSplitFloats) ? sizeof(float) : channels * sizeof(float);
-	int vertexCount = dataSize / stride;
+	int vertexCount = int(dataSize / stride);
 
 	size_t decompSize;
 	uint8_t* decomp = DecompressGeneric(m_Format, cmp, cmpSize, decompSize);
@@ -346,9 +349,9 @@ void MeshOptCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 	DecompressionFilter(m_Filter, tmp, data, width, height, channels);
 }
 
-void MeshOptCompressor::GetLevelRange(int& outMin, int& outMax) const
+std::vector<int> MeshOptCompressor::GetLevels() const
 {
-	GetGenericLevelRange(m_Format, outMin, outMax);
+	return GetGenericLevelRange(m_Format);
 }
 
 void MeshOptCompressor::PrintName(size_t bufSize, char* buf) const
@@ -530,9 +533,9 @@ void StreamVByteCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float
 	if (decomp != cmp) delete[] decomp;
 }
 
-void StreamVByteCompressor::GetLevelRange(int& outMin, int& outMax) const
+std::vector<int> StreamVByteCompressor::GetLevels() const
 {
-	GetGenericLevelRange(m_Format, outMin, outMax);
+	return GetGenericLevelRange(m_Format);
 }
 
 void StreamVByteCompressor::PrintName(size_t bufSize, char* buf) const
