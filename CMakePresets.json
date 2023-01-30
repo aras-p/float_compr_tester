@@ -74,6 +74,14 @@
       }
     },
     {
+      "name": "mac-debug",
+      "displayName": "Mac Debug",
+      "inherits": "mac-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
       "name": "mac-release",
       "displayName": "Mac Release",
       "inherits": "mac-base",

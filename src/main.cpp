@@ -17,142 +17,33 @@ struct TestFile
 
 static std::vector<Compressor*> g_Compressors;
 
-
-static void WriteTga(const char* path, int width, int height, const uint32_t* data)
-{
-	FILE* tga = fopen(path, "wb");
-	uint8_t header[] = {
-		0, // ID length
-		0, // no color map
-		2, // uncompressed, true color
-		0, 0, 0, 0,
-		0,
-		0, 0, 0, 0, // x and y origin
-		uint8_t(width & 0x00FF),
-		uint8_t((width & 0xFF00) >> 8),
-		uint8_t(height & 0x00FF),
-		uint8_t((height & 0xFF00) >> 8),
-		32, // bpp
-		0
-	};
-	fwrite(header, 1, sizeof(header), tga);
-	fwrite(data, 4, width*height, tga);
-	fclose(tga);
-}
-
-static uint8_t MapFloat8(float v, float vmin, float vmax)
-{
-	return (uint8_t)((v - vmin) / (vmax - vmin) * 255.0f);
-}
-static uint16_t MapFloat16(float v, float vmin, float vmax)
-{
-	return (uint16_t)((v - vmin) / (vmax - vmin) * 65535.0f);
-}
-
-static void DumpInputVisualizations(int width, int height, const float* data)
-{
-	double vmin[4] = { 1.0e10, 1.0e10, 1.0e10, 1.0e10 };
-	double vmax[4] = { -1.0e10, -1.0e10, -1.0e10, -1.0e10 };
-	double vsum[4] = { 0, 0, 0, 0 };
-	const float* ptr = data;
-	for (int i = 0; i < width * height; ++i)
-	{
-		for (int j = 0; j < 4; ++j)
-		{
-			double v = *ptr++;
-			vmin[j] = std::min(vmin[j], v);
-			vmax[j] = std::max(vmax[j], v);
-			vsum[j] += v;
-		}
-	}
-	for (int j = 0; j < 4; ++j)
-	{
-		printf("  channel #%i: %f .. %f (avg %f)\n", j, vmin[j], vmax[j], vsum[j] / (width * height));
-	}
-
-	// dump water images
-	if (width == 2048)
-	{
-		// channel #0: -1251.028076 .. 199.367172 (avg 130.359882)
-		// channel #1: -4.876561 .. 6.020788 (avg 0.001652)
-		// channel #2: -9.831259 .. 0.339167 (avg 0.015836)
-		// channel #3: -14.000000 .. 1.000000 (avg 0.211194)
-		std::vector<uint32_t> waterHeight(width * height);
-		std::vector<uint32_t> waterVel(width * height);
-		std::vector<uint32_t> waterPol(width * height);
-		std::vector<uint16_t> height16(width * height);
-		for (int i = 0; i < width * height; ++i)
-		{
-			float vx = data[0];
-			float vy = data[1];
-			float vz = data[2];
-			float vw = data[3];
-			uint32_t bx = MapFloat8(vx, -1252, 200);
-			uint32_t by = MapFloat8(vy, -10, 10);
-			uint32_t bz = MapFloat8(vz, -10, 10);
-			uint32_t bw = MapFloat8(vw, -15, 2);
-			waterHeight[i] = bx | (bx << 8) | (bx << 16) | 0xFF000000;
-			waterVel[i] = by | (bz << 8) | 0x00800000 | 0xFF000000;
-			waterPol[i] = bw | (bw << 8) | (bw << 16) | 0xFF000000;
-			height16[i] = MapFloat16(vx, 200, -1252);
-			data += 4;
-		}
-		WriteTga("outXHeight.tga", width, height, waterHeight.data());
-		WriteTga("outYZVel.tga", width, height, waterVel.data());
-		WriteTga("outWPol.tga", width, height, waterPol.data());
-
-		FILE* fraw = fopen("outHeightRaw.raw", "wb");
-		fwrite(height16.data(), 2, width * height, fraw);
-		fclose(fraw);
-	}
-
-	// dump snow images
-	if (width == 1024)
-	{
-		// channel #0: 0 .. 3.115 (avg 0.000735) - snow
-		// channel #1: 0 - snow in water
-		// channel #2: -38973 .. -2004 - ground water
-		// channel #3: 0 - unused
-		std::vector<uint32_t> snow(width * height);
-		std::vector<uint32_t> ground(width * height);
-		std::vector<uint16_t> height16(width * height);
-		for (int i = 0; i < width * height; ++i)
-		{
-			float vx = data[0];
-			vx *= 30;
-			vx = std::min(1.0f, vx);
-			float vz = data[2];
-			uint32_t bx = MapFloat8(vx, 0, 1);
-			uint32_t bz = MapFloat8(vz, -38974, -2004);
-			snow[i] = bx | (bx << 8) | (bx << 16) | 0xFF000000;
-			ground[i] = bz | (bz << 8) | (bz << 16) | 0xFF000000;
-			height16[i] = MapFloat16(vz, -38974, -2004);
-			data += 4;
-		}
-		WriteTga("outSnow.tga", width, height, snow.data());
-		WriteTga("outGround.tga", width, height, ground.data());
-
-		FILE* fraw = fopen("outHeightRaw.raw", "wb");
-		fwrite(height16.data(), 2, width * height, fraw);
-		fclose(fraw);
-	}
-}
-
 static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 {
-	const int kRuns = 2;
+	const int kRuns = 1;
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
-	/*
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
+
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitFloats));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaXor));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes));
+
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitFloats | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes | kFilterDeltaDiff));
+
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitFloats | kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes | kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes | kFilterDeltaXor));
+
+	/*
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitFloats | kFilterDeltaXor));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,  kFilterSplitBytes | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplitBytes | kFilterDeltaXor));
@@ -284,6 +175,18 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 					{
 						cmp->PrintName(sizeof(cmpName), cmpName);
 						printf("  ERROR, %s level %i did not decompress back to input\n", cmpName, res.level);
+						for (size_t i = 0; i < 4 * tf.fileData.size(); ++i)
+						{
+							float va = tf.fileData[i];
+							float vb = decompressed[i];
+							uint32_t ia = ((const uint32_t*)tf.fileData.data())[i];
+							uint32_t ib = ((const uint32_t*)decompressed.data())[i];
+							if (va != vb)
+							{
+								printf("    diff at #%zi: exp %f got %f (%08x %08x)\n", i, va, vb, ia, ib);
+								break;
+							}
+						}
 						exit(1);
 					}
 					delete[] compressed;
@@ -431,6 +334,128 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		delete cmp;
 	}
 	g_Compressors.clear();
+}
+
+
+
+static void WriteTga(const char* path, int width, int height, const uint32_t* data)
+{
+	FILE* tga = fopen(path, "wb");
+	uint8_t header[] = {
+		0, // ID length
+		0, // no color map
+		2, // uncompressed, true color
+		0, 0, 0, 0,
+		0,
+		0, 0, 0, 0, // x and y origin
+		uint8_t(width & 0x00FF),
+		uint8_t((width & 0xFF00) >> 8),
+		uint8_t(height & 0x00FF),
+		uint8_t((height & 0xFF00) >> 8),
+		32, // bpp
+		0
+	};
+	fwrite(header, 1, sizeof(header), tga);
+	fwrite(data, 4, width*height, tga);
+	fclose(tga);
+}
+
+static uint8_t MapFloat8(float v, float vmin, float vmax)
+{
+	return (uint8_t)((v - vmin) / (vmax - vmin) * 255.0f);
+}
+static uint16_t MapFloat16(float v, float vmin, float vmax)
+{
+	return (uint16_t)((v - vmin) / (vmax - vmin) * 65535.0f);
+}
+
+static void DumpInputVisualizations(int width, int height, const float* data)
+{
+	double vmin[4] = { 1.0e10, 1.0e10, 1.0e10, 1.0e10 };
+	double vmax[4] = { -1.0e10, -1.0e10, -1.0e10, -1.0e10 };
+	double vsum[4] = { 0, 0, 0, 0 };
+	const float* ptr = data;
+	for (int i = 0; i < width * height; ++i)
+	{
+		for (int j = 0; j < 4; ++j)
+		{
+			double v = *ptr++;
+			vmin[j] = std::min(vmin[j], v);
+			vmax[j] = std::max(vmax[j], v);
+			vsum[j] += v;
+		}
+	}
+	for (int j = 0; j < 4; ++j)
+	{
+		printf("  channel #%i: %f .. %f (avg %f)\n", j, vmin[j], vmax[j], vsum[j] / (width * height));
+	}
+
+	// dump water images
+	if (width == 2048)
+	{
+		// channel #0: -1251.028076 .. 199.367172 (avg 130.359882)
+		// channel #1: -4.876561 .. 6.020788 (avg 0.001652)
+		// channel #2: -9.831259 .. 0.339167 (avg 0.015836)
+		// channel #3: -14.000000 .. 1.000000 (avg 0.211194)
+		std::vector<uint32_t> waterHeight(width * height);
+		std::vector<uint32_t> waterVel(width * height);
+		std::vector<uint32_t> waterPol(width * height);
+		std::vector<uint16_t> height16(width * height);
+		for (int i = 0; i < width * height; ++i)
+		{
+			float vx = data[0];
+			float vy = data[1];
+			float vz = data[2];
+			float vw = data[3];
+			uint32_t bx = MapFloat8(vx, -1252, 200);
+			uint32_t by = MapFloat8(vy, -10, 10);
+			uint32_t bz = MapFloat8(vz, -10, 10);
+			uint32_t bw = MapFloat8(vw, -15, 2);
+			waterHeight[i] = bx | (bx << 8) | (bx << 16) | 0xFF000000;
+			waterVel[i] = by | (bz << 8) | 0x00800000 | 0xFF000000;
+			waterPol[i] = bw | (bw << 8) | (bw << 16) | 0xFF000000;
+			height16[i] = MapFloat16(vx, 200, -1252);
+			data += 4;
+		}
+		WriteTga("outXHeight.tga", width, height, waterHeight.data());
+		WriteTga("outYZVel.tga", width, height, waterVel.data());
+		WriteTga("outWPol.tga", width, height, waterPol.data());
+
+		FILE* fraw = fopen("outHeightRaw.raw", "wb");
+		fwrite(height16.data(), 2, width * height, fraw);
+		fclose(fraw);
+	}
+
+	// dump snow images
+	if (width == 1024)
+	{
+		// channel #0: 0 .. 3.115 (avg 0.000735) - snow
+		// channel #1: 0 - snow in water
+		// channel #2: -38973 .. -2004 - ground water
+		// channel #3: 0 - unused
+		std::vector<uint32_t> snow(width * height);
+		std::vector<uint32_t> ground(width * height);
+		std::vector<uint16_t> height16(width * height);
+		for (int i = 0; i < width * height; ++i)
+		{
+			float vx = data[0];
+			vx *= 30;
+			vx = std::min(1.0f, vx);
+			float vz = data[2];
+			uint32_t bx = MapFloat8(vx, 0, 1);
+			uint32_t bz = MapFloat8(vz, -38974, -2004);
+			snow[i] = bx | (bx << 8) | (bx << 16) | 0xFF000000;
+			ground[i] = bz | (bz << 8) | (bz << 16) | 0xFF000000;
+			height16[i] = MapFloat16(vz, -38974, -2004);
+			data += 4;
+		}
+		WriteTga("outSnow.tga", width, height, snow.data());
+		WriteTga("outGround.tga", width, height, ground.data());
+
+		FILE* fraw = fopen("outHeightRaw.raw", "wb");
+		fwrite(height16.data(), 2, width * height, fraw);
+		fclose(fraw);
+	}
 }
 
 int main()

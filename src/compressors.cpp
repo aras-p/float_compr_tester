@@ -21,9 +21,11 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 	switch (format)
 	{
 	case kCompressionZstd:
-		return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
+		//return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
+		return { -5, 3, 9, 15 };
 	case kCompressionLZ4:
-		return { -5, -1, 0, 1, 6, 9, 12 };
+		//return { -5, -1, 0, 1, 6, 9, 12 };
+		return { -5, 0, 1, 9 };
 	case kCompressionZlib:
 		return { 1, 3, 5, 6, 9 };
 	case kCompressionBrotli:
@@ -129,7 +131,7 @@ static uint8_t* CompressionFilter(uint32_t filter, const float* data, int width,
 		if ((filter & kFilterSplitFloats) != 0)
 		{
 			int dataElems = planeElems * channels;
-			Transpose(data, (float*)tmp, channels, planeElems);
+			Transpose((uint32_t*)data, (uint32_t*)tmp, channels, planeElems);
 			if ((filter & kFilterDeltaDiff) != 0) EncodeDeltaDif((uint32_t*)tmp, dataElems);
 			if ((filter & kFilterDeltaXor) != 0) EncodeDeltaXor((uint32_t*)tmp, dataElems);
 		}
@@ -153,7 +155,7 @@ static void DecompressionFilter(uint32_t filter, uint8_t* tmp, float* data, int 
 			int dataElems = planeElems * channels;
 			if ((filter & kFilterDeltaDiff) != 0) DecodeDeltaDif((uint32_t*)tmp, dataElems);
 			if ((filter & kFilterDeltaXor) != 0) DecodeDeltaXor((uint32_t*)tmp, dataElems);
-			UnTranspose((const float*)tmp, data, channels, planeElems);
+			UnTranspose((const uint32_t*)tmp, (uint32_t*)data, channels, planeElems);
 		}
 		if ((filter & kFilterSplitBytes) != 0)
 		{
@@ -201,11 +203,11 @@ static const char* kCompressionFormatNames[kCompressionCount] = {
 void GenericCompressor::PrintName(size_t bufSize, char* buf) const
 {
 	const char* split = "";
-	if ((m_Filter & kFilterSplitFloats) != 0) split = "sf";
-	if ((m_Filter & kFilterSplitBytes) != 0) split = "sb";
+	if ((m_Filter & kFilterSplitFloats) != 0) split = "-sf";
+	if ((m_Filter & kFilterSplitBytes) != 0) split = "-sb";
 	const char* delta = "";
-	if ((m_Filter & kFilterDeltaDiff) != 0) delta = "_dif";
-	if ((m_Filter & kFilterDeltaXor) != 0) delta = "_xor";
+	if ((m_Filter & kFilterDeltaDiff) != 0) delta = "-dif";
+	if ((m_Filter & kFilterDeltaXor) != 0) delta = "-xor";
 	snprintf(buf, bufSize, "%s%s%s", kCompressionFormatNames[m_Format], split, delta);
 }
 
@@ -249,11 +251,15 @@ uint32_t GenericCompressor::GetColor() const
 		//if (m_Level <= 11) return 0x12b520;
 		//if (m_Level <= 15) return 0x3fd24c;
 		//return 0x7ce685;
-		return 0x0c9618;
+		//if (m_Filter & kFilterSplitFloats) return 0x04640e;
+		//if (m_Filter & kFilterSplitBytes) return 0x12b520;
+		return 0x0c9618;		
 	}
 	if (m_Format == kCompressionLZ4)
 	{
 		// yellow: 6f6500 b19f00 dcd35e
+		//if (m_Filter & kFilterSplitFloats) return 0x6f6500;
+		//if (m_Filter & kFilterSplitBytes) return 0xdcd35e;
 		return 0xb19f00;
 	}
 	if (m_Format == kCompressionZlib)
@@ -269,12 +275,12 @@ uint32_t GenericCompressor::GetColor() const
 
 static const char* GetGenericShape(uint filter)
 {
-	if ((filter & kFilterSplitBytes) && (filter & kFilterDeltaDiff)) return "{type:'square', rotation: 45}}";
-	if ((filter & kFilterSplitBytes) && (filter & kFilterDeltaXor))  return "{type:'star', sides:4, dent: 0.5}}";
-	if ((filter & kFilterSplitBytes)) return "'square'";
-	if ((filter & kFilterSplitFloats) && (filter & kFilterDeltaDiff)) return "{type:'triangle', rotation: 30}}";
-	if ((filter & kFilterSplitFloats) && (filter & kFilterDeltaXor))  return "{type:'triangle', rotation: -30}}";
-	if ((filter & kFilterSplitFloats)) return "'triangle'";
+	if ((filter & kFilterSplitBytes) && (filter & kFilterDeltaDiff)) return "{type:'square', rotation: 45}, lineDashStyle: [2, 2], lineWidth: 2";
+	if ((filter & kFilterSplitBytes) && (filter & kFilterDeltaXor))  return "{type:'star', sides:4, dent: 0.5}, lineDashStyle: [2, 2], lineWidth: 2";
+	if ((filter & kFilterSplitBytes)) return "'square', lineDashStyle: [2, 2], lineWidth: 2";
+	if ((filter & kFilterSplitFloats) && (filter & kFilterDeltaDiff)) return "{type:'triangle', rotation: 30}, pointSize: 8, lineDashStyle: [4, 4], lineWidth: 2";
+	if ((filter & kFilterSplitFloats) && (filter & kFilterDeltaXor))  return "{type:'triangle', rotation: -30}, pointSize: 8, lineDashStyle: [4, 4], lineWidth: 2";
+	if ((filter & kFilterSplitFloats)) return "'triangle', pointSize: 8, lineDashStyle: [4, 4], lineWidth: 2";
 	return "'circle'";
 }
 
@@ -357,11 +363,11 @@ std::vector<int> MeshOptCompressor::GetLevels() const
 void MeshOptCompressor::PrintName(size_t bufSize, char* buf) const
 {
 	const char* split = "";
-	if ((m_Filter & kFilterSplitFloats) != 0) split = "_sf";
-	if ((m_Filter & kFilterSplitBytes) != 0) split = "_sb";
+	if ((m_Filter & kFilterSplitFloats) != 0) split = "-sf";
+	if ((m_Filter & kFilterSplitBytes) != 0) split = "-sb";
 	const char* delta = "";
-	if ((m_Filter & kFilterDeltaDiff) != 0) delta = "_dif";
-	if ((m_Filter & kFilterDeltaXor) != 0) delta = "_xor";
+	if ((m_Filter & kFilterDeltaDiff) != 0) delta = "-dif";
+	if ((m_Filter & kFilterDeltaXor) != 0) delta = "-xor";
 	if (m_Format == kCompressionCount)
 		snprintf(buf, bufSize, "meshopt%s%s", split, delta);
 	else
