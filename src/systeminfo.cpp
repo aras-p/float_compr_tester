@@ -3,6 +3,9 @@
 #ifdef _WIN32
 #include <intrin.h>
 #endif
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#endif
 
 static std::string TrimRight(std::string s)
 {
@@ -19,6 +22,7 @@ static std::string TrimRight(std::string s)
 std::string SysInfoGetCpuName()
 {
 #	if defined(_WIN32)
+	// Windows:
 	int cpuInfo[4] = { -1 };
 	char brandString[49] = {};
 
@@ -29,6 +33,14 @@ std::string SysInfoGetCpuName()
 	__cpuid(cpuInfo, 0x80000004);
 	memcpy(brandString + 32, cpuInfo, 16);
 	return TrimRight(brandString);
+
+#	elif defined(__APPLE__)
+	// macOS:
+	char buffer[256];
+	size_t bufferLen = sizeof(buffer);
+	sysctlbyname("machdep.cpu.brand_string", &buffer, &bufferLen, NULL, 0);
+	return TrimRight(buffer);
+
 #	else
 #	error Unknown platform
 #	endif
@@ -39,7 +51,9 @@ std::string SysInfoGetCompilerName()
 {
 #if defined __clang__
 	// Clang
-	return std::string("Clang ") + TrimRight(__clang_version__);
+	char buf[256];
+	snprintf(buf, sizeof(buf), "Clang %i.%i", __clang_major__, __clang_minor__);
+	return buf;
 #elif defined _MSC_VER
 	// MSVC
 #	if _MSC_VER >= 1937

@@ -17,20 +17,18 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 	case kCompressionZstd:
 		//return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
 		return { -5, -3, -1, 1, 3, 5, 7, 9 }; // comp time under 2s
-		//return { -5, 3, 5 };
 	case kCompressionLZ4:
 		//return { -5, -1, 0, 1, 6, 9, 12 };
 		return { -5, -1, 0, 1, 6, 9 }; // comp time under 2s
-		//return { -5, 0, 1 };
 	case kCompressionZlib:
-		return { 1, 3, 5, 6, 7, 9 };
-		//return { 1, 3, 5, 6 }; // comp time under 2s
-		//return { 1, 6, 9 };
+		//return { 1, 3, 5, 6, 7, 9 };
+		return { 1, 3, 5, 6 }; // comp time under 2s
 	case kCompressionBrotli:
-		return { 0, 1, 2, 4, 5, 6, 9, 10, 11 };
-		//return { 0, 2, 4 }; // comp time under 2s
+		//return { 0, 1, 2, 4, 5, 6, 9, 10, 11 };
+		return { 0, 1, 2, 4 }; // comp time under 2s
 	case kCompressionLibdeflate:
-		return { 1, 3, 5, 6, 9, 10, 12 };
+		//return { 1, 3, 5, 6, 9, 10, 12 };
+		return { 1, 3, 5, 6 }; // comp time under 2s
 	case kCompressionOoodleSelkie:
 	case kCompressionOoodleMermaid:
 	case kCompressionOoodleKraken:
