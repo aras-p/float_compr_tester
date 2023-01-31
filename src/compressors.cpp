@@ -10,13 +10,6 @@
 //#include <streamvbyte.h>
 //#include <streamvbytedelta.h>
 
-static const int kLz4LevelMin = -5;
-static const int kLz4LevelMax = 1; //@TODO: 12
-static const int kZlibLevelMin = 1;
-static const int kZlibLevelMax = 4; //@TODO: 9
-static const int kBrotliLevelMin = 0;
-static const int kBrotliLevelMax = 11;
-
 static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 {
 	switch (format)

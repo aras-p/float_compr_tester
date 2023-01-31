@@ -2,6 +2,8 @@
 #include <vector>
 #include <algorithm>
 #include "compressors.h"
+#include "systeminfo.h"
+#include "resultcache.h"
 
 #define SOKOL_TIME_IMPL
 #include "../libs/sokol_time.h"
@@ -19,47 +21,47 @@ static std::vector<Compressor*> g_Compressors;
 
 static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 {
-	const int kRuns = 1;
+	const int kRuns = 2;
 
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterBitShuffle));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterBitShuffle));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterBitShuffle | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterBitShuffle | kFilterDeltaDiff));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterBitShuffle));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterBitShuffle));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterBitShuffle | kFilterDeltaDiff));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterBitShuffle | kFilterDeltaDiff));
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
 
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit32));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit32));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit32));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit32));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit32));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit32));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit32));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit32));
 
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit8));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit8));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit8));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit8));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit8));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit8));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit8));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit8));
 
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit32| kFilterDeltaXor));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit32| kFilterDeltaXor));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit32| kFilterDeltaXor));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit32| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit32| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit32| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit32| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit32| kFilterDeltaXor));
 
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit8| kFilterDeltaXor));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit8| kFilterDeltaXor));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit8| kFilterDeltaXor));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit8| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit8| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit8| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit8| kFilterDeltaXor));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit8| kFilterDeltaXor));
 
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit32| kFilterDeltaDiff));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit32| kFilterDeltaDiff));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit32| kFilterDeltaDiff));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit32| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit32| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit32| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit32| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit32| kFilterDeltaDiff));
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit8 | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit8 | kFilterDeltaDiff));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit8| kFilterDeltaDiff));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit8| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit8| kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit8| kFilterDeltaDiff));
 
 	/*
 	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount));
@@ -134,6 +136,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	struct Result
 	{
 		int level = 0;
+		bool cached = false;
 		size_t size = 0;
 		double cmpTime = 0;
 		double decTime = 0;
@@ -162,6 +165,16 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			for (Result& res : levelRes)
 			{
 				printf(".");
+				size_t cachedSize;
+				double cachedCmpTime, cachedDecTime;
+				if (ResCacheGet(cmpName, res.level, &cachedSize, &cachedCmpTime, &cachedDecTime))
+				{
+					res.size += cachedSize;
+					res.cmpTime += cachedCmpTime;
+					res.decTime += cachedDecTime;
+					res.cached = true;
+					continue;
+				}
 				for (int tfi = 0; tfi < testFileCount; ++tfi)
 				{
 					const TestFile& tf = testFiles[tfi];
@@ -210,6 +223,32 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		printf("\n");
 	}
 
+	// normalize results and cache the ones we need
+	int counterRan = 0, counterCached = 0;
+	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
+	{
+		Compressor* cmp = g_Compressors[ic];
+		cmp->PrintName(sizeof(cmpName), cmpName);
+		LevelResults& levelRes = results[ic];
+		for (Result& res : levelRes)
+		{
+			res.size /= kRuns;
+			res.cmpTime /= kRuns;
+			res.decTime /= kRuns;
+			if (!res.cached)
+			{
+				ResCacheSet(cmpName, res.level, res.size, res.cmpTime, res.decTime);
+			}
+			else
+			{
+				++counterCached;
+			}
+			++counterRan;
+		}
+	}
+	printf("  Ran %i cases (%i were fetched from previous runs)\n", counterRan, counterCached);
+
+
 	double oneMB = 1024.0 * 1024.0;
 	double oneGB = oneMB * 1024.0;
 	double rawSize = (double)(totalFloats * 4);
@@ -221,9 +260,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	{
 		Compressor* cmp = g_Compressors[ic];
 		cmp->PrintName(sizeof(cmpName), cmpName);
-		double csize = (double)(sizes[ic] / kRuns);
-		double ctime = cmpTimes[ic] / kRuns;
-		double dtime = decompTimes[ic] / kRuns;
+		double csize = (double)(sizes[ic]);
+		double ctime = cmpTimes[ic];
+		double dtime = decompTimes[ic];
 		double ratio = rawSize / csize;
 		double cspeed = rawSize / ctime;
 		double dspeed = rawSize / dtime;
@@ -261,9 +300,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		const LevelResults& levelRes = results[ic];
 		for (const Result& res : levelRes)
 		{
-			double csize = (double)(res.size / kRuns);
-			double ctime = res.cmpTime / kRuns;
-			//double dtime = res.decTime / kRuns;
+			double csize = (double)res.size;
+			double ctime = res.cmpTime;
+			//double dtime = res.decTime;
 			double ratio = rawSize / csize;
 			double cspeed = rawSize / ctime;
 			//double dspeed = rawSize / dtime;
@@ -286,9 +325,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		const LevelResults& levelRes = results[ic];
 		for (const Result& res : levelRes)
 		{
-			double csize = (double)(res.size / kRuns);
-			//double ctime = res.cmpTime / kRuns;
-			double dtime = res.decTime / kRuns;
+			double csize = (double)res.size;
+			//double ctime = res.cmpTime;
+			double dtime = res.decTime;
 			double ratio = rawSize / csize;
 			//double cspeed = rawSize / ctime;
 			double dspeed = rawSize / dtime;
@@ -474,6 +513,7 @@ static void DumpInputVisualizations(int width, int height, const float* data)
 int main()
 {
 	stm_setup();
+	printf("CPU: '%s' Compiler: '%s'\n", SysInfoGetCpuName().c_str(), SysInfoGetCompilerName().c_str());
 
 	TestFile testFiles[] = {
 		{"../../../data/2048_sq_float4.bin", 2048, 2048, 4}, // water sim: X height, Y&Z velocity, W pollution
@@ -501,6 +541,8 @@ int main()
 		//DumpInputVisualizations(tf.width, tf.height, tf.fileData.data());
 	}
 
+	ResCacheInit();
 	TestCompressors(std::size(testFiles), testFiles);
+	ResCacheClose();
 	return 0;
 }

@@ -134,6 +134,8 @@ add_executable (float_compr_tester
 	src/main.cpp
 	src/compression_helpers.cpp
 	src/compressors.cpp
+	src/systeminfo.cpp
+	src/resultcache.cpp
 	libs/bitshuffle/src/bitshuffle_core.c
 	libs/bitshuffle/src/bitshuffle_core.h
 	libs/bitshuffle/src/iochain.c
@@ -162,5 +164,6 @@ target_link_libraries(float_compr_tester PRIVATE
 
 target_compile_definitions(float_compr_tester PRIVATE
 	_CRT_SECURE_NO_DEPRECATE
+	_CRT_NONSTDC_NO_WARNINGS
 	NOMINMAX
 )

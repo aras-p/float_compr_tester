@@ -15,3 +15,5 @@ Code here uses 3rd party libraries:
 * [brotli](https://github.com/google/brotli), v1.0.9, MIT license.
 * [bitshuffle](https://github.com/kiyo-masui/bitshuffle), 0.5.1, MIT license.
 * [sokol_time](https://github.com/floooh/sokol), zlib license.
+* [ini.h](https://github.com/mattiasgustavsson/libs/blob/main/ini.h), 2022 Sep (aef7d92), MIT or Public Domain.
+
