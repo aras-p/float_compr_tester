@@ -78,19 +78,6 @@ int64_t compress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSi
 	default: return -1;
 	}
 }
-int64_t decompress_calc_bound(const void* src, int64_t srcSize, CompressionFormat format)
-{
-	if (srcSize == 0)
-		return 0;
-	switch (format)
-	{
-	case kCompressionZstd: return ZSTD_getFrameContentSize(src, srcSize);
-	case kCompressionLZ4: return -1; // LZ4 does not know decompressed size; user must track that themselves
-	case kCompressionZlib: return -1; // zlib does not know decompressed size; user must track that themselves
-	case kCompressionBrotli: return -1; // brotli does not know decompressed size; user must track that themselves
-	default: return -1;
-	}	
-}
 int64_t decompress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSize, CompressionFormat format)
 {
 	if (srcSize == 0)

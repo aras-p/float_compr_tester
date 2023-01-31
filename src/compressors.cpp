@@ -206,12 +206,16 @@ void GenericCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 	DecompressionFilter(m_Filter, tmp, data, width, height, channels);
 }
 
-static const char* kCompressionFormatNames[kCompressionCount] = {
+static const char* kCompressionFormatNames[] = {
 	"zstd",
 	"lz4",
 	"zlib",
 	"brotli",
+	"oselkie",
+	"omermaid",
+	"okraken",
 };
+static_assert(sizeof(kCompressionFormatNames) / sizeof(kCompressionFormatNames[0]) == kCompressionCount);
 
 void GenericCompressor::PrintName(size_t bufSize, char* buf) const
 {
@@ -284,6 +288,10 @@ uint32_t GenericCompressor::GetColor() const
 	{
 		return 0xde5546; // orange
 	}
+	// purple
+	if (m_Format == kCompressionOoodleSelkie)	return 0xffb0ff;
+	if (m_Format == kCompressionOoodleMermaid)	return 0xdc74ff;
+	if (m_Format == kCompressionOoodleKraken)	return 0x8a4b9d;
 	return 0;
 }
 
@@ -323,6 +331,7 @@ static uint8_t* CompressGeneric(CompressionFormat format, int level, uint8_t* da
 	return cmp;
 }
 
+/*
 static uint8_t* DecompressGeneric(CompressionFormat format, const uint8_t* cmp, size_t cmpSize, size_t& outSize)
 {
 	if (format == kCompressionCount)
@@ -335,8 +344,9 @@ static uint8_t* DecompressGeneric(CompressionFormat format, const uint8_t* cmp, 
 	outSize = decompress_data(cmp, cmpSize, decomp, bound, format);
 	return decomp;
 }
+*/
 
-
+/*
 uint8_t* MeshOptCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
 	uint8_t* tmp = CompressionFilter(m_Filter, data, width, height, channels);
@@ -400,6 +410,7 @@ const char* MeshOptCompressor::GetShapeString() const
 {
 	return GetGenericShape(m_Filter);
 }
+*/
 
 uint8_t* FpzipCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {

@@ -17,10 +17,12 @@ enum CompressionFormat
 	kCompressionLZ4,
 	kCompressionZlib,
 	kCompressionBrotli,
+	kCompressionOoodleSelkie,
+	kCompressionOoodleMermaid,
+	kCompressionOoodleKraken,
 	kCompressionCount
 };
 int64_t compress_calc_bound(int64_t srcSize, CompressionFormat format);
 int64_t compress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSize, CompressionFormat format, int level);
-int64_t decompress_calc_bound(const void* src, int64_t srcSize, CompressionFormat format);
 int64_t decompress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSize, CompressionFormat format);
 

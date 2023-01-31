@@ -91,7 +91,7 @@ bool ResCacheGet(const char* name, int level, size_t* outSize, double* outCmpTim
 void ResCacheSet(const char* name, int level, size_t size, double cmpTime, double decTime)
 {
 #ifdef _DEBUG
-	return false;
+	return;
 #endif
 
 	s_CacheModified = true;
