@@ -278,6 +278,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "<div id='chart_cmp' style='width: 740px; height: 480px; display:inline-block;'></div>\n");
 	fprintf(fout, "<div id='chart_dec' style='width: 540px; height: 480px; display:inline-block;'></div>\n");
 	fprintf(fout, "</div>\n");
+	fprintf(fout, "<p>CPU: %s Compiler: %s</p>\n", SysInfoGetCpuName().c_str(), SysInfoGetCompilerName().c_str());
+	fprintf(fout, "</center>");
 	fprintf(fout, "<script type='text/javascript'>\n");
 	fprintf(fout, "google.charts.load('current', {'packages':['corechart']});\n");
 	fprintf(fout, "google.charts.setOnLoadCallback(drawChart);\n");
