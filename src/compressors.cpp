@@ -34,7 +34,8 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 	case kCompressionOoodleSelkie:
 	case kCompressionOoodleMermaid:
 	case kCompressionOoodleKraken:
-		return { -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8 };
+		//return { -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8 };
+		return { -4, -3, -2, -1, 1, 2, 3 }; // comp time under 2s
 	default:
 		return { 0 };
 	}
