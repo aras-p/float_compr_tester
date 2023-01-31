@@ -1,0 +1,220 @@
+<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
+<center style='font-family: Arial;'>
+<div style='border: 1px solid #ccc; width: 1290px;'>
+<div id='chart_cmp' style='width: 740px; height: 480px; display:inline-block;'></div>
+<div id='chart_dec' style='width: 540px; height: 480px; display:inline-block;'></div>
+</div>
+<p>CPU: AMD Ryzen 9 5950X 16-Core Processor Compiler: MSVC 2022 17.4</p>
+</center><script type='text/javascript'>
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(drawChart);
+function drawChart() {
+var dataCmp = new google.visualization.DataTable();
+var dataDec = new google.visualization.DataTable();
+dataCmp.addColumn('number', 'Throughput');
+dataDec.addColumn('number', 'Throughput');
+dataCmp.addColumn('number', 'libdeflate'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'libdeflate'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'oselkie'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'oselkie'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'omermaid'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'omermaid'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'okraken'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'okraken'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zstd'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zlib'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zlib'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'brotli'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'brotli'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addRows([
+  [0.281, 2.425,'libdeflate 1\n2.425x at 0.281 GB/s\n39.0MB 0.33s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.180, 2.506,'libdeflate 3\n2.506x at 0.180 GB/s\n37.7MB 0.51s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.151, 2.605,'libdeflate 5\n2.605x at 0.151 GB/s\n36.3MB 0.61s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.125, 2.609,'libdeflate 6\n2.609x at 0.125 GB/s\n36.2MB 0.74s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.019, 2.611,'libdeflate 9\n2.611x at 0.019 GB/s\n36.2MB 4.75s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.017, 2.681,'libdeflate 10\n2.681x at 0.017 GB/s\n35.2MB 5.35s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.011, 2.685,'libdeflate 12\n2.685x at 0.011 GB/s\n35.2MB 8.49s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.181,null,null,null, 2.140,'oselkie -4\n2.140x at 1.181 GB/s\n44.1MB 0.08s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.165,null,null,null, 2.184,'oselkie -3\n2.184x at 1.165 GB/s\n43.3MB 0.08s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.982,null,null,null, 2.256,'oselkie -2\n2.256x at 0.982 GB/s\n41.9MB 0.09s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.699,null,null,null, 2.268,'oselkie -1\n2.268x at 0.699 GB/s\n41.6MB 0.13s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.625,null,null,null, 2.268,'oselkie 1\n2.268x at 0.625 GB/s\n41.6MB 0.15s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.443,null,null,null, 2.364,'oselkie 2\n2.364x at 0.443 GB/s\n40.0MB 0.21s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.207,null,null,null, 2.531,'oselkie 3\n2.531x at 0.207 GB/s\n37.3MB 0.45s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.105,null,null,null, 2.571,'oselkie 4\n2.571x at 0.105 GB/s\n36.7MB 0.88s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.006,null,null,null, 2.708,'oselkie 5\n2.708x at 0.006 GB/s\n34.9MB 14.36s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.004,null,null,null, 2.718,'oselkie 6\n2.718x at 0.004 GB/s\n34.8MB 21.99s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.004,null,null,null, 2.718,'oselkie 7\n2.718x at 0.004 GB/s\n34.8MB 22.04s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.004,null,null,null, 2.718,'oselkie 8\n2.718x at 0.004 GB/s\n34.8MB 22.17s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.073,null,null,null,null,null,null, 2.376,'omermaid -4\n2.376x at 1.073 GB/s\n39.8MB 0.09s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.902,null,null,null,null,null,null, 2.441,'omermaid -3\n2.441x at 0.902 GB/s\n38.7MB 0.10s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.761,null,null,null,null,null,null, 2.595,'omermaid -2\n2.595x at 0.761 GB/s\n36.4MB 0.12s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.512,null,null,null,null,null,null, 2.917,'omermaid -1\n2.917x at 0.512 GB/s\n32.4MB 0.18s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.476,null,null,null,null,null,null, 2.915,'omermaid 1\n2.915x at 0.476 GB/s\n32.4MB 0.19s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.374,null,null,null,null,null,null, 2.783,'omermaid 2\n2.783x at 0.374 GB/s\n33.9MB 0.25s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.189,null,null,null,null,null,null, 2.953,'omermaid 3\n2.953x at 0.189 GB/s\n32.0MB 0.49s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.095,null,null,null,null,null,null, 3.019,'omermaid 4\n3.019x at 0.095 GB/s\n31.3MB 0.97s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.004,null,null,null,null,null,null, 3.474,'omermaid 5\n3.474x at 0.004 GB/s\n27.2MB 22.36s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.003,null,null,null,null,null,null, 3.487,'omermaid 6\n3.487x at 0.003 GB/s\n27.1MB 30.76s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.003,null,null,null,null,null,null, 3.562,'omermaid 7\n3.562x at 0.003 GB/s\n26.5MB 31.11s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.003,null,null,null,null,null,null, 3.562,'omermaid 8\n3.562x at 0.003 GB/s\n26.5MB 30.93s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.130,null,null,null,null,null,null,null,null,null, 2.394,'okraken -4\n2.394x at 1.130 GB/s\n39.5MB 0.08s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.876,null,null,null,null,null,null,null,null,null, 2.564,'okraken -3\n2.564x at 0.876 GB/s\n36.8MB 0.11s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.767,null,null,null,null,null,null,null,null,null, 2.743,'okraken -2\n2.743x at 0.767 GB/s\n34.4MB 0.12s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.535,null,null,null,null,null,null,null,null,null, 2.984,'okraken -1\n2.984x at 0.535 GB/s\n31.7MB 0.17s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.354,null,null,null,null,null,null,null,null,null, 3.137,'okraken 1\n3.137x at 0.354 GB/s\n30.1MB 0.26s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.222,null,null,null,null,null,null,null,null,null, 3.195,'okraken 2\n3.195x at 0.222 GB/s\n29.6MB 0.41s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.059,null,null,null,null,null,null,null,null,null, 3.398,'okraken 3\n3.398x at 0.059 GB/s\n27.8MB 1.57s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.037,null,null,null,null,null,null,null,null,null, 3.553,'okraken 4\n3.553x at 0.037 GB/s\n26.6MB 2.47s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.006,null,null,null,null,null,null,null,null,null, 3.706,'okraken 5\n3.706x at 0.006 GB/s\n25.5MB 15.08s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.003,null,null,null,null,null,null,null,null,null, 3.756,'okraken 6\n3.756x at 0.003 GB/s\n25.1MB 28.81s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.003,null,null,null,null,null,null,null,null,null, 3.761,'okraken 7\n3.761x at 0.003 GB/s\n25.1MB 33.60s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.002,null,null,null,null,null,null,null,null,null, 3.848,'okraken 8\n3.848x at 0.002 GB/s\n24.5MB 58.43s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.933,null,null,null,null,null,null,null,null,null,null,null,null, 1.960,'zstd -5\n1.960x at 0.933 GB/s\n48.2MB 0.10s','' ,null,null,null,null,null,null,null,null,null],
+  [0.815,null,null,null,null,null,null,null,null,null,null,null,null, 2.257,'zstd -3\n2.257x at 0.815 GB/s\n41.8MB 0.11s','' ,null,null,null,null,null,null,null,null,null],
+  [0.696,null,null,null,null,null,null,null,null,null,null,null,null, 2.536,'zstd -1\n2.536x at 0.696 GB/s\n37.3MB 0.13s','' ,null,null,null,null,null,null,null,null,null],
+  [0.600,null,null,null,null,null,null,null,null,null,null,null,null, 2.628,'zstd 1\n2.628x at 0.600 GB/s\n35.9MB 0.15s','' ,null,null,null,null,null,null,null,null,null],
+  [0.305,null,null,null,null,null,null,null,null,null,null,null,null, 2.699,'zstd 3\n2.699x at 0.305 GB/s\n35.0MB 0.30s','' ,null,null,null,null,null,null,null,null,null],
+  [0.160,null,null,null,null,null,null,null,null,null,null,null,null, 2.703,'zstd 5\n2.703x at 0.160 GB/s\n34.9MB 0.58s','' ,null,null,null,null,null,null,null,null,null],
+  [0.098,null,null,null,null,null,null,null,null,null,null,null,null, 2.797,'zstd 7\n2.797x at 0.098 GB/s\n33.8MB 0.94s','' ,null,null,null,null,null,null,null,null,null],
+  [0.080,null,null,null,null,null,null,null,null,null,null,null,null, 2.885,'zstd 9\n2.885x at 0.080 GB/s\n32.7MB 1.15s','' ,null,null,null,null,null,null,null,null,null],
+  [0.030,null,null,null,null,null,null,null,null,null,null,null,null, 2.890,'zstd 12\n2.890x at 0.030 GB/s\n32.7MB 3.11s','' ,null,null,null,null,null,null,null,null,null],
+  [0.014,null,null,null,null,null,null,null,null,null,null,null,null, 2.871,'zstd 15\n2.871x at 0.014 GB/s\n32.9MB 6.58s','' ,null,null,null,null,null,null,null,null,null],
+  [0.006,null,null,null,null,null,null,null,null,null,null,null,null, 3.041,'zstd 18\n3.041x at 0.006 GB/s\n31.1MB 16.71s','' ,null,null,null,null,null,null,null,null,null],
+  [0.003,null,null,null,null,null,null,null,null,null,null,null,null, 3.051,'zstd 22\n3.051x at 0.003 GB/s\n31.0MB 27.17s','' ,null,null,null,null,null,null,null,null,null],
+  [1.708,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.533,'lz4 -5\n1.533x at 1.708 GB/s\n61.6MB 0.05s','' ,null,null,null,null,null,null],
+  [1.292,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.740,'lz4 -1\n1.740x at 1.292 GB/s\n54.3MB 0.07s','' ,null,null,null,null,null,null],
+  [1.030,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.948,'lz4 0\n1.948x at 1.030 GB/s\n48.5MB 0.09s','' ,null,null,null,null,null,null],
+  [0.150,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.140,'lz4 1\n2.140x at 0.150 GB/s\n44.1MB 0.62s','' ,null,null,null,null,null,null],
+  [0.102,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.214,'lz4 6\n2.214x at 0.102 GB/s\n42.7MB 0.90s','' ,null,null,null,null,null,null],
+  [0.056,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.223,'lz4 9\n2.223x at 0.056 GB/s\n42.5MB 1.65s','' ,null,null,null,null,null,null],
+  [0.002,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.234,'lz4 12\n2.234x at 0.002 GB/s\n42.3MB 38.59s','' ,null,null,null,null,null,null],
+  [0.088,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.399,'zlib 1\n2.399x at 0.088 GB/s\n39.4MB 1.04s','' ,null,null,null],
+  [0.069,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.434,'zlib 3\n2.434x at 0.069 GB/s\n38.8MB 1.33s','' ,null,null,null],
+  [0.055,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.578,'zlib 5\n2.578x at 0.055 GB/s\n36.6MB 1.67s','' ,null,null,null],
+  [0.042,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.576,'zlib 6\n2.576x at 0.042 GB/s\n36.7MB 2.22s','' ,null,null,null],
+  [0.033,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.575,'zlib 7\n2.575x at 0.033 GB/s\n36.7MB 2.80s','' ,null,null,null],
+  [0.005,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.575,'zlib 9\n2.575x at 0.005 GB/s\n36.7MB 18.51s','' ,null,null,null],
+  [0.505,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.305,'brotli 0\n2.305x at 0.505 GB/s\n41.0MB 0.18s','' ],
+  [0.319,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.382,'brotli 1\n2.382x at 0.319 GB/s\n39.7MB 0.29s','' ],
+  [0.191,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.614,'brotli 2\n2.614x at 0.191 GB/s\n36.1MB 0.48s','' ],
+  [0.089,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.619,'brotli 4\n2.619x at 0.089 GB/s\n36.1MB 1.03s','' ],
+  [0.036,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.082,'brotli 5\n3.082x at 0.036 GB/s\n30.6MB 2.59s','' ],
+  [0.026,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.079,'brotli 6\n3.079x at 0.026 GB/s\n30.7MB 3.54s','' ],
+  [0.009,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.086,'brotli 9\n3.086x at 0.009 GB/s\n30.6MB 10.62s','' ],
+  [0.001,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.248,'brotli 10\n3.248x at 0.001 GB/s\n29.1MB 67.41s','' ],
+  [0.001,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.555,'brotli 11\n3.555x at 0.001 GB/s\n26.6MB 144.04s','' ]
+]);
+dataDec.addRows([
+  [0.997, 2.425,'libdeflate 1\n2.425x at 0.997 GB/s\n39.0MB 0.09s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.925, 2.506,'libdeflate 3\n2.506x at 0.925 GB/s\n37.7MB 0.10s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.957, 2.605,'libdeflate 5\n2.605x at 0.957 GB/s\n36.3MB 0.10s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.962, 2.609,'libdeflate 6\n2.609x at 0.962 GB/s\n36.2MB 0.10s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.971, 2.611,'libdeflate 9\n2.611x at 0.971 GB/s\n36.2MB 0.10s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.910, 2.681,'libdeflate 10\n2.681x at 0.910 GB/s\n35.2MB 0.10s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.908, 2.685,'libdeflate 12\n2.685x at 0.908 GB/s\n35.2MB 0.10s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.986,null,null,null, 2.140,'oselkie -4\n2.140x at 4.986 GB/s\n44.1MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [5.591,null,null,null, 2.184,'oselkie -3\n2.184x at 5.591 GB/s\n43.3MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [5.301,null,null,null, 2.256,'oselkie -2\n2.256x at 5.301 GB/s\n41.9MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.730,null,null,null, 2.268,'oselkie -1\n2.268x at 4.730 GB/s\n41.6MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.682,null,null,null, 2.268,'oselkie 1\n2.268x at 4.682 GB/s\n41.6MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.046,null,null,null, 2.364,'oselkie 2\n2.364x at 4.046 GB/s\n40.0MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.231,null,null,null, 2.531,'oselkie 3\n2.531x at 4.231 GB/s\n37.3MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.456,null,null,null, 2.571,'oselkie 4\n2.571x at 4.456 GB/s\n36.7MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.705,null,null,null, 2.708,'oselkie 5\n2.708x at 3.705 GB/s\n34.9MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.860,null,null,null, 2.718,'oselkie 6\n2.718x at 3.860 GB/s\n34.8MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.780,null,null,null, 2.718,'oselkie 7\n2.718x at 3.780 GB/s\n34.8MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.876,null,null,null, 2.718,'oselkie 8\n2.718x at 3.876 GB/s\n34.8MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.174,null,null,null,null,null,null, 2.376,'omermaid -4\n2.376x at 4.174 GB/s\n39.8MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.646,null,null,null,null,null,null, 2.441,'omermaid -3\n2.441x at 3.646 GB/s\n38.7MB 0.03s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.780,null,null,null,null,null,null, 2.595,'omermaid -2\n2.595x at 3.780 GB/s\n36.4MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.493,null,null,null,null,null,null, 2.917,'omermaid -1\n2.917x at 2.493 GB/s\n32.4MB 0.04s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.466,null,null,null,null,null,null, 2.915,'omermaid 1\n2.915x at 2.466 GB/s\n32.4MB 0.04s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.770,null,null,null,null,null,null, 2.783,'omermaid 2\n2.783x at 2.770 GB/s\n33.9MB 0.03s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.116,null,null,null,null,null,null, 2.953,'omermaid 3\n2.953x at 3.116 GB/s\n32.0MB 0.03s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.181,null,null,null,null,null,null, 3.019,'omermaid 4\n3.019x at 3.181 GB/s\n31.3MB 0.03s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.283,null,null,null,null,null,null, 3.474,'omermaid 5\n3.474x at 2.283 GB/s\n27.2MB 0.04s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.371,null,null,null,null,null,null, 3.487,'omermaid 6\n3.487x at 2.371 GB/s\n27.1MB 0.04s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.266,null,null,null,null,null,null, 3.562,'omermaid 7\n3.562x at 2.266 GB/s\n26.5MB 0.04s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.306,null,null,null,null,null,null, 3.562,'omermaid 8\n3.562x at 2.306 GB/s\n26.5MB 0.04s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.719,null,null,null,null,null,null,null,null,null, 2.394,'okraken -4\n2.394x at 3.719 GB/s\n39.5MB 0.02s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.500,null,null,null,null,null,null,null,null,null, 2.564,'okraken -3\n2.564x at 2.500 GB/s\n36.8MB 0.04s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.460,null,null,null,null,null,null,null,null,null, 2.743,'okraken -2\n2.743x at 2.460 GB/s\n34.4MB 0.04s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.191,null,null,null,null,null,null,null,null,null, 2.984,'okraken -1\n2.984x at 2.191 GB/s\n31.7MB 0.04s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.963,null,null,null,null,null,null,null,null,null, 3.137,'okraken 1\n3.137x at 1.963 GB/s\n30.1MB 0.05s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.856,null,null,null,null,null,null,null,null,null, 3.195,'okraken 2\n3.195x at 1.856 GB/s\n29.6MB 0.05s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.867,null,null,null,null,null,null,null,null,null, 3.398,'okraken 3\n3.398x at 1.867 GB/s\n27.8MB 0.05s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.662,null,null,null,null,null,null,null,null,null, 3.553,'okraken 4\n3.553x at 1.662 GB/s\n26.6MB 0.06s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.708,null,null,null,null,null,null,null,null,null, 3.706,'okraken 5\n3.706x at 1.708 GB/s\n25.5MB 0.05s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.696,null,null,null,null,null,null,null,null,null, 3.756,'okraken 6\n3.756x at 1.696 GB/s\n25.1MB 0.05s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.693,null,null,null,null,null,null,null,null,null, 3.761,'okraken 7\n3.761x at 1.693 GB/s\n25.1MB 0.05s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.875,null,null,null,null,null,null,null,null,null, 3.848,'okraken 8\n3.848x at 1.875 GB/s\n24.5MB 0.05s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.335,null,null,null,null,null,null,null,null,null,null,null,null, 1.960,'zstd -5\n1.960x at 1.335 GB/s\n48.2MB 0.07s','' ,null,null,null,null,null,null,null,null,null],
+  [1.375,null,null,null,null,null,null,null,null,null,null,null,null, 2.257,'zstd -3\n2.257x at 1.375 GB/s\n41.8MB 0.07s','' ,null,null,null,null,null,null,null,null,null],
+  [1.349,null,null,null,null,null,null,null,null,null,null,null,null, 2.536,'zstd -1\n2.536x at 1.349 GB/s\n37.3MB 0.07s','' ,null,null,null,null,null,null,null,null,null],
+  [1.025,null,null,null,null,null,null,null,null,null,null,null,null, 2.628,'zstd 1\n2.628x at 1.025 GB/s\n35.9MB 0.09s','' ,null,null,null,null,null,null,null,null,null],
+  [1.023,null,null,null,null,null,null,null,null,null,null,null,null, 2.699,'zstd 3\n2.699x at 1.023 GB/s\n35.0MB 0.09s','' ,null,null,null,null,null,null,null,null,null],
+  [1.018,null,null,null,null,null,null,null,null,null,null,null,null, 2.703,'zstd 5\n2.703x at 1.018 GB/s\n34.9MB 0.09s','' ,null,null,null,null,null,null,null,null,null],
+  [1.022,null,null,null,null,null,null,null,null,null,null,null,null, 2.797,'zstd 7\n2.797x at 1.022 GB/s\n33.8MB 0.09s','' ,null,null,null,null,null,null,null,null,null],
+  [1.014,null,null,null,null,null,null,null,null,null,null,null,null, 2.885,'zstd 9\n2.885x at 1.014 GB/s\n32.7MB 0.09s','' ,null,null,null,null,null,null,null,null,null],
+  [1.032,null,null,null,null,null,null,null,null,null,null,null,null, 2.890,'zstd 12\n2.890x at 1.032 GB/s\n32.7MB 0.09s','' ,null,null,null,null,null,null,null,null,null],
+  [1.063,null,null,null,null,null,null,null,null,null,null,null,null, 2.871,'zstd 15\n2.871x at 1.063 GB/s\n32.9MB 0.09s','' ,null,null,null,null,null,null,null,null,null],
+  [0.911,null,null,null,null,null,null,null,null,null,null,null,null, 3.041,'zstd 18\n3.041x at 0.911 GB/s\n31.1MB 0.10s','' ,null,null,null,null,null,null,null,null,null],
+  [0.896,null,null,null,null,null,null,null,null,null,null,null,null, 3.051,'zstd 22\n3.051x at 0.896 GB/s\n31.0MB 0.10s','' ,null,null,null,null,null,null,null,null,null],
+  [6.069,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.533,'lz4 -5\n1.533x at 6.069 GB/s\n61.6MB 0.02s','' ,null,null,null,null,null,null],
+  [5.332,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.740,'lz4 -1\n1.740x at 5.332 GB/s\n54.3MB 0.02s','' ,null,null,null,null,null,null],
+  [4.193,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.948,'lz4 0\n1.948x at 4.193 GB/s\n48.5MB 0.02s','' ,null,null,null,null,null,null],
+  [4.907,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.140,'lz4 1\n2.140x at 4.907 GB/s\n44.1MB 0.02s','' ,null,null,null,null,null,null],
+  [5.591,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.214,'lz4 6\n2.214x at 5.591 GB/s\n42.7MB 0.02s','' ,null,null,null,null,null,null],
+  [5.765,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.223,'lz4 9\n2.223x at 5.765 GB/s\n42.5MB 0.02s','' ,null,null,null,null,null,null],
+  [5.951,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.234,'lz4 12\n2.234x at 5.951 GB/s\n42.3MB 0.02s','' ,null,null,null,null,null,null],
+  [0.488,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.399,'zlib 1\n2.399x at 0.488 GB/s\n39.4MB 0.19s','' ,null,null,null],
+  [0.509,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.434,'zlib 3\n2.434x at 0.509 GB/s\n38.8MB 0.18s','' ,null,null,null],
+  [0.548,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.578,'zlib 5\n2.578x at 0.548 GB/s\n36.6MB 0.17s','' ,null,null,null],
+  [0.548,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.576,'zlib 6\n2.576x at 0.548 GB/s\n36.7MB 0.17s','' ,null,null,null],
+  [0.560,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.575,'zlib 7\n2.575x at 0.560 GB/s\n36.7MB 0.16s','' ,null,null,null],
+  [0.546,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.575,'zlib 9\n2.575x at 0.546 GB/s\n36.7MB 0.17s','' ,null,null,null],
+  [0.340,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.305,'brotli 0\n2.305x at 0.340 GB/s\n41.0MB 0.27s','' ],
+  [0.335,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.382,'brotli 1\n2.382x at 0.335 GB/s\n39.7MB 0.28s','' ],
+  [0.381,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.614,'brotli 2\n2.614x at 0.381 GB/s\n36.1MB 0.24s','' ],
+  [0.371,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.619,'brotli 4\n2.619x at 0.371 GB/s\n36.1MB 0.25s','' ],
+  [0.401,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.082,'brotli 5\n3.082x at 0.401 GB/s\n30.6MB 0.23s','' ],
+  [0.388,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.079,'brotli 6\n3.079x at 0.388 GB/s\n30.7MB 0.24s','' ],
+  [0.393,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.086,'brotli 9\n3.086x at 0.393 GB/s\n30.6MB 0.23s','' ],
+  [0.313,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.248,'brotli 10\n3.248x at 0.313 GB/s\n29.1MB 0.29s','' ],
+  [0.348,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.555,'brotli 11\n3.555x at 0.348 GB/s\n26.6MB 0.26s','' ]
+]);
+var titleDec = 'Decompression Ratio vs Throughput';
+var options = {
+title: 'Compression Ratio vs Throughput',
+pointSize: 6,
+series: {
+  0: {pointShape: 'circle'},
+  1: {pointShape: 'circle'},
+  2: {pointShape: 'circle'},
+  3: {pointShape: 'circle'},
+  4: {pointShape: 'circle'},
+  5: {pointShape: 'circle'},
+  6: {pointShape: 'circle'},
+  7: {pointShape: 'circle'},
+  8: {},
+},
+colors: ['00786a','ffb0ff','dc74ff','8a4b9d','90d596','d9d18c','8cd9cf','d19a94'],
+hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.0, max:5.0}},
+vAxis: {title: 'Ratio', viewWindow: {min:1}},
+chartArea: {left:60, right:10, top:50, bottom:50},
+legend: {position: 'top'},
+lineWidth: 1
+};
+var chartCmp = new google.visualization.ScatterChart(document.getElementById('chart_cmp'));
+chartCmp.draw(dataCmp, options);
+options.title = titleDec;
+options.hAxis.title = 'Decompression GB/s';
+options.hAxis.viewWindow.max = 10.0;
+var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));
+chartDec.draw(dataDec, options);
+}
+</script>
