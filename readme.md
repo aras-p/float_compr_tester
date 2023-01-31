@@ -13,6 +13,7 @@ Code here uses 3rd party libraries:
 * [lz4](https://github.com/lz4/lz4), v1.9.3, BSD license.
 * [zlib](https://github.com/madler/zlib), 1.2.13, zlib license.
 * [brotli](https://github.com/google/brotli), v1.0.9, MIT license.
+* [libdeflate](https://github.com/ebiggers/libdeflate), v1.17, MIT license.
 * [bitshuffle](https://github.com/kiyo-masui/bitshuffle), 0.5.1, MIT license.
 * [sokol_time](https://github.com/floooh/sokol), zlib license.
 * [ini.h](https://github.com/mattiasgustavsson/libs/blob/main/ini.h), 2022 Sep (aef7d92), MIT or Public Domain.

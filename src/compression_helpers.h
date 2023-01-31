@@ -17,6 +17,7 @@ enum CompressionFormat
 	kCompressionLZ4,
 	kCompressionZlib,
 	kCompressionBrotli,
+	kCompressionLibdeflate,
 	kCompressionOoodleSelkie,
 	kCompressionOoodleMermaid,
 	kCompressionOoodleKraken,

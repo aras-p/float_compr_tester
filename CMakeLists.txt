@@ -46,6 +46,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(brotli)
 
+# libdeflate
+FetchContent_Declare(
+	libdeflate
+	URL https://github.com/ebiggers/libdeflate/archive/refs/tags/v1.17.zip # latest (2023 Jan) at time of writing
+)
+set(LIBDEFLATE_BUILD_SHARED_LIB OFF)
+set(LIBDEFLATE_ZLIB_SUPPORT OFF)
+set(LIBDEFLATE_GZIP_SUPPORT OFF)
+set(LIBDEFLATE_BUILD_GZIP OFF)
+set(LIBDEFLATE_BUILD_SHARED_LIB OFF)
+set(LIBDEFLATE_BUILD_SHARED_LIB OFF)
+set(LIBDEFLATE_BUILD_SHARED_LIB OFF)
+FetchContent_MakeAvailable(libdeflate)
+
 # zlib
 # Note: do not do FetchContent_MakeAvailable on it, since it builds "example"
 # target which clashes with streamvbyte "example" target. Instead setup manually
@@ -148,6 +162,7 @@ target_include_directories(float_compr_tester PRIVATE
 	${meshopt_SOURCE_DIR}
 	${zlib_SOURCE_DIR} ${zlib_BINARY_DIR}
 	${brotli_SOURCE_DIR}/c/include
+	${libdeflate_SOURCE_DIR}
 )
 
 target_link_libraries(float_compr_tester PRIVATE
@@ -155,6 +170,7 @@ target_link_libraries(float_compr_tester PRIVATE
     lz4_static
 	zlib
 	brotlienc-static brotlidec-static
+	libdeflate_static
 	meshoptimizer
 	fpzip
 	zfp

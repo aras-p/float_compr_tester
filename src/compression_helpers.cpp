@@ -6,6 +6,7 @@
 #include <lz4.h>
 #include <lz4hc.h>
 #include <zlib.h>
+#include <libdeflate.h>
 #include <brotli/encode.h>
 #include <brotli/decode.h>
 
@@ -44,9 +45,16 @@ int64_t compress_calc_bound(int64_t srcSize, CompressionFormat format)
 	switch (format)
 	{
 	case kCompressionZstd: return ZSTD_compressBound(srcSize);
-	case kCompressionLZ4: return LZ4_compressBound(srcSize);
+	case kCompressionLZ4: return LZ4_compressBound(int(srcSize));
 	case kCompressionZlib: return compressBound(srcSize);
 	case kCompressionBrotli: return BrotliEncoderMaxCompressedSize(srcSize);
+	case kCompressionLibdeflate:
+	{
+		libdeflate_compressor* c = libdeflate_alloc_compressor(12);
+		size_t size = libdeflate_deflate_compress_bound(c, srcSize);
+		libdeflate_free_compressor(c);
+		return size;
+	}
 	default: return -1;
 	}	
 }
@@ -75,6 +83,13 @@ int64_t compress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSi
 		bool res = BrotliEncoderCompress(level, BROTLI_DEFAULT_WINDOW, BROTLI_DEFAULT_MODE, srcSize, (const uint8_t*)src, &cmpSize, (uint8_t*)dst);
 		return cmpSize;
 	}
+	case kCompressionLibdeflate:
+	{
+		libdeflate_compressor* c = libdeflate_alloc_compressor(level);
+		size_t size = libdeflate_deflate_compress(c, src, srcSize, dst, dstSize);
+		libdeflate_free_compressor(c);
+		return size;
+	}
 	default: return -1;
 	}
 }
@@ -101,6 +116,14 @@ int64_t decompress_data(const void* src, int64_t srcSize, void* dst, int64_t dst
 		if (res != BROTLI_DECODER_RESULT_SUCCESS)
 			return 0;
 		return dstLen;
+	}
+	case kCompressionLibdeflate:
+	{
+		libdeflate_decompressor* c = libdeflate_alloc_decompressor();
+		size_t gotSize = 0;
+		libdeflate_result res = libdeflate_deflate_decompress(c, src, srcSize, dst, dstSize, &gotSize);
+		libdeflate_free_decompressor(c);
+		return gotSize;
 	}
 	default: return -1;
 	}	

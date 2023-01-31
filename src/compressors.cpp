@@ -29,6 +29,8 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 	case kCompressionBrotli:
 		return { 0, 2, 4, 6, 9, 11 };
 		//return { 0, 2, 4 }; // comp time under 2s
+	case kCompressionLibdeflate:
+		return { 1, 3, 5, 6, 9, 12 };
 	default:
 		return { 0 };
 	}
@@ -211,6 +213,7 @@ static const char* kCompressionFormatNames[] = {
 	"lz4",
 	"zlib",
 	"brotli",
+	"libdeflate",
 	"oselkie",
 	"omermaid",
 	"okraken",
@@ -261,33 +264,11 @@ purple:
 
 uint32_t GenericCompressor::GetColor() const
 {
-	if (m_Format == kCompressionZstd)
-	{
-		// green
-		//if (m_Level <=  3) return 0x04640e;
-		//if (m_Level <=  7) return 0x0c9618;
-		//if (m_Level <= 11) return 0x12b520;
-		//if (m_Level <= 15) return 0x3fd24c;
-		//return 0x7ce685;
-		//if (m_Filter & kFilterSplit32) return 0x04640e;
-		//if (m_Filter & kFilterSplit8) return 0x12b520;
-		return 0x0c9618;		
-	}
-	if (m_Format == kCompressionLZ4)
-	{
-		// yellow: 6f6500 b19f00 dcd35e
-		//if (m_Filter & kFilterSplit32) return 0x6f6500;
-		//if (m_Filter & kFilterSplit8) return 0xdcd35e;
-		return 0xb19f00;
-	}
-	if (m_Format == kCompressionZlib)
-	{
-		return 0x00bfa7; // cyan
-	}
-	if (m_Format == kCompressionBrotli)
-	{
-		return 0xde5546; // orange
-	}
+	if (m_Format == kCompressionZstd) return 0x0c9618; // green
+	if (m_Format == kCompressionLZ4) return 0xb19f00; // yellow
+	if (m_Format == kCompressionZlib) return 0x00bfa7; // cyan
+	if (m_Format == kCompressionLibdeflate) return 0x00786a; // cyan
+	if (m_Format == kCompressionBrotli) return 0xde5546; // orange
 	// purple
 	if (m_Format == kCompressionOoodleSelkie)	return 0xffb0ff;
 	if (m_Format == kCompressionOoodleMermaid)	return 0xdc74ff;

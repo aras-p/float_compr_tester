@@ -32,6 +32,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLibdeflate));
 
 	/*
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit32));
