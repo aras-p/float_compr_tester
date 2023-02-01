@@ -5,7 +5,8 @@
 A series of experiments in compressing semi-structured floating point data. Blog post series about it:
 
 * [Part 0: Intro](https://aras-p.info/blog/2023/01/29/Float-Compression-0-Intro/)
-* [Part 1: Generic Compression Libraries](https://aras-p.info/blog/2023/01/29/Float-Compression-1-Generic/)
+* [Part 1: Generic Compression Libraries](https://aras-p.info/blog/2023/01/29/Float-Compression-1-Generic/) (zlib, lz4, zstd, brotli)
+* [Part 2: Generic Compression Libraries](https://aras-p.info/blog/2023/01/29/Float-Compression-1-Generic/) (libdeflate, oodle)
 
 
 Code here uses 3rd party libraries:
