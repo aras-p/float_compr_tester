@@ -178,8 +178,8 @@ series: {
   9: {},
 },
 colors: ['0c9618','b19f00','8a4b9d','0c9618','b19f00','8a4b9d','c4b6c9','90d596','d9d18c'],
-hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.0, max:5.0}},
-vAxis: {title: 'Ratio', viewWindow: {min:1}},
+hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.025, max:2.0}},
+vAxis: {title: 'Ratio', viewWindow: {min:1,max:4.5}},
 chartArea: {left:60, right:10, top:50, bottom:50},
 legend: {position: 'top'},
 lineWidth: 1
@@ -188,6 +188,7 @@ var chartCmp = new google.visualization.ScatterChart(document.getElementById('ch
 chartCmp.draw(dataCmp, options);
 options.title = titleDec;
 options.hAxis.title = 'Decompression GB/s';
+options.hAxis.viewWindow.min = 0.3;
 options.hAxis.viewWindow.max = 10.0;
 var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));
 chartDec.draw(dataDec, options);
