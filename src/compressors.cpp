@@ -27,24 +27,25 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 	{
 	case kCompressionZstd:
 		//return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
-		return { -5, -3, -1, 1, 3, 5, 7, 9 }; // comp time under 2s
+		//return { -5, -3, -1, 1, 3, 5, 7, 9, 12 }; // comp time under 3s
+		return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15 }; // comp time under 3s
 	case kCompressionLZ4:
 		//return { -5, -1, 0, 1, 6, 9, 12 };
-		return { -5, -1, 0, 1, 6, 9 }; // comp time under 2s
+		return { -5, -1, 0, 1, 6, 9 }; // comp time under 3s
 	case kCompressionZlib:
 		//return { 1, 3, 5, 6, 7, 9 };
-		return { 1, 3, 5, 6 }; // comp time under 2s
+		return { 1, 3, 5, 6, 7 }; // comp time under 3s
 	case kCompressionBrotli:
 		//return { 0, 1, 2, 4, 5, 6, 9, 10, 11 };
-		return { 0, 1, 2, 4 }; // comp time under 2s
+		return { 0, 1, 2, 4, 5 }; // comp time under 3s
 	case kCompressionLibdeflate:
 		//return { 1, 3, 5, 6, 9, 10, 12 };
-		return { 1, 3, 5, 6 }; // comp time under 2s
+		return { 1, 3, 5, 6 }; // comp time under 3s
 	case kCompressionOoodleSelkie:
 	case kCompressionOoodleMermaid:
 	case kCompressionOoodleKraken:
 		//return { -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8 };
-		return { -4, -3, -2, -1, 1, 2, 3 }; // comp time under 2s
+		return { -4, -3, -2, -1, 1, 2, 3, 4, 5 }; // comp time under 3s
 	default:
 		return { 0 };
 	}
@@ -275,6 +276,11 @@ void GenericCompressor::PrintName(size_t bufSize, char* buf) const
 	if ((m_Filter & kFilterDeltaDiff) != 0) delta += "-dif";
 	if ((m_Filter & kFilterDeltaXor) != 0) delta += "-xor";
 	snprintf(buf, bufSize, "%s%s%s", kCompressionFormatNames[m_Format], split.c_str(), delta.c_str());
+}
+
+void GenericCompressor::PrintVersion(size_t bufSize, char* buf) const
+{
+	compressor_get_version(m_Format, bufSize, buf);
 }
 
 /*

@@ -4,6 +4,7 @@
 #include "compressors.h"
 #include "systeminfo.h"
 #include "resultcache.h"
+#include <set>
 
 #define SOKOL_TIME_IMPL
 #include "../libs/sokol_time.h"
@@ -23,16 +24,27 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 {
 	const int kRuns = 2;
 
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterBitShuffle));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterBitShuffle));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterBitShuffle | kFilterDeltaDiff));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterBitShuffle | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8 | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8 | kFilterDeltaDiff));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit32 | kFilterDeltaXor));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit32 | kFilterDeltaXor));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit32 | kFilterDeltaXor));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit32));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit32));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit32));
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLibdeflate));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLibdeflate));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleSelkie));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleMermaid));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
 
 	/*
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit32));
@@ -54,7 +66,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit8| kFilterDeltaXor));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit8| kFilterDeltaXor));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli,kFilterSplit8| kFilterDeltaXor));
+	*/
 
+	/*
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd,  kFilterSplit32| kFilterDeltaDiff));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4,	kFilterSplit32| kFilterDeltaDiff));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib,	kFilterSplit32| kFilterDeltaDiff));
@@ -226,12 +240,16 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		printf("\n");
 	}
 
-	// normalize results and cache the ones we need
+	// normalize results, cache the ones we ran, produce compressor versions
 	int counterRan = 0, counterCached = 0;
+	std::set<std::string> cmpVersions;
+	char cmpVersion[256];
 	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 	{
 		Compressor* cmp = g_Compressors[ic];
 		cmp->PrintName(sizeof(cmpName), cmpName);
+		cmp->PrintVersion(sizeof(cmpVersion), cmpVersion);
+		cmpVersions.insert(cmpVersion);
 		LevelResults& levelRes = results[ic];
 		for (Result& res : levelRes)
 		{
@@ -282,6 +300,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "<div id='chart_dec' style='width: 540px; height: 480px; display:inline-block;'></div>\n");
 	fprintf(fout, "</div>\n");
 	fprintf(fout, "<p>CPU: %s Compiler: %s</p>\n", SysInfoGetCpuName().c_str(), SysInfoGetCompilerName().c_str());
+	fprintf(fout, "<p>");
+	for (const auto& v : cmpVersions) fprintf(fout, "%s ", v.c_str());
+	fprintf(fout, "</p>");
 	fprintf(fout, "</center>");
 	fprintf(fout, "<script type='text/javascript'>\n");
 	fprintf(fout, "google.charts.load('current', {'packages':['corechart']});\n");
@@ -367,7 +388,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		fprintf(fout, "'%02x%02x%02x'%s", (col >> 16)&0xFF, (col >> 8)&0xFF, col&0xFF, ic== g_Compressors.size()-1?"":",");
 	}
 	fprintf(fout, "],\n");
-	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.025, max:2.0}},\n");
+	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.005, max:2.0}},\n");
 	fprintf(fout, "vAxis: {title: 'Ratio', viewWindow: {min:1, max:4.5}},\n");
 	fprintf(fout, "chartArea: {left:60, right:10, top:50, bottom:50},\n");
 	fprintf(fout, "legend: {position: 'top'},\n");
@@ -377,7 +398,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "chartCmp.draw(dataCmp, options);\n");
 	fprintf(fout, "options.title = titleDec;\n");
 	fprintf(fout, "options.hAxis.title = 'Decompression GB/s';\n");
-	fprintf(fout, "options.hAxis.viewWindow.min = 0.3;\n");
+	fprintf(fout, "options.hAxis.viewWindow.min = 0.2;\n");
 	fprintf(fout, "options.hAxis.viewWindow.max = 10.0;\n");
 	fprintf(fout, "var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));\n");
 	fprintf(fout, "chartDec.draw(dataDec, options);\n");

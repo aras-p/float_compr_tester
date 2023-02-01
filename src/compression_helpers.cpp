@@ -128,3 +128,16 @@ int64_t decompress_data(const void* src, int64_t srcSize, void* dst, int64_t dst
 	default: return -1;
 	}	
 }
+
+void compressor_get_version(CompressionFormat format, size_t bufSize, char* buf)
+{
+	switch (format) {
+	case kCompressionZstd: snprintf(buf, bufSize, "zstd-%s", ZSTD_versionString()); break;
+	case kCompressionLZ4: snprintf(buf, bufSize, "lz4-%s", LZ4_versionString()); break;
+	case kCompressionZlib: snprintf(buf, bufSize, "zlib-%s", ZLIB_VERSION); break;
+	case kCompressionBrotli: snprintf(buf, bufSize, "brotli-%i.%i.%i", BrotliDecoderVersion() >> 24, (BrotliDecoderVersion() >> 12) & 0xFFF, BrotliDecoderVersion() & 0xFFF); break;
+	case kCompressionLibdeflate: snprintf(buf, bufSize, "libdeflate-%s", LIBDEFLATE_VERSION_STRING); break;
+	default:
+		snprintf(buf, bufSize, "Unknown-%i", format);
+	}
+}

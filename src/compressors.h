@@ -20,6 +20,7 @@ struct Compressor
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels) = 0;
 	virtual std::vector<int> GetLevels() const { return {0}; }
 	virtual void PrintName(size_t bufSize, char* buf) const = 0;
+	virtual void PrintVersion(size_t bufSize, char* buf) const = 0;
 	virtual uint32_t GetColor() const { return 0; }
 	virtual const char* GetShapeString() const = 0;
 };
@@ -31,6 +32,7 @@ struct GenericCompressor : public Compressor
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual std::vector<int> GetLevels() const;
 	virtual void PrintName(size_t bufSize, char* buf) const;
+	virtual void PrintVersion(size_t bufSize, char* buf) const;
 	virtual uint32_t GetColor() const;
 	virtual const char* GetShapeString() const;
 	CompressionFormat m_Format;
