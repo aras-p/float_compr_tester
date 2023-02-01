@@ -10,6 +10,17 @@
 //#include <streamvbyte.h>
 //#include <streamvbytedelta.h>
 
+#include <string>
+
+static uint32_t rotl(uint32_t x, int s)
+{
+	return (x << s) | (x >> (32 - s));
+}
+static uint32_t rotr(uint32_t x, int s)
+{
+	return (x >> s) | (x << (32 - s));
+}
+
 static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 {
 	switch (format)
@@ -124,18 +135,38 @@ static void UnSplit(const T* src, T* dst, int channels, int planeElems)
 	}
 }
 
+static void RotateLeft(const uint32_t* src, uint32_t* dst, size_t dataElems)
+{
+	for (size_t i = 0; i < dataElems; ++i)
+		*dst++ = rotl(*src++, 1);
+}
+static void RotateRight(const uint32_t* src, uint32_t* dst, size_t dataElems)
+{
+	for (size_t i = 0; i < dataElems; ++i)
+		*dst++ = rotr(*src++, 1);
+}
+
+
 
 static uint8_t* CompressionFilter(uint32_t filter, const float* data, int width, int height, int channels)
 {
 	uint8_t* tmp = (uint8_t*)data;
 	if (filter != kFilterNone)
 	{
-		int planeElems = width * height;
-		int dataSize = planeElems * channels * sizeof(float);
-		tmp = new uint8_t[dataSize];
+		bool extraSpaceForRotation = ((filter & kFilterRot1) != 0) && (filter != kFilterRot1);
+		const int planeElems = width * height;
+		const int dataSize = planeElems * channels * sizeof(float);
+		tmp = new uint8_t[dataSize * (extraSpaceForRotation ? 2 : 1)];
+		const int dataElems = planeElems * channels;
+		if (filter & kFilterRot1)
+		{
+			RotateLeft((uint32_t*)data, (uint32_t*)(tmp + (extraSpaceForRotation ? dataSize : 0)), dataElems);
+			if (extraSpaceForRotation)
+				data = (const float*)(tmp + dataSize);
+		}
+
 		if ((filter & kFilterSplit32) != 0)
 		{
-			int dataElems = planeElems * channels;
 			Split((uint32_t*)data, (uint32_t*)tmp, channels, planeElems);
 			if ((filter & kFilterDeltaDiff) != 0) EncodeDeltaDif((uint32_t*)tmp, dataElems);
 			if ((filter & kFilterDeltaXor) != 0) EncodeDeltaXor((uint32_t*)tmp, dataElems);
@@ -160,28 +191,37 @@ static void DecompressionFilter(uint32_t filter, uint8_t* tmp, float* data, int 
 {
 	if (filter != kFilterNone)
 	{
-		int planeElems = width * height;
+		const int planeElems = width * height;
+		const int dataElems = planeElems * channels;
+		const int dataSize = planeElems * channels * sizeof(float);
+		bool extraSpaceForRotation = ((filter & kFilterRot1) != 0) && (filter != kFilterRot1);
+		uint8_t* dstData = (uint8_t*)data;
+		if (extraSpaceForRotation)
+			dstData = tmp + dataSize;
+
 		if ((filter & kFilterSplit32) != 0)
 		{
-			int dataElems = planeElems * channels;
 			if ((filter & kFilterDeltaDiff) != 0) DecodeDeltaDif((uint32_t*)tmp, dataElems);
 			if ((filter & kFilterDeltaXor) != 0) DecodeDeltaXor((uint32_t*)tmp, dataElems);
-			UnSplit((const uint32_t*)tmp, (uint32_t*)data, channels, planeElems);
+			UnSplit((const uint32_t*)tmp, (uint32_t*)dstData, channels, planeElems);
 		}
 		if ((filter & kFilterSplit8) != 0)
 		{
-			int dataSize = planeElems * channels * sizeof(float);
 			if ((filter & kFilterDeltaDiff) != 0) DecodeDeltaDif(tmp, dataSize);
 			if ((filter & kFilterDeltaXor) != 0) DecodeDeltaXor(tmp, dataSize);
-			UnSplit(tmp, (uint8_t*)data, channels * sizeof(float), planeElems);
+			UnSplit(tmp, dstData, channels * sizeof(float), planeElems);
 		}
 		if ((filter & kFilterBitShuffle) != 0)
 		{
-			int dataSize = planeElems * channels * sizeof(float);
 			if ((filter & kFilterDeltaDiff) != 0) DecodeDeltaDif(tmp, dataSize);
 			if ((filter & kFilterDeltaXor) != 0) DecodeDeltaXor(tmp, dataSize);
-			bshuf_bitunshuffle(tmp, data, planeElems, channels * sizeof(float), 0);
+			bshuf_bitunshuffle(tmp, dstData, planeElems, channels * sizeof(float), 0);
 		}
+		if (filter & kFilterRot1)
+		{
+			RotateRight((const uint32_t*)(extraSpaceForRotation ? dstData : tmp), (uint32_t*)data, dataElems);
+		}
+
 		delete[] tmp;
 	}
 }
@@ -204,7 +244,8 @@ void GenericCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 {
 	size_t dataSize = width * height * channels * sizeof(float);
 	uint8_t* tmp = (uint8_t*)data;
-	if (m_Filter != kFilterNone) tmp = new uint8_t[dataSize];
+	bool extraSpaceForRotation = ((m_Filter & kFilterRot1) != 0) && (m_Filter != kFilterRot1);
+	if (m_Filter != kFilterNone) tmp = new uint8_t[dataSize * (extraSpaceForRotation ? 2 : 1)];
 
 	decompress_data(cmp, cmpSize, tmp, dataSize, m_Format);
 
@@ -225,14 +266,15 @@ static_assert(sizeof(kCompressionFormatNames) / sizeof(kCompressionFormatNames[0
 
 void GenericCompressor::PrintName(size_t bufSize, char* buf) const
 {
-	const char* split = "";
-	if ((m_Filter & kFilterSplit32) != 0) split = "-s32";
-	if ((m_Filter & kFilterSplit8) != 0) split = "-s8";
-	if ((m_Filter & kFilterBitShuffle) != 0) split = "-s1";
-	const char* delta = "";
-	if ((m_Filter & kFilterDeltaDiff) != 0) delta = "-dif";
-	if ((m_Filter & kFilterDeltaXor) != 0) delta = "-xor";
-	snprintf(buf, bufSize, "%s%s%s", kCompressionFormatNames[m_Format], split, delta);
+	std::string split = "";
+	if ((m_Filter & kFilterSplit32) != 0) split += "-s32";
+	if ((m_Filter & kFilterSplit8) != 0) split += "-s8";
+	if ((m_Filter & kFilterBitShuffle) != 0) split += "-s1";
+	if ((m_Filter & kFilterRot1) != 0) split += "-r1";
+	std::string delta = "";
+	if ((m_Filter & kFilterDeltaDiff) != 0) delta += "-dif";
+	if ((m_Filter & kFilterDeltaXor) != 0) delta += "-xor";
+	snprintf(buf, bufSize, "%s%s%s", kCompressionFormatNames[m_Format], split.c_str(), delta.c_str());
 }
 
 /*
@@ -358,7 +400,8 @@ void MeshOptCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* da
 	uint8_t* decomp = DecompressGeneric(m_Format, cmp, cmpSize, decompSize);
 
 	uint8_t* tmp = (uint8_t*)data;
-	if (m_Filter != kFilterNone) tmp = new uint8_t[dataSize];
+	bool extraSpaceForRotation = ((m_Filter & kFilterRot1) != 0) && (m_Filter != kFilterRot1);
+	if (m_Filter != kFilterNone) tmp = new uint8_t[dataSize * (extraSpaceForRotation ? 2 : 1)];
 	decompress_meshopt_vertex_attribute(decomp, decompSize, vertexCount, stride, tmp);
 	if (decomp != cmp) delete[] decomp;
 

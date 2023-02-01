@@ -10,6 +10,7 @@ enum Filter {
 	kFilterBitShuffle = (1 << 2),
 	kFilterDeltaDiff = (1 << 3),
 	kFilterDeltaXor = (1 << 4),
+	kFilterRot1 = (1 << 5),
 };
 
 struct Compressor
