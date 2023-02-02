@@ -27,7 +27,6 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 	{
 	case kCompressionZstd:
 		//return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
-		//return { -5, -3, -1, 1, 3, 5, 7, 9, 12 }; // comp time under 3s
 		return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15 }; // comp time under 3s
 	case kCompressionLZ4:
 		//return { -5, -1, 0, 1, 6, 9, 12 };
@@ -265,17 +264,22 @@ static const char* kCompressionFormatNames[] = {
 };
 static_assert(sizeof(kCompressionFormatNames) / sizeof(kCompressionFormatNames[0]) == kCompressionCount);
 
-void GenericCompressor::PrintName(size_t bufSize, char* buf) const
+static std::string GetFilterName(uint32_t filter)
 {
 	std::string split = "";
-	if ((m_Filter & kFilterSplit32) != 0) split += "-s32";
-	if ((m_Filter & kFilterSplit8) != 0) split += "-s8";
-	if ((m_Filter & kFilterBitShuffle) != 0) split += "-s1";
-	if ((m_Filter & kFilterRot1) != 0) split += "-r1";
+	if ((filter & kFilterSplit32) != 0) split += "-s32";
+	if ((filter & kFilterSplit8) != 0) split += "-s8";
+	if ((filter & kFilterBitShuffle) != 0) split += "-s1";
+	if ((filter & kFilterRot1) != 0) split += "-r1";
 	std::string delta = "";
-	if ((m_Filter & kFilterDeltaDiff) != 0) delta += "-dif";
-	if ((m_Filter & kFilterDeltaXor) != 0) delta += "-xor";
-	snprintf(buf, bufSize, "%s%s%s", kCompressionFormatNames[m_Format], split.c_str(), delta.c_str());
+	if ((filter & kFilterDeltaDiff) != 0) delta += "-dif";
+	if ((filter & kFilterDeltaXor) != 0) delta += "-xor";
+	return split + delta;
+}
+
+void GenericCompressor::PrintName(size_t bufSize, char* buf) const
+{
+	snprintf(buf, bufSize, "%s%s", kCompressionFormatNames[m_Format], GetFilterName(m_Filter).c_str());
 }
 
 void GenericCompressor::PrintVersion(size_t bufSize, char* buf) const
@@ -359,13 +363,13 @@ static uint8_t* CompressGeneric(CompressionFormat format, int level, uint8_t* da
 		return data;
 	}
 	size_t bound = compress_calc_bound(dataSize, format);
-	uint8_t* cmp = new uint8_t[bound];
-	outSize = compress_data(data, dataSize, cmp, bound, format, level);
+	uint8_t* cmp = new uint8_t[bound + 4];
+	*(uint32_t*)cmp = uint32_t(dataSize); // store orig size at start
+	outSize = compress_data(data, dataSize, cmp + 4, bound, format, level) + 4;
 	delete[] data;
 	return cmp;
 }
 
-/*
 static uint8_t* DecompressGeneric(CompressionFormat format, const uint8_t* cmp, size_t cmpSize, size_t& outSize)
 {
 	if (format == kCompressionCount)
@@ -373,14 +377,12 @@ static uint8_t* DecompressGeneric(CompressionFormat format, const uint8_t* cmp, 
 		outSize = cmpSize;
 		return (uint8_t*)cmp;
 	}
-	size_t bound = decompress_calc_bound(cmp, cmpSize, format);
-	uint8_t* decomp = new uint8_t[bound];
-	outSize = decompress_data(cmp, cmpSize, decomp, bound, format);
+	uint32_t decSize = *(uint32_t*)cmp; // fetch orig size from start
+	uint8_t* decomp = new uint8_t[decSize];
+	outSize = decompress_data(cmp + 4, cmpSize - 4, decomp, decSize, format);
 	return decomp;
 }
-*/
 
-/*
 uint8_t* MeshOptCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
 	uint8_t* tmp = CompressionFilter(m_Filter, data, width, height, channels);
@@ -421,17 +423,18 @@ std::vector<int> MeshOptCompressor::GetLevels() const
 
 void MeshOptCompressor::PrintName(size_t bufSize, char* buf) const
 {
-	const char* split = "";
-	if ((m_Filter & kFilterSplit32) != 0) split = "-s32";
-	if ((m_Filter & kFilterSplit8) != 0) split = "-s8";
-	const char* delta = "";
-	if ((m_Filter & kFilterDeltaDiff) != 0) delta = "-dif";
-	if ((m_Filter & kFilterDeltaXor) != 0) delta = "-xor";
+	std::string filter = GetFilterName(m_Filter);
 	if (m_Format == kCompressionCount)
-		snprintf(buf, bufSize, "meshopt%s%s", split, delta);
+		snprintf(buf, bufSize, "meshopt%s", filter.c_str());
 	else
-		snprintf(buf, bufSize, "meshopt-%s%s%s", kCompressionFormatNames[m_Format], split, delta);
+		snprintf(buf, bufSize, "meshopt-%s%s", kCompressionFormatNames[m_Format], filter.c_str());
 }
+
+void MeshOptCompressor::PrintVersion(size_t bufSize, char* buf) const
+{
+	meshopt_get_version(bufSize, buf);
+}
+
 
 uint32_t MeshOptCompressor::GetColor() const
 {
@@ -445,7 +448,6 @@ const char* MeshOptCompressor::GetShapeString() const
 {
 	return GetGenericShape(m_Filter);
 }
-*/
 
 uint8_t* FpzipCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {

@@ -9,6 +9,7 @@
 #include <libdeflate.h>
 #include <brotli/encode.h>
 #include <brotli/decode.h>
+#include <stdio.h>
 
 int64_t compress_meshopt_index_buffer_bound(int indexCount, int vertexCount)
 {
@@ -37,6 +38,12 @@ int decompress_meshopt_vertex_attribute(const void* src, int64_t srcSize, int ve
 {
 	return meshopt_decodeVertexBuffer(dst, vertexCount, vertexSize, (const unsigned char*)src, srcSize);
 }
+
+void meshopt_get_version(size_t bufSize, char* buf)
+{
+	snprintf(buf, bufSize, "meshopt-%i.%i", MESHOPTIMIZER_VERSION/1000, (MESHOPTIMIZER_VERSION/10)%1000);
+}
+
 
 int64_t compress_calc_bound(int64_t srcSize, CompressionFormat format)
 {

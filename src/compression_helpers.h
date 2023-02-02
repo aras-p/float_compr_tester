@@ -9,6 +9,7 @@ int decompress_meshopt_index_buffer(const void* src, int64_t srcSize, int indexC
 int64_t compress_meshopt_vertex_attribute_bound(int vertexCount, int vertexSize);
 int64_t compress_meshopt_vertex_attribute(const void* src, int vertexCount, int vertexSize, void* dst, int64_t dstSize);
 int decompress_meshopt_vertex_attribute(const void* src, int64_t srcSize, int vertexCount, int vertexSize, void* dst);
+void meshopt_get_version(size_t bufSize, char* buf);
 
 // generic lossless compressors
 enum CompressionFormat
