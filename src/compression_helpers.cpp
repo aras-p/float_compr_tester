@@ -1,4 +1,4 @@
-﻿#include "compression_helpers.h"
+#include "compression_helpers.h"
 
 #include <meshoptimizer.h>
 #include <string.h>
@@ -11,30 +11,15 @@
 #include <brotli/decode.h>
 #include <stdio.h>
 
-int64_t compress_meshopt_index_buffer_bound(int indexCount, int vertexCount)
-{
-	meshopt_encodeIndexVersion(1);
-	return meshopt_encodeIndexBufferBound(indexCount, vertexCount);
-}
-int64_t compress_meshopt_index_buffer(const uint32_t* indices, int indexCount, void* dst, int64_t dstSize)
-{
-	meshopt_encodeIndexVersion(1);
-	return meshopt_encodeIndexBuffer((unsigned char*)dst, dstSize, indices, indexCount);
-}
-int decompress_meshopt_index_buffer(const void* src, int64_t srcSize, int indexCount, int indexSize, void* dst)
-{
-	return meshopt_decodeIndexBuffer(dst, indexCount, indexSize, (const unsigned char*)src, srcSize);
-}
-
-int64_t compress_meshopt_vertex_attribute_bound(int vertexCount, int vertexSize)
+size_t compress_meshopt_vertex_attribute_bound(int vertexCount, int vertexSize)
 {
 	return meshopt_encodeVertexBufferBound(vertexCount, vertexSize);
 }
-int64_t compress_meshopt_vertex_attribute(const void* src, int vertexCount, int vertexSize, void* dst, int64_t dstSize)
+size_t compress_meshopt_vertex_attribute(const void* src, int vertexCount, int vertexSize, void* dst, size_t dstSize)
 {
 	return meshopt_encodeVertexBuffer((unsigned char*)dst, dstSize, src, vertexCount, vertexSize);
 }
-int decompress_meshopt_vertex_attribute(const void* src, int64_t srcSize, int vertexCount, int vertexSize, void* dst)
+int decompress_meshopt_vertex_attribute(const void* src, size_t srcSize, int vertexCount, int vertexSize, void* dst)
 {
 	return meshopt_decodeVertexBuffer(dst, vertexCount, vertexSize, (const unsigned char*)src, srcSize);
 }
@@ -45,7 +30,7 @@ void meshopt_get_version(size_t bufSize, char* buf)
 }
 
 
-int64_t compress_calc_bound(int64_t srcSize, CompressionFormat format)
+size_t compress_calc_bound(size_t srcSize, CompressionFormat format)
 {
 	if (srcSize == 0)
 		return 0;
@@ -62,10 +47,10 @@ int64_t compress_calc_bound(int64_t srcSize, CompressionFormat format)
 		libdeflate_free_compressor(c);
 		return size;
 	}
-	default: return -1;
+	default: return 0;
 	}	
 }
-int64_t compress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSize, CompressionFormat format, int level)
+size_t compress_data(const void* src, size_t srcSize, void* dst, size_t dstSize, CompressionFormat format, int level)
 {
 	if (srcSize == 0)
 		return 0;
@@ -74,14 +59,14 @@ int64_t compress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSi
 	case kCompressionZstd: return ZSTD_compress(dst, dstSize, src, srcSize, level);
 	case kCompressionLZ4:
 		if (level > 0)
-			return LZ4_compress_HC((const char*)src, (char*)dst, srcSize, dstSize, level);
-		return LZ4_compress_fast((const char*)src, (char*)dst, srcSize, dstSize, (level > 0 ? level : -level) * 10);
+			return LZ4_compress_HC((const char*)src, (char*)dst, (int)srcSize, (int)dstSize, level);
+		return LZ4_compress_fast((const char*)src, (char*)dst, (int)srcSize, (int)dstSize, (level > 0 ? level : -level) * 10);
 	case kCompressionZlib:
 	{
 		uLongf cmpSize = dstSize;
 		int res = compress2((Bytef*)dst, &cmpSize, (const Bytef*)src, srcSize, level);
 		if (res != Z_OK)
-			cmpSize = -1;
+			cmpSize = 0;
 		return cmpSize;
 	}
 	case kCompressionBrotli:
@@ -97,17 +82,17 @@ int64_t compress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSi
 		libdeflate_free_compressor(c);
 		return size;
 	}
-	default: return -1;
+	default: return 0;
 	}
 }
-int64_t decompress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSize, CompressionFormat format)
+size_t decompress_data(const void* src, size_t srcSize, void* dst, size_t dstSize, CompressionFormat format)
 {
 	if (srcSize == 0)
 		return 0;
 	switch (format)
 	{
 	case kCompressionZstd: return ZSTD_decompress(dst, dstSize, src, srcSize);
-	case kCompressionLZ4: return LZ4_decompress_safe((const char*)src, (char*)dst, srcSize, dstSize);
+	case kCompressionLZ4: return LZ4_decompress_safe((const char*)src, (char*)dst, (int)srcSize, (int)dstSize);
 	case kCompressionZlib:
 	{
 		uLongf dstLen = dstSize;
@@ -132,7 +117,7 @@ int64_t decompress_data(const void* src, int64_t srcSize, void* dst, int64_t dst
 		libdeflate_free_decompressor(c);
 		return gotSize;
 	}
-	default: return -1;
+	default: return 0;
 	}	
 }
 

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "compression_helpers.h"
 #include <stddef.h>
 #include <vector>
@@ -58,6 +58,7 @@ struct FpzipCompressor : public Compressor
 	virtual uint8_t* Compress(int level, const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual void PrintName(size_t bufSize, char* buf) const;
+    virtual void PrintVersion(size_t bufSize, char* buf) const;
 	virtual const char* GetShapeString() const { return "{type:'star', sides:4}"; }
 	virtual uint32_t GetColor() const { return 0xdc74ff; } // purple
 };
@@ -67,6 +68,7 @@ struct ZfpCompressor : public Compressor
 	virtual uint8_t* Compress(int level, const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual void PrintName(size_t bufSize, char* buf) const;
+    virtual void PrintVersion(size_t bufSize, char* buf) const;
 	virtual const char* GetShapeString() const { return "{type:'star', sides:5}"; }
 	virtual uint32_t GetColor() const { return 0xde5546; } // orange
 };
@@ -76,6 +78,7 @@ struct NdzipCompressor : public Compressor
 	virtual uint8_t* Compress(int level, const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual void PrintName(size_t bufSize, char* buf) const;
+    virtual void PrintVersion(size_t bufSize, char* buf) const;
 	virtual const char* GetShapeString() const { return "{type:'star', sides:6}"; }
 	virtual uint32_t GetColor() const { return 0x00bfa7; } // cyan
 };

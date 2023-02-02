@@ -1,15 +1,12 @@
-﻿#pragma once
+#pragma once
 
 #include <stdint.h>
 #include <stddef.h>
 
 // mesh optimizer
-int64_t compress_meshopt_index_buffer_bound(int indexCount, int vertexCount);
-int64_t compress_meshopt_index_buffer(const uint32_t* indices, int indexCount, void* dst, int64_t dstSize);
-int decompress_meshopt_index_buffer(const void* src, int64_t srcSize, int indexCount, int indexSize, void* dst);
-int64_t compress_meshopt_vertex_attribute_bound(int vertexCount, int vertexSize);
-int64_t compress_meshopt_vertex_attribute(const void* src, int vertexCount, int vertexSize, void* dst, int64_t dstSize);
-int decompress_meshopt_vertex_attribute(const void* src, int64_t srcSize, int vertexCount, int vertexSize, void* dst);
+size_t compress_meshopt_vertex_attribute_bound(int vertexCount, int vertexSize);
+size_t compress_meshopt_vertex_attribute(const void* src, int vertexCount, int vertexSize, void* dst, size_t dstSize);
+int decompress_meshopt_vertex_attribute(const void* src, size_t srcSize, int vertexCount, int vertexSize, void* dst);
 void meshopt_get_version(size_t bufSize, char* buf);
 
 // generic lossless compressors
@@ -25,7 +22,7 @@ enum CompressionFormat
 	kCompressionOoodleKraken,
 	kCompressionCount
 };
-int64_t compress_calc_bound(int64_t srcSize, CompressionFormat format);
-int64_t compress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSize, CompressionFormat format, int level);
-int64_t decompress_data(const void* src, int64_t srcSize, void* dst, int64_t dstSize, CompressionFormat format);
+size_t compress_calc_bound(size_t srcSize, CompressionFormat format);
+size_t compress_data(const void* src, size_t srcSize, void* dst, size_t dstSize, CompressionFormat format, int level);
+size_t decompress_data(const void* src, size_t srcSize, void* dst, size_t dstSize, CompressionFormat format);
 void compressor_get_version(CompressionFormat format, size_t bufSize, char* buf);

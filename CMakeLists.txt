@@ -147,12 +147,18 @@ project ("float_compr_tester")
 add_executable (float_compr_tester
 	src/main.cpp
 	src/compression_helpers.cpp
+	src/compression_helpers.h
 	src/compressors.cpp
+	src/compressors.h
 	src/systeminfo.cpp
+	src/systeminfo.h
 	src/resultcache.cpp
+	src/resultcache.h
 	libs/bitshuffle/src/bitshuffle_core.c
 	libs/bitshuffle/src/bitshuffle_core.h
 	libs/bitshuffle/src/iochain.c
+	CMakeLists.txt
+	CMakePresets.json
 )
 set_property(TARGET float_compr_tester PROPERTY CXX_STANDARD 20)
 

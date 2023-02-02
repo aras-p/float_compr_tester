@@ -1,4 +1,4 @@
-﻿#include "compressors.h"
+#include "compressors.h"
 #include <stdio.h>
 
 #include <fpzip.h>
@@ -485,7 +485,12 @@ void FpzipCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data
 
 void FpzipCompressor::PrintName(size_t bufSize, char* buf) const
 {
-	snprintf(buf, bufSize, "fpzip");
+	snprintf(buf, bufSize, "fpzip-ls");
+}
+
+void FpzipCompressor::PrintVersion(size_t bufSize, char* buf) const
+{
+    snprintf(buf, bufSize, "%i.%i", FPZIP_VERSION_MAJOR, FPZIP_VERSION_MINOR);
 }
 
 uint8_t* ZfpCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
@@ -544,7 +549,12 @@ void ZfpCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, 
 
 void ZfpCompressor::PrintName(size_t bufSize, char* buf) const
 {
-	snprintf(buf, bufSize, "zfp");
+	snprintf(buf, bufSize, "zfp-ls");
+}
+
+void ZfpCompressor::PrintVersion(size_t bufSize, char* buf) const
+{
+    snprintf(buf, bufSize, "%i.%i", ZFP_VERSION_MAJOR, ZFP_VERSION_MINOR);
 }
 
 /*
