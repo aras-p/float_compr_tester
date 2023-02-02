@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 
 // mesh optimizer
 int64_t compress_meshopt_index_buffer_bound(int indexCount, int vertexCount);
