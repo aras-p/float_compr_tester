@@ -320,7 +320,7 @@ purple:
 uint32_t GenericCompressor::GetColor() const
 {
 	// https://www.w3schools.com/colors/colors_picker.asp
-	bool faded = (m_Filter & kFilterSplit8) == 0;
+	bool faded = true; // (m_Filter & kFilterSplit8) == 0;
 	if (m_Format == kCompressionZstd) return faded ? 0x90d596 : 0x0c9618; // green
 	if (m_Format == kCompressionLZ4) return faded ? 0xd9d18c : 0xb19f00; // yellow
 	if (m_Format == kCompressionZlib) return faded ? 0x8cd9cf : 0x00bfa7; // cyan
@@ -335,12 +335,13 @@ uint32_t GenericCompressor::GetColor() const
 
 static const char* GetGenericShape(uint filter)
 {
-	if ((filter & kFilterSplit8) && (filter & kFilterDeltaDiff)) return "{type:'square', rotation: 45}, pointSize: 8, lineWidth: 2";
-	if ((filter & kFilterSplit8) && (filter & kFilterDeltaXor))  return "{type:'star', sides:4, dent: 0.5}, pointSize: 8, lineWidth: 2";
-	if ((filter & kFilterSplit8)) return "'square', pointSize: 8, lineDashStyle: [4, 4], lineWidth: 1";
-	if ((filter & kFilterSplit32) && (filter & kFilterDeltaDiff)) return "{type:'triangle', rotation: 30}, pointSize: 10, lineDashStyle: [4, 4], lineWidth: 1";
-	if ((filter & kFilterSplit32) && (filter & kFilterDeltaXor))  return "{type:'triangle', rotation: -30}, pointSize: 10, lineDashStyle: [4, 4], lineWidth: 1";
-	if ((filter & kFilterSplit32)) return "'triangle', pointSize: 10, lineDashStyle: [4, 4], lineWidth: 1";
+	if (filter == 0) return "'circle', lineDashStyle: [4, 2]";
+	if ((filter & kFilterSplit8) && (filter & kFilterDeltaDiff)) return "{type:'square', rotation: 45}, pointSize: 8";
+	if ((filter & kFilterSplit8) && (filter & kFilterDeltaXor))  return "{type:'star', sides:4, dent: 0.5}, pointSize: 8";
+	if ((filter & kFilterSplit8)) return "'square', pointSize: 8, lineDashStyle: [4, 2]";
+	if ((filter & kFilterSplit32) && (filter & kFilterDeltaDiff)) return "{type:'triangle', rotation: 30}, pointSize: 10";
+	if ((filter & kFilterSplit32) && (filter & kFilterDeltaXor))  return "{type:'triangle', rotation: -30}, pointSize: 10";
+	if ((filter & kFilterSplit32)) return "'triangle', pointSize: 10, lineDashStyle: [4, 2]";
 	return "'circle'";
 }
 
@@ -441,12 +442,14 @@ uint32_t MeshOptCompressor::GetColor() const
 	// blue
 	if (m_Format == kCompressionZstd) return 0x00b2ff;
 	if (m_Format == kCompressionLZ4) return 0x49ddff;
+	if (m_Format == kCompressionOoodleKraken) return 0x0094ef;
 	return 0x006fb1;
 }
 
 const char* MeshOptCompressor::GetShapeString() const
 {
-	return GetGenericShape(m_Filter);
+	if (m_Format == kCompressionCount) return "'circle', pointSize: 20";
+	return "'circle', lineWidth: 3";
 }
 
 uint8_t* FpzipCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
