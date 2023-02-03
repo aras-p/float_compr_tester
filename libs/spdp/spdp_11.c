@@ -96,8 +96,9 @@ size_t spdp_compress_bound(size_t size) { return size * 2 + 9; }
   if (predtabsize > MAX_TABLE_SIZE) predtabsize = MAX_TABLE_SIZE;
   const size_t predtabsizem1 = predtabsize - 1;
 
-  unsigned int lastpos[MAX_TABLE_SIZE];
-  memset(lastpos, 0, predtabsize * sizeof(unsigned int));
+  //unsigned int lastpos[MAX_TABLE_SIZE];
+  //memset(lastpos, 0, predtabsize * sizeof(unsigned int));
+  unsigned int* lastpos = (unsigned int*)calloc(predtabsize, sizeof(unsigned int));
 
   size_t rpos = 0;
   wpos = 0;
@@ -129,6 +130,7 @@ size_t spdp_compress_bound(size_t size) { return size * 2 + 9; }
     rpos++;
   }
 
+  free(lastpos);
   return wpos;
 }
 
@@ -138,8 +140,9 @@ size_t spdp_compress_bound(size_t size) { return size * 2 + 9; }
   if (predtabsize > MAX_TABLE_SIZE) predtabsize = MAX_TABLE_SIZE;
   const unsigned int predtabsizem1 = predtabsize - 1;
 
-  unsigned int lastpos[MAX_TABLE_SIZE];
-  memset(lastpos, 0, predtabsize * sizeof(unsigned int));
+  //unsigned int lastpos[MAX_TABLE_SIZE];
+  //memset(lastpos, 0, predtabsize * sizeof(unsigned int));
+  unsigned int* lastpos = (unsigned int*)calloc(predtabsize, sizeof(unsigned int));
 
   size_t rpos = 0;
   size_t wpos = 0;
@@ -198,6 +201,7 @@ size_t spdp_compress_bound(size_t size) { return size * 2 + 9; }
   for (pos = len * sizeof(word_t); pos < usize; pos++) {
     buf1[pos] = buf2[pos];
   }
+  free(lastpos);
 }
 
 /*

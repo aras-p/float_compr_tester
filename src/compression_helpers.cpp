@@ -38,7 +38,7 @@ size_t compress_calc_bound(size_t srcSize, CompressionFormat format)
 	{
 	case kCompressionZstd: return ZSTD_compressBound(srcSize);
 	case kCompressionLZ4: return LZ4_compressBound(int(srcSize));
-	case kCompressionZlib: return compressBound(srcSize);
+	case kCompressionZlib: return compressBound(uLong(srcSize));
 	case kCompressionBrotli: return BrotliEncoderMaxCompressedSize(srcSize);
 	case kCompressionLibdeflate:
 	{
@@ -63,8 +63,8 @@ size_t compress_data(const void* src, size_t srcSize, void* dst, size_t dstSize,
 		return LZ4_compress_fast((const char*)src, (char*)dst, (int)srcSize, (int)dstSize, (level > 0 ? level : -level) * 10);
 	case kCompressionZlib:
 	{
-		uLongf cmpSize = dstSize;
-		int res = compress2((Bytef*)dst, &cmpSize, (const Bytef*)src, srcSize, level);
+		uLongf cmpSize = uLong(dstSize);
+		int res = compress2((Bytef*)dst, &cmpSize, (const Bytef*)src, uLong(srcSize), level);
 		if (res != Z_OK)
 			cmpSize = 0;
 		return cmpSize;
@@ -95,8 +95,8 @@ size_t decompress_data(const void* src, size_t srcSize, void* dst, size_t dstSiz
 	case kCompressionLZ4: return LZ4_decompress_safe((const char*)src, (char*)dst, (int)srcSize, (int)dstSize);
 	case kCompressionZlib:
 	{
-		uLongf dstLen = dstSize;
-		int res = uncompress((Bytef*)dst, &dstLen, (const Bytef*)src, srcSize);
+		uLongf dstLen = uLong(dstSize);
+		int res = uncompress((Bytef*)dst, &dstLen, (const Bytef*)src, uLong(srcSize));
 		if (res != Z_OK)
 			return 0;
 		return dstLen;
