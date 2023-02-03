@@ -6,8 +6,11 @@
 #include "../libs/bitshuffle/src/bitshuffle_core.h"
 #include "../libs/spdp/spdp_11.h"
 
-//#include <assert.h> // ndzip needs it
-//#include <ndzip/ndzip.hh>
+#if BUILD_WITH_NDZIP
+#include <assert.h> // ndzip needs it
+#include <ndzip/ndzip.hh>
+#endif // #if BUILD_WITH_NDZIP
+
 #include <streamvbyte.h>
 #include <streamvbytedelta.h>
 
@@ -509,7 +512,10 @@ void FpzipCompressor::PrintVersion(size_t bufSize, char* buf) const
 
 const char* FpzipCompressor::GetShapeString() const { return "{type:'star', sides:5}, pointSize: 20"; }
 const char* ZfpCompressor::GetShapeString() const { return "{type:'star', sides:4}, pointSize: 20"; }
-const char* SpdpCompressor::GetShapeString() const { return "{type:'star', sides:6}, pointSize: 10, lineWidth: 3"; }
+const char* SpdpCompressor::GetShapeString() const { return "{type:'star', sides:6}, pointSize: 12, lineWidth: 3"; }
+#if BUILD_WITH_NDZIP
+const char* NdzipCompressor::GetShapeString() const { return "{type:'star', sides:7}, pointSize: 20"; }
+#endif
 const char* StreamVByteCompressor::GetShapeString() const
 {
 	if (m_Format != kCompressionCount)
@@ -618,36 +624,60 @@ void SpdpCompressor::PrintVersion(size_t bufSize, char* buf) const
 }
 
 
-/*
+#if BUILD_WITH_NDZIP
 uint8_t* NdzipCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
-	// ndzip seems to have trouble if we try to do channels*width*height 3 dimensions
-	// (does not handle dimension size < 16?), so do a 2D case instead
-	ndzip::extent ext(2);
-	ext[0] = width * channels;
-	ext[1] = height;
+	// without s32 split, only achieves 1.2x ratio; with split 2.5x
+	uint32_t* split = new uint32_t[width * height * channels];
+	Split<uint32_t>((const uint32_t*)data, split, channels, width * height);
+
 	auto compressor = ndzip::make_compressor<float>(2, 1);
-	size_t bound = ndzip::compressed_length_bound<float>(ext) * 4;
+
+	ndzip::extent ext(2);
+	ext[0] = width;
+	ext[1] = height;
+	size_t bound = (4 + ndzip::compressed_length_bound<float>(ext) * 4) * channels;
 	uint8_t* cmp = new uint8_t[bound];
-	size_t cmpSize = compressor->compress(data, ext, (uint32_t*)cmp) * 4;
+	size_t cmpSize = 0;
+	for (int ich = 0; ich < channels; ++ich)
+	{
+		size_t chCmpSize = compressor->compress((const float*)split + ich * width * height, ext, (uint32_t*)(cmp + 4 + cmpSize)) * 4;
+		*(uint32_t*)(cmp + cmpSize) = uint32_t(chCmpSize);
+		cmpSize += chCmpSize + 4;
+	}
 	outSize = cmpSize;
+	delete[] split;
 	return cmp;
 }
 
 void NdzipCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
 {
-	ndzip::extent ext(2);
-	ext[0] = width * channels;
-	ext[1] = height;
 	auto decompressor = ndzip::make_decompressor<float>(2, 1);
-	decompressor->decompress((const uint32_t*)cmp, data, ext);
+	ndzip::extent ext(2);
+	ext[0] = width;
+	ext[1] = height;
+	uint32_t* split = new uint32_t[width * height * channels];
+	for (int ich = 0; ich < channels; ++ich)
+	{
+		uint32_t chCmpSize = *(const uint32_t*)cmp;
+		cmp += 4;
+		decompressor->decompress((const uint32_t*)cmp, (float*)split + ich * width * height, ext);
+		cmp += chCmpSize;
+	}
+	UnSplit<uint32_t>(split, (uint32_t*)data, channels, width * height);
+	delete[] split;
 }
 
 void NdzipCompressor::PrintName(size_t bufSize, char* buf) const
 {
 	snprintf(buf, bufSize, "ndzip");
 }
- */
+void NdzipCompressor::PrintVersion(size_t bufSize, char* buf) const
+{
+	snprintf(buf, bufSize, "ndzip-2022.07");
+}
+#endif // #if BUILD_WITH_NDZIP
+
 
 // notes:
 // svbyte followed by general purpose compressor: nah, just loses to only the general purpose one on both ratio & perf.

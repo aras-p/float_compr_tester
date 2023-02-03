@@ -84,15 +84,17 @@ struct SpdpCompressor : public Compressor
     virtual uint32_t GetColor() const { return 0xe06c6c; } // light red
 };
 
+#if BUILD_WITH_NDZIP
 struct NdzipCompressor : public Compressor
 {
 	virtual uint8_t* Compress(int level, const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual void PrintName(size_t bufSize, char* buf) const;
     virtual void PrintVersion(size_t bufSize, char* buf) const;
-	virtual const char* GetShapeString() const { return "{type:'star', sides:6}"; }
-	virtual uint32_t GetColor() const { return 0x00bfa7; } // cyan
+	virtual const char* GetShapeString() const;
+	virtual uint32_t GetColor() const { return 0xf0a820; } // light yellow
 };
+#endif // #if BUILD_WITH_NDZIP
 
 struct StreamVByteCompressor : public Compressor
 {

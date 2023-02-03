@@ -35,7 +35,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	g_Compressors.emplace_back(new ZfpCompressor());
 	g_Compressors.emplace_back(new FpzipCompressor());
     g_Compressors.emplace_back(new SpdpCompressor());
-    g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false, false));
+	g_Compressors.emplace_back(new NdzipCompressor());
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false, false));
     //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false, false)); // not good/interesting
     //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false, true)); // not good/interesting
     //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false, true)); // not good/interesting
@@ -78,10 +79,6 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleSelkie));
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleMermaid));
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
-
-	/*
-	g_Compressors.emplace_back(new NdzipCompressor());
-	*/
 
 	size_t maxFloats = 0, totalFloats = 0;
 	for (int tfi = 0; tfi < testFileCount; ++tfi)
