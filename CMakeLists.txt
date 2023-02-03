@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.21)
+cmake_minimum_required (VERSION 3.21)
 if(POLICY CMP0091)
     cmake_policy(SET CMP0091 NEW) # enable MSVC_RUNTIME_LIBRARY
 endif()
@@ -157,6 +157,8 @@ add_executable (float_compr_tester
 	libs/bitshuffle/src/bitshuffle_core.c
 	libs/bitshuffle/src/bitshuffle_core.h
 	libs/bitshuffle/src/iochain.c
+    libs/spdp/spdp_11.c
+    libs/spdp/spdp_11.h
 	CMakeLists.txt
 	CMakePresets.json
 )

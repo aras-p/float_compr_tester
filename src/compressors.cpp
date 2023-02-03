@@ -4,6 +4,7 @@
 #include <fpzip.h>
 #include <zfp.h>
 #include "../libs/bitshuffle/src/bitshuffle_core.h"
+#include "../libs/spdp/spdp_11.h"
 
 //#include <assert.h> // ndzip needs it
 //#include <ndzip/ndzip.hh>
@@ -11,15 +12,6 @@
 //#include <streamvbytedelta.h>
 
 #include <string>
-
-static uint32_t rotl(uint32_t x, int s)
-{
-	return (x << s) | (x >> (32 - s));
-}
-static uint32_t rotr(uint32_t x, int s)
-{
-	return (x >> s) | (x << (32 - s));
-}
 
 static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 {
@@ -49,6 +41,8 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 		return { 0 };
 	}
 }
+
+std::vector<int> SpdpCompressor::GetLevels() const { return {0, 3, 6, 9}; }
 
 
 template<typename T>
@@ -133,6 +127,15 @@ static void UnSplit(const T* src, T* dst, int channels, int planeElems)
 			ptr += channels;
 		}
 	}
+}
+
+static uint32_t rotl(uint32_t x, int s)
+{
+    return (x << s) | (x >> (32 - s));
+}
+static uint32_t rotr(uint32_t x, int s)
+{
+    return (x >> s) | (x << (32 - s));
 }
 
 static void RotateLeft(const uint32_t* src, uint32_t* dst, size_t dataElems)
@@ -449,13 +452,18 @@ uint32_t MeshOptCompressor::GetColor() const
 const char* MeshOptCompressor::GetShapeString() const
 {
 	if (m_Format == kCompressionCount) return "'circle', pointSize: 20";
-	return "'circle', lineWidth: 3";
+	return "'circle', lineDashStyle: [4, 2]";
 }
 
 uint8_t* FpzipCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
+    // without split-by-float, fpzip only achieves ~1.5x ratio;
+    // with split it gets to 3.8x.
+    uint32_t* split = new uint32_t[width * height * channels];
+    Split<uint32_t>((const uint32_t*)data, split, channels, width * height);
+
 	size_t dataSize = width * height * channels * sizeof(float);
-	size_t bound = dataSize; //@TODO: what's the max compression bound?
+	size_t bound = dataSize * 2; //@TODO: what's the max compression bound?
 	uint8_t* cmp = new uint8_t[bound];
 	FPZ* fpz = fpzip_write_to_buffer(cmp, bound);
 	fpz->type = FPZIP_TYPE_FLOAT;
@@ -464,14 +472,17 @@ uint8_t* FpzipCompressor::Compress(int level, const float* data, int width, int 
 	fpz->ny = height;
 	fpz->nz = 1;
 	fpz->nf = channels;
-	size_t cmpSize = fpzip_write(fpz, data);
+	size_t cmpSize = fpzip_write(fpz, split);
 	fpzip_write_close(fpz);
 	outSize = cmpSize;
+    delete[] split;
 	return cmp;
 }
 
 void FpzipCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
 {
+    uint32_t* split = new uint32_t[width * height * channels];
+    
 	FPZ* fpz = fpzip_read_from_buffer(cmp);
 	fpz->type = FPZIP_TYPE_FLOAT;
 	fpz->prec = 0;
@@ -479,8 +490,10 @@ void FpzipCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data
 	fpz->ny = height;
 	fpz->nz = 1;
 	fpz->nf = channels;
-	fpzip_read(fpz, data);
+	fpzip_read(fpz, split);
 	fpzip_read_close(fpz);
+    UnSplit<uint32_t>(split, (uint32_t*)data, channels, width * height);
+    delete[] split;
 }
 
 void FpzipCompressor::PrintName(size_t bufSize, char* buf) const
@@ -490,8 +503,13 @@ void FpzipCompressor::PrintName(size_t bufSize, char* buf) const
 
 void FpzipCompressor::PrintVersion(size_t bufSize, char* buf) const
 {
-    snprintf(buf, bufSize, "%i.%i", FPZIP_VERSION_MAJOR, FPZIP_VERSION_MINOR);
+    snprintf(buf, bufSize, "fpz-%i.%i", FPZIP_VERSION_MAJOR, FPZIP_VERSION_MINOR);
 }
+
+const char* FpzipCompressor::GetShapeString() const { return "{type:'star', sides:5}, pointSize: 20"; }
+const char* ZfpCompressor::GetShapeString() const { return "{type:'star', sides:4}, pointSize: 20"; }
+const char* SpdpCompressor::GetShapeString() const { return "{type:'star', sides:6}, pointSize: 10"; }
+
 
 uint8_t* ZfpCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
@@ -554,8 +572,44 @@ void ZfpCompressor::PrintName(size_t bufSize, char* buf) const
 
 void ZfpCompressor::PrintVersion(size_t bufSize, char* buf) const
 {
-    snprintf(buf, bufSize, "%i.%i", ZFP_VERSION_MAJOR, ZFP_VERSION_MINOR);
+    snprintf(buf, bufSize, "zfp-%i.%i", ZFP_VERSION_MAJOR, ZFP_VERSION_MINOR);
 }
+
+
+uint8_t* SpdpCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
+{
+    uint32_t* split = new uint32_t[width * height * channels];
+    Split<uint32_t>((const uint32_t*)data, split, channels, width * height);
+
+    size_t dataSize = width * height * channels * sizeof(float);
+    size_t bound = spdp_compress_bound(dataSize);
+    uint8_t* cmp = new uint8_t[bound + 1];
+    cmp[0] = uint8_t(level);
+    size_t cmpSize = spdp_compress(level, dataSize, (unsigned char*)split, cmp + 1);
+    outSize = cmpSize + 1;
+    delete[] split;
+    return cmp;
+}
+
+void SpdpCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
+{
+    uint32_t* split = new uint32_t[width * height * channels];
+    uint8_t level = cmp[0];
+    spdp_decompress(level, cmpSize - 1, (byte_t*)cmp + 1, (byte_t*)split);
+    UnSplit<uint32_t>(split, (uint32_t*)data, channels, width * height);
+    delete[] split;
+}
+
+void SpdpCompressor::PrintName(size_t bufSize, char* buf) const
+{
+    snprintf(buf, bufSize, "spdp");
+}
+
+void SpdpCompressor::PrintVersion(size_t bufSize, char* buf) const
+{
+    snprintf(buf, bufSize, "spdp-1.1");
+}
+
 
 /*
 uint8_t* NdzipCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)

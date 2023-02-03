@@ -18,6 +18,7 @@ Code here uses 3rd party libraries:
 * [libdeflate](https://github.com/ebiggers/libdeflate), v1.17, MIT license.
 * [bitshuffle](https://github.com/kiyo-masui/bitshuffle), 0.5.1, MIT license.
 * [meshoptimizer](https://github.com/zeux/meshoptimizer), v0.18, MIT license.
+* [spdp_11.c](https://userweb.cs.txstate.edu/~burtscher/research/SPDPcompressor/), BSD license.
 * [sokol_time](https://github.com/floooh/sokol), zlib license.
 * [ini.h](https://github.com/mattiasgustavsson/libs/blob/main/ini.h), 2022 Sep (aef7d92), MIT or Public Domain.
 

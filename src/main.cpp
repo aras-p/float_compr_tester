@@ -1,10 +1,12 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <vector>
 #include <algorithm>
 #include "compressors.h"
 #include "systeminfo.h"
 #include "resultcache.h"
 #include <set>
+
+#define WRITE_RESULTS_CACHE 1
 
 #define SOKOL_TIME_IMPL
 #include "../libs/sokol_time.h"
@@ -24,26 +26,36 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 {
 	const int kRuns = 2;
 
+	// for ZFP, FPZIP etc.:
+	g_Compressors.emplace_back(new FpzipCompressor());
+    g_Compressors.emplace_back(new SpdpCompressor());
+	g_Compressors.emplace_back(new ZfpCompressor());
+	// previous post
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
+
+	// For: https://aras-p.info/blog/2023/02/02/Float-Compression-4-Mesh-Optimizer/
+	/*
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionLZ4));
+	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionOoodleKraken));
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount));
 	// none of filters help really
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, kFilterSplit32 | kFilterDeltaDiff));
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, kFilterSplit32));
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, kFilterSplit8));
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionLZ4));
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount));
-	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
-	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, kFilterSplit32));
-	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, kFilterSplit32));
-	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, kFilterSplit32 | kFilterDeltaDiff));
-	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, kFilterSplit32 | kFilterDeltaDiff));
-
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8 | kFilterDeltaDiff));
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8 | kFilterDeltaDiff));
-
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
+	*/
+
+
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLibdeflate));
@@ -52,53 +64,11 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
 
 	/*
-	g_Compressors.emplace_back(new FpzipCompressor());
-	g_Compressors.emplace_back(new ZfpCompressor());
 	g_Compressors.emplace_back(new NdzipCompressor());
 	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false));
 	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false));
 	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, true));
 	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true));
-	*/
-
-	/*
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3));											// 23.044 0.187 0.064
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10));										// 21.800 1.240 0.060
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0));											// 32.669 0.062 0.016
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, kFilterSplit32));						// 22.267 0.148 0.072
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, kFilterSplit32));					// 21.670 0.474 0.069
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, kFilterSplit32));						// 27.306 0.052 0.034
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, kFilterSplit32 | kFilterDeltaDiff));	// 16.295 0.181 0.080
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, kFilterSplit32 | kFilterDeltaDiff));	// 15.403 0.805 0.086
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, kFilterSplit32 | kFilterDeltaXor));	// 17.472 0.189 0.085
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, kFilterSplit32 | kFilterDeltaXor));	// 16.743 0.798 0.084
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, kFilterSplit8));						// 15.142 0.161 0.096
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, kFilterSplit8));						// 14.338 0.606 0.092
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, kFilterSplit8));						// 17.791 0.093 0.078
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, kFilterSplit8 | kFilterDeltaDiff));	// 13.415 0.188 0.127
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, kFilterSplit8 | kFilterDeltaDiff));	// 12.864 0.731 0.119
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, kFilterSplit8 | kFilterDeltaDiff));	// 17.000 0.119 0.098
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 3, kFilterSplit8 | kFilterDeltaXor));	// 14.081 0.191 0.121
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, 10, kFilterSplit8 | kFilterDeltaXor));	// 13.522 0.695 0.117
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, 0, kFilterSplit8 | kFilterDeltaXor));		// 17.637 0.117 0.101
-
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, 0));										// 17.535 0.113 0.017
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 3));											// 14.324 0.221 0.034
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 10));										// 13.786 0.459 0.035
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, 0, kFilterSplit32));					// 17.535 0.142 0.041
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 3, kFilterSplit32));						// 13.896 0.248 0.057
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 10, kFilterSplit32));					// 13.485 0.488 0.058
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount, 0, kFilterSplit32 | kFilterDeltaDiff));	// 17.802 0.193 0.064
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 3, kFilterSplit32 | kFilterDeltaDiff));	// 13.959 0.258 0.067
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, 10, kFilterSplit32 | kFilterDeltaDiff));	// 13.632 0.496 0.073
-
-	g_Compressors.emplace_back(new FpzipCompressor());																// 46.544 0.511 0.559
-	g_Compressors.emplace_back(new ZfpCompressor());																// 59.872 0.256 0.152
-	g_Compressors.emplace_back(new NdzipCompressor());																// 52.415 0.206 0.232
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, 0, false));								// 51.525 0.011 0.007
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, 3, false));								// 24.358 0.163 0.079
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, 0, true));								// 62.582 0.014 0.008
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, 3, true));								// 32.662 0.129 0.086
 	*/
 
 	size_t maxFloats = 0, totalFloats = 0;
@@ -222,7 +192,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			res.decTime /= kRuns;
 			if (!res.cached)
 			{
+#               if WRITE_RESULTS_CACHE
 				ResCacheSet(cmpName, res.level, res.size, res.cmpTime, res.decTime);
+#               endif
 			}
 			else
 			{
@@ -353,7 +325,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	}
 	fprintf(fout, "],\n");
 	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.005, max:2.0}},\n");
-	fprintf(fout, "vAxis: {title: 'Ratio', viewWindow: {min:1, max:4.5}},\n");
+	fprintf(fout, "vAxis: {title: 'Ratio', viewWindow: {min:0.75, max:4.5}},\n");
 	fprintf(fout, "chartArea: {left:60, right:10, top:50, bottom:50},\n");
 	fprintf(fout, "legend: {position: 'top'},\n");
 	fprintf(fout, "lineWidth: 1\n");
@@ -362,7 +334,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "chartCmp.draw(dataCmp, options);\n");
 	fprintf(fout, "options.title = titleDec;\n");
 	fprintf(fout, "options.hAxis.title = 'Decompression GB/s';\n");
-	fprintf(fout, "options.hAxis.viewWindow.min = 0.2;\n");
+	fprintf(fout, "options.hAxis.viewWindow.min = 0.1;\n");
 	fprintf(fout, "options.hAxis.viewWindow.max = 10.0;\n");
 	fprintf(fout, "var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));\n");
 	fprintf(fout, "chartDec.draw(dataDec, options);\n");
@@ -537,3 +509,10 @@ int main()
 	ResCacheClose();
 	return 0;
 }
+
+// Lossy:
+// SZ https://github.com/szcompressor/SZ
+// DCTZ https://github.com/swson/DCTZ
+// digitroundingZ https://github.com/disheng222/digitroundingZ
+// BitGroomingZ https://github.com/disheng222/BitGroomingZ
+
