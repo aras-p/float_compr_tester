@@ -121,16 +121,20 @@ set(BUILD_TESTING OFF)
 set(BUILD_UTILITIES OFF)
 FetchContent_MakeAvailable(zfp)
 
-FetchContent_Declare(
-	ndzip
-	URL https://github.com/aras-p/ndzip/archive/refs/heads/build-just-lib.zip # my fork with Windows build fixes
-)
-set(NDZIP_BUILD_COMPRESS OFF)
-set(NDZIP_WITH_MT OFF)
-set(NDZIP_WITH_HIPSYCL OFF)
-set(NDZIP_WITH_CUDA OFF)
-set(NDZIP_WITH_3RDPARTY_BENCHMARKS OFF)
-FetchContent_MakeAvailable(ndzip)
+# ndzip
+if (NOT APPLE) # ndzip does not build on Mac
+    set(BUILD_WITH_NDZIP ON)
+    FetchContent_Declare(
+        ndzip
+        URL https://github.com/aras-p/ndzip/archive/refs/heads/build-just-lib.zip # my fork with Windows build fixes
+    )
+    set(NDZIP_BUILD_COMPRESS OFF)
+    set(NDZIP_WITH_MT OFF)
+    set(NDZIP_WITH_HIPSYCL OFF)
+    set(NDZIP_WITH_CUDA OFF)
+    set(NDZIP_WITH_3RDPARTY_BENCHMARKS OFF)
+    FetchContent_MakeAvailable(ndzip)
+endif ()
 
 # streamvbyte
 FetchContent_Declare(
@@ -183,15 +187,17 @@ target_link_libraries(float_compr_tester PRIVATE
 	meshoptimizer
 	fpzip
 	zfp
-	ndzip
 	streamvbyte_static
 )
+if (BUILD_WITH_NDZIP)
+    target_link_libraries(float_compr_tester PRIVATE ndzip)
+    target_compile_definitions(float_compr_tester PRIVATE BUILD_WITH_NDZIP=1)
+endif ()
 
 target_compile_definitions(float_compr_tester PRIVATE
 	_CRT_SECURE_NO_DEPRECATE
 	_CRT_NONSTDC_NO_WARNINGS
 	NOMINMAX
-	BUILD_WITH_NDZIP=1
 )
 
 if (EXISTS "${CMAKE_SOURCE_DIR}/src/oodle_wrapper.cpp")
