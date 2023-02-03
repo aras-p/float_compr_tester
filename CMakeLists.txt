@@ -134,6 +134,12 @@ if (NOT APPLE) # ndzip does not build on Mac
     set(NDZIP_WITH_CUDA OFF)
     set(NDZIP_WITH_3RDPARTY_BENCHMARKS OFF)
     FetchContent_MakeAvailable(ndzip)
+	# make it target AVX2 (without: comp 0.5GB/s, decomp 0.4GB/s; with: comp 1.1GB/s, decomp 0.9GB/s)
+	if(MSVC)
+		target_compile_options(ndzip PRIVATE /arch:AVX2)
+		target_compile_definitions(ndzip PRIVATE __builtin_memcpy=memcpy)
+	endif()
+
 endif ()
 
 # streamvbyte
