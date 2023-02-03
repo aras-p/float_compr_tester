@@ -139,7 +139,7 @@ endif ()
 # streamvbyte
 FetchContent_Declare(
 	streamvbyte
-	URL https://github.com/lemire/streamvbyte/archive/723fbdb.zip # latest main branch at time of writing (2023 Feb)
+	URL https://github.com/lemire/streamvbyte/archive/refs/tags/v0.5.2.zip # latest (2023 Feb) at time of writing
 )
 set(STREAMVBYTE_ENABLE_TESTS OFF)
 set(STREAMVBYTE_ENABLE_EXAMPLES OFF)

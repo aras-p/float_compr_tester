@@ -19,6 +19,10 @@ Code here uses 3rd party libraries:
 * [bitshuffle](https://github.com/kiyo-masui/bitshuffle), 0.5.1, MIT license.
 * [meshoptimizer](https://github.com/zeux/meshoptimizer), v0.18, MIT license.
 * [spdp_11.c](https://userweb.cs.txstate.edu/~burtscher/research/SPDPcompressor/), BSD license.
+* [zfp](https://github.com/LLNL/zfp), 1.0.0, BSD license.
+* [fpzip](https://github.com/LLNL/fpzip), 1.3.0, BSD license.
+* [ndzip](https://github.com/celerity/ndzip), 2022.06, MIT license.
+* [streamvbyte](https://github.com/lemire/streamvbyte), 0.5.2, Apache-2.0 license.
 * [sokol_time](https://github.com/floooh/sokol), zlib license.
 * [ini.h](https://github.com/mattiasgustavsson/libs/blob/main/ini.h), 2022 Sep (aef7d92), MIT or Public Domain.
 
