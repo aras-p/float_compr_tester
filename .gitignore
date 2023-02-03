@@ -2,3 +2,4 @@
 out/*
 .DS_Store
 libs/oodle
+src/oodle_wrapper.cpp

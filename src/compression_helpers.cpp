@@ -11,6 +11,10 @@
 #include <brotli/decode.h>
 #include <stdio.h>
 
+#if BUILD_WITH_OODLE
+#include "oodle_wrapper.h"
+#endif
+
 size_t compress_meshopt_vertex_attribute_bound(int vertexCount, int vertexSize)
 {
 	return meshopt_encodeVertexBufferBound(vertexCount, vertexSize);
@@ -47,6 +51,12 @@ size_t compress_calc_bound(size_t srcSize, CompressionFormat format)
 		libdeflate_free_compressor(c);
 		return size;
 	}
+#	if BUILD_WITH_OODLE
+	case kCompressionOoodleSelkie:
+	case kCompressionOoodleMermaid:
+	case kCompressionOoodleKraken:
+		return oodle_compress_calc_bound(srcSize, format);
+#	endif
 	default: return 0;
 	}	
 }
@@ -82,6 +92,12 @@ size_t compress_data(const void* src, size_t srcSize, void* dst, size_t dstSize,
 		libdeflate_free_compressor(c);
 		return size;
 	}
+#	if BUILD_WITH_OODLE
+	case kCompressionOoodleSelkie:
+	case kCompressionOoodleMermaid:
+	case kCompressionOoodleKraken:
+		return oodle_compress_data(src, srcSize, dst, dstSize, format, level);
+#	endif
 	default: return 0;
 	}
 }
@@ -117,6 +133,12 @@ size_t decompress_data(const void* src, size_t srcSize, void* dst, size_t dstSiz
 		libdeflate_free_decompressor(c);
 		return gotSize;
 	}
+#	if BUILD_WITH_OODLE
+	case kCompressionOoodleSelkie:
+	case kCompressionOoodleMermaid:
+	case kCompressionOoodleKraken:
+		return oodle_decompress_data(src, srcSize, dst, dstSize, format);
+#	endif
 	default: return 0;
 	}	
 }
@@ -129,6 +151,12 @@ void compressor_get_version(CompressionFormat format, size_t bufSize, char* buf)
 	case kCompressionZlib: snprintf(buf, bufSize, "zlib-%s", ZLIB_VERSION); break;
 	case kCompressionBrotli: snprintf(buf, bufSize, "brotli-%i.%i.%i", BrotliDecoderVersion() >> 24, (BrotliDecoderVersion() >> 12) & 0xFFF, BrotliDecoderVersion() & 0xFFF); break;
 	case kCompressionLibdeflate: snprintf(buf, bufSize, "libdeflate-%s", LIBDEFLATE_VERSION_STRING); break;
+#	if BUILD_WITH_OODLE
+	case kCompressionOoodleSelkie:
+	case kCompressionOoodleMermaid:
+	case kCompressionOoodleKraken:
+		oodle_compressor_get_version(format, bufSize, buf); break;
+#	endif
 	default:
 		snprintf(buf, bufSize, "Unknown-%i", format);
 	}

@@ -22,3 +22,8 @@ Code here uses 3rd party libraries:
 * [sokol_time](https://github.com/floooh/sokol), zlib license.
 * [ini.h](https://github.com/mattiasgustavsson/libs/blob/main/ini.h), 2022 Sep (aef7d92), MIT or Public Domain.
 
+Oodle SDK is not public, so that one is not compiled in unless you put:
+* Oodle wrapper functions implementation file into `src/oodle_wrapper.cpp`,
+  with implementation of `oodle_init`, `oodle_compress_calc_bound`,
+  `oodle_compress_data`, `oodle_decompress_data`, `oodle_compressor_get_version`.
+* Oodle header files and core static library under `libs/oodle` folder.

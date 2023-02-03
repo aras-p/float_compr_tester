@@ -6,7 +6,7 @@
 #include "resultcache.h"
 #include <set>
 
-//#define WRITE_RESULTS_CACHE 1
+#define WRITE_RESULTS_CACHE 1
 
 #define SOKOL_TIME_IMPL
 #include "../libs/sokol_time.h"
@@ -24,12 +24,17 @@ static std::vector<Compressor*> g_Compressors;
 
 static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 {
+#	if BUILD_WITH_OODLE
+	void oodle_init();
+	oodle_init();
+#	endif
+
 	const int kRuns = 2;
 
-	// for ZFP, FPZIP etc.:
+	// ZFP, FPZIP, SPDP, StreamVByte
+	g_Compressors.emplace_back(new ZfpCompressor());
 	g_Compressors.emplace_back(new FpzipCompressor());
     g_Compressors.emplace_back(new SpdpCompressor());
-	g_Compressors.emplace_back(new ZfpCompressor());
     g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false, false));
     //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false, false)); // not good/interesting
     //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false, true)); // not good/interesting
@@ -38,12 +43,14 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	//g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true, false)); // not good/interesting
 	//g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, true, true)); // not good/interesting
 	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true, true));
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionLZ4, true, true));
+	//g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionLZ4, true, true)); // not too interesting
 	// previous post
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8 | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
+	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
 
 	// For: https://aras-p.info/blog/2023/02/02/Float-Compression-4-Mesh-Optimizer/
 	/*

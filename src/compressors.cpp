@@ -19,7 +19,7 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 	{
 	case kCompressionZstd:
 		//return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
-		return { -5, -3, -1, 1, 3, 5, 7, 9 };//, 12, 15 }; // comp time under 3s
+		return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15 }; // comp time under 3s
 	case kCompressionLZ4:
 		//return { -5, -1, 0, 1, 6, 9, 12 };
 		return { -5, -1, 0, 1, 6, 9 }; // comp time under 3s
@@ -443,10 +443,11 @@ void MeshOptCompressor::PrintVersion(size_t bufSize, char* buf) const
 uint32_t MeshOptCompressor::GetColor() const
 {
 	// blue
-	if (m_Format == kCompressionZstd) return 0x00b2ff;
+	bool faded = true;
+	if (m_Format == kCompressionZstd) return faded ? 0xb0d7e8 : 0x00b2ff;
 	if (m_Format == kCompressionLZ4) return 0x49ddff;
 	if (m_Format == kCompressionOoodleKraken) return 0x0094ef;
-	return 0x006fb1;
+	return faded ? 0x79b2d2 : 0x006fb1;
 }
 
 const char* MeshOptCompressor::GetShapeString() const

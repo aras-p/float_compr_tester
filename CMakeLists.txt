@@ -193,3 +193,15 @@ target_compile_definitions(float_compr_tester PRIVATE
 	_CRT_NONSTDC_NO_WARNINGS
 	NOMINMAX
 )
+
+if (EXISTS "${CMAKE_SOURCE_DIR}/src/oodle_wrapper.cpp")
+	message (STATUS "Including Oodle compressors")
+	target_compile_definitions(float_compr_tester PRIVATE BUILD_WITH_OODLE=1)
+	target_sources(float_compr_tester PRIVATE src/oodle_wrapper.cpp)
+	if (WIN32)
+		target_link_libraries(float_compr_tester PRIVATE ${CMAKE_SOURCE_DIR}/libs/oodle/oo2core_win64.lib)
+	endif ()
+	if (APPLE)
+		target_link_libraries(float_compr_tester PRIVATE ${CMAKE_SOURCE_DIR}/libs/oodle/liboo2coremac64.a)
+	endif ()
+endif ()
