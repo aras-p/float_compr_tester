@@ -96,14 +96,15 @@ struct NdzipCompressor : public Compressor
 
 struct StreamVByteCompressor : public Compressor
 {
-	StreamVByteCompressor(CompressionFormat format, bool delta) : m_Format(format), m_Delta(delta) {}
+	StreamVByteCompressor(CompressionFormat format, bool split32, bool delta) : m_Format(format), m_Split32(split32), m_Delta(delta) {}
 	virtual uint8_t* Compress(int level, const float* data, int width, int height, int channels, size_t& outSize);
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual std::vector<int> GetLevels() const;
 	virtual void PrintName(size_t bufSize, char* buf) const;
     virtual void PrintVersion(size_t bufSize, char* buf) const;
-	virtual const char* GetShapeString() const { return "'square'"; }
-	virtual uint32_t GetColor() const { return 0xffac8d; } // orange
+	virtual const char* GetShapeString() const;
+	virtual uint32_t GetColor() const { return 0xff6454; } // orange
 	CompressionFormat m_Format;
+	bool m_Split32;
 	bool m_Delta;
 };

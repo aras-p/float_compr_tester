@@ -19,7 +19,7 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 	{
 	case kCompressionZstd:
 		//return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
-		return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15 }; // comp time under 3s
+		return { -5, -3, -1, 1, 3, 5, 7, 9 };//, 12, 15 }; // comp time under 3s
 	case kCompressionLZ4:
 		//return { -5, -1, 0, 1, 6, 9, 12 };
 		return { -5, -1, 0, 1, 6, 9 }; // comp time under 3s
@@ -508,7 +508,13 @@ void FpzipCompressor::PrintVersion(size_t bufSize, char* buf) const
 
 const char* FpzipCompressor::GetShapeString() const { return "{type:'star', sides:5}, pointSize: 20"; }
 const char* ZfpCompressor::GetShapeString() const { return "{type:'star', sides:4}, pointSize: 20"; }
-const char* SpdpCompressor::GetShapeString() const { return "{type:'star', sides:6}, pointSize: 10"; }
+const char* SpdpCompressor::GetShapeString() const { return "{type:'star', sides:6}, pointSize: 10, lineWidth: 3"; }
+const char* StreamVByteCompressor::GetShapeString() const
+{
+	if (m_Format != kCompressionCount)
+		return "{type:'star', sides:3}, pointSize: 14, lineWidth: 3";
+	return "{type:'star', sides:3}, pointSize: 20";
+}
 
 
 uint8_t* ZfpCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
@@ -642,16 +648,29 @@ void NdzipCompressor::PrintName(size_t bufSize, char* buf) const
 }
  */
 
+// notes:
+// svbyte followed by general purpose compressor: nah, just loses to only the general purpose one on both ratio & perf.
+// svbyte_delta loses to general svbyte, as well as with an additional compressor
+// svbyte_s32 does not affect general svbyte.
+// BUT! svbyte_s32_delta is actually interesting.
 uint8_t* StreamVByteCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
+	uint32_t* split = nullptr;
+	if (m_Split32)
+	{
+		split = new uint32_t[width * height * channels];
+		Split<uint32_t>((const uint32_t*)data, split, channels, width * height);
+	}
+
 	uint32_t dataElems = width * height * channels;
 	size_t bound = streamvbyte_max_compressedbytes(dataElems);
 	uint8_t* cmp = new uint8_t[bound];
 	size_t cmpSize = 0;
 	if (m_Delta)
-		cmpSize = streamvbyte_delta_encode((const uint32_t*)data, dataElems, cmp, 0);
+		cmpSize = streamvbyte_delta_encode(split ? split : (const uint32_t*)data, dataElems, cmp, 0);
 	else
-		cmpSize = streamvbyte_encode((const uint32_t*)data, dataElems, cmp);
+		cmpSize = streamvbyte_encode(split ? split : (const uint32_t*)data, dataElems, cmp);
+	delete[] split;
 
 	return CompressGeneric(m_Format, level, cmp, cmpSize, outSize);
 }
@@ -661,11 +680,21 @@ void StreamVByteCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float
 	size_t decompSize;
 	uint8_t* decomp = DecompressGeneric(m_Format, cmp, cmpSize, decompSize);
 
+	uint32_t* split = nullptr;
+	if (m_Split32)
+	{
+		split = new uint32_t[width * height * channels];
+	}
 	uint32_t dataElems = width * height * channels;
 	if (m_Delta)
-		streamvbyte_delta_decode(decomp, (uint32_t*)data, dataElems, 0);
+		streamvbyte_delta_decode(decomp, split ? split : (uint32_t*)data, dataElems, 0);
 	else
-		streamvbyte_decode(decomp, (uint32_t*)data, dataElems);
+		streamvbyte_decode(decomp, split ? split : (uint32_t*)data, dataElems);
+	if (split)
+	{
+		UnSplit<uint32_t>(split, (uint32_t*)data, channels, width * height);
+		delete[] split;
+	}
 	if (decomp != cmp) delete[] decomp;
 }
 
@@ -677,12 +706,12 @@ std::vector<int> StreamVByteCompressor::GetLevels() const
 void StreamVByteCompressor::PrintName(size_t bufSize, char* buf) const
 {
 	if (m_Format == kCompressionCount)
-		snprintf(buf, bufSize, "streamvbyte%s", m_Delta ? "_d" : "");
+		snprintf(buf, bufSize, "svbyte%s%s", m_Split32 ? "_s32" : "", m_Delta ? "_d" : "");
 	else
-		snprintf(buf, bufSize, "streamvbyte-%s%s", kCompressionFormatNames[m_Format], m_Delta ? "_d" : "");	
+		snprintf(buf, bufSize, "svbyte-%s%s%s", kCompressionFormatNames[m_Format], m_Split32 ? "_s32" : "", m_Delta ? "_d" : "");
 }
 
 void StreamVByteCompressor::PrintVersion(size_t bufSize, char* buf) const
 {
-    snprintf(buf, bufSize, "streamvbyte-2023.02");
+    snprintf(buf, bufSize, "svbyte-2023.02");
 }

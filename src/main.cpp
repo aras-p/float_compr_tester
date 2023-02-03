@@ -30,10 +30,15 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	g_Compressors.emplace_back(new FpzipCompressor());
     g_Compressors.emplace_back(new SpdpCompressor());
 	g_Compressors.emplace_back(new ZfpCompressor());
-    g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false));
-    //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false));
-    g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, true));
-    //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true));
+    g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false, false));
+    //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false, false)); // not good/interesting
+    //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false, true)); // not good/interesting
+    //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false, true)); // not good/interesting
+	//g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, true, false)); // not good/interesting
+	//g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true, false)); // not good/interesting
+	//g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, true, true)); // not good/interesting
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true, true));
+	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionLZ4, true, true));
 	// previous post
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
