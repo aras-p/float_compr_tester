@@ -6,7 +6,7 @@
 #include "resultcache.h"
 #include <set>
 
-#define WRITE_RESULTS_CACHE 1
+//#define WRITE_RESULTS_CACHE 1
 
 #define SOKOL_TIME_IMPL
 #include "../libs/sokol_time.h"
@@ -30,6 +30,10 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	g_Compressors.emplace_back(new FpzipCompressor());
     g_Compressors.emplace_back(new SpdpCompressor());
 	g_Compressors.emplace_back(new ZfpCompressor());
+    g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false));
+    //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false));
+    g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, true));
+    //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true));
 	// previous post
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
@@ -65,10 +69,6 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 
 	/*
 	g_Compressors.emplace_back(new NdzipCompressor());
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false));
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false));
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, true));
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true));
 	*/
 
 	size_t maxFloats = 0, totalFloats = 0;
@@ -324,7 +324,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		fprintf(fout, "'%02x%02x%02x'%s", (col >> 16)&0xFF, (col >> 8)&0xFF, col&0xFF, ic== g_Compressors.size()-1?"":",");
 	}
 	fprintf(fout, "],\n");
-	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.005, max:2.0}},\n");
+	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.005, max:10.0}},\n");
 	fprintf(fout, "vAxis: {title: 'Ratio', viewWindow: {min:0.75, max:4.5}},\n");
 	fprintf(fout, "chartArea: {left:60, right:10, top:50, bottom:50},\n");
 	fprintf(fout, "legend: {position: 'top'},\n");
@@ -335,7 +335,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "options.title = titleDec;\n");
 	fprintf(fout, "options.hAxis.title = 'Decompression GB/s';\n");
 	fprintf(fout, "options.hAxis.viewWindow.min = 0.1;\n");
-	fprintf(fout, "options.hAxis.viewWindow.max = 10.0;\n");
+	fprintf(fout, "options.hAxis.viewWindow.max = 20.0;\n");
 	fprintf(fout, "var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));\n");
 	fprintf(fout, "chartDec.draw(dataDec, options);\n");
 	fprintf(fout, "}\n");

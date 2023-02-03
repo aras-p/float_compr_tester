@@ -101,6 +101,7 @@ struct StreamVByteCompressor : public Compressor
 	virtual void Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels);
 	virtual std::vector<int> GetLevels() const;
 	virtual void PrintName(size_t bufSize, char* buf) const;
+    virtual void PrintVersion(size_t bufSize, char* buf) const;
 	virtual const char* GetShapeString() const { return "'square'"; }
 	virtual uint32_t GetColor() const { return 0xffac8d; } // orange
 	CompressionFormat m_Format;

@@ -8,8 +8,8 @@
 
 //#include <assert.h> // ndzip needs it
 //#include <ndzip/ndzip.hh>
-//#include <streamvbyte.h>
-//#include <streamvbytedelta.h>
+#include <streamvbyte.h>
+#include <streamvbytedelta.h>
 
 #include <string>
 
@@ -640,6 +640,7 @@ void NdzipCompressor::PrintName(size_t bufSize, char* buf) const
 {
 	snprintf(buf, bufSize, "ndzip");
 }
+ */
 
 uint8_t* StreamVByteCompressor::Compress(int level, const float* data, int width, int height, int channels, size_t& outSize)
 {
@@ -680,4 +681,8 @@ void StreamVByteCompressor::PrintName(size_t bufSize, char* buf) const
 	else
 		snprintf(buf, bufSize, "streamvbyte-%s%s", kCompressionFormatNames[m_Format], m_Delta ? "_d" : "");	
 }
-*/
+
+void StreamVByteCompressor::PrintVersion(size_t bufSize, char* buf) const
+{
+    snprintf(buf, bufSize, "streamvbyte-2023.02");
+}
