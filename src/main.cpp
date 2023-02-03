@@ -59,7 +59,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	/*
 	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionLZ4));
-	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionOoodleKraken));
+    #if BUILD_WITH_OODLE
+	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionOoodleKraken));
+    #endif
 	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionCount));
 	// none of filters help really
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, kFilterSplit32 | kFilterDeltaDiff));
@@ -68,19 +70,25 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	//g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd, kFilterSplit8));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8 | kFilterDeltaDiff));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8 | kFilterDeltaDiff));
+    #if BUILD_WITH_OODLE
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8 | kFilterDeltaDiff));
+    #endif
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
+    #if BUILD_WITH_OODLE
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
+    #endif
 	*/
 
 
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZlib));
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionBrotli));
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLibdeflate));
+    //#if BUILD_WITH_OODLE
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleSelkie));
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleMermaid));
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
+    //#endif
 
 	size_t maxFloats = 0, totalFloats = 0;
 	for (int tfi = 0; tfi < testFileCount; ++tfi)
@@ -284,7 +292,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			fprintf(fout, ", %.3f,'%s", ratio, cmpName);
 			if (levelRes.size() > 1)
 				fprintf(fout, " %i", res.level);
-			fprintf(fout, "\\n%.3fx at %.3f GB/s\\n%.1FMB %.2fs','' ", ratio, cspeed / oneGB, csize / oneMB, ctime);
+			fprintf(fout, "\\n%.3fx at %.3f GB/s\\n%.1FMB %.3fs','' ", ratio, cspeed / oneGB, csize / oneMB, ctime);
 			for (size_t j = ic + 1; j < g_Compressors.size(); ++j) fprintf(fout, ",null,null,null");
 			fprintf(fout, "]%s\n", (ic == g_Compressors.size() - 1) && (&res == &levelRes.back()) ? "" : ",");
 		}
@@ -309,7 +317,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			fprintf(fout, ", %.3f,'%s", ratio, cmpName);
 			if (levelRes.size() > 1)
 				fprintf(fout, " %i", res.level);
-			fprintf(fout, "\\n%.3fx at %.3f GB/s\\n%.1FMB %.2fs','' ", ratio, dspeed / oneGB, csize / oneMB, dtime);
+			fprintf(fout, "\\n%.3fx at %.3f GB/s\\n%.1FMB %.3fs','' ", ratio, dspeed / oneGB, csize / oneMB, dtime);
 			for (size_t j = ic + 1; j < g_Compressors.size(); ++j) fprintf(fout, ",null,null,null");
 			fprintf(fout, "]%s\n", (ic == g_Compressors.size() - 1) && (&res == &levelRes.back()) ? "" : ",");
 		}
