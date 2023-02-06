@@ -9,6 +9,7 @@ A series of experiments in compressing semi-structured floating point data. Blog
 * [Part 2: Generic Compression Libraries](https://aras-p.info/blog/2023/01/29/Float-Compression-1-Generic/) (libdeflate, oodle)
 * [Part 3: Data Filtering](https://aras-p.info/blog/2023/02/01/Float-Compression-3-Filters/) (simple data filtering to improve compression ratio)
 * [Part 4: Mesh Optimizer](https://aras-p.info/blog/2023/02/02/Float-Compression-4-Mesh-Optimizer/) (mis-using mesh compression library on our data set)
+* [Part 5: Science!](https://aras-p.info/blog/2023/02/03/Float-Compression-5-Science/) (zfp, fpzip, SPDP, ndzip, streamvbyte)
 
 Code here uses 3rd party libraries:
 * [zstd](https://github.com/facebook/zstd), v1.5.2, BSD or GPLv2 license.
