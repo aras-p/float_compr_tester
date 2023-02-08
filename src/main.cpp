@@ -6,8 +6,6 @@
 #include "resultcache.h"
 #include <set>
 
-#define WRITE_RESULTS_CACHE 1
-
 #define SOKOL_TIME_IMPL
 #include "../libs/sokol_time.h"
 
@@ -29,9 +27,16 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	oodle_init();
 #	endif
 
+	constexpr bool kWriteResultsCache = false;
 	const int kRuns = 2;
 
-	// ZFP, FPZIP, SPDP, StreamVByte
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8 | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
+
+	// For: https://aras-p.info/blog/2023/02/03/Float-Compression-5-Science/
+	/*
 	g_Compressors.emplace_back(new ZfpCompressor());
 	g_Compressors.emplace_back(new FpzipCompressor());
     g_Compressors.emplace_back(new SpdpCompressor());
@@ -54,6 +59,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
 	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
+	*/
 
 	// For: https://aras-p.info/blog/2023/02/02/Float-Compression-4-Mesh-Optimizer/
 	/*
@@ -211,9 +217,10 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			res.decTime /= kRuns;
 			if (!res.cached)
 			{
-#               if WRITE_RESULTS_CACHE
-				ResCacheSet(cmpName, res.level, res.size, res.cmpTime, res.decTime);
-#               endif
+				if (kWriteResultsCache)
+				{
+					ResCacheSet(cmpName, res.level, res.size, res.cmpTime, res.decTime);
+				}
 			}
 			else
 			{
