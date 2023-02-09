@@ -209,7 +209,7 @@ target_compile_definitions(float_compr_tester PRIVATE
 
 # Enable debug symbols (RelWithDebInfo is not only that; it also turns on
 # incremental linking, disables some inlining, etc. etc.)
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
+if (MSVC AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
     target_compile_options(float_compr_tester PRIVATE /Zi)
     target_link_options(float_compr_tester PRIVATE /DEBUG /OPT:ICF /OPT:REF)
 endif()
