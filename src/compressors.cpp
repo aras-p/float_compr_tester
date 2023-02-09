@@ -16,6 +16,19 @@
 
 #include <string>
 
+
+#if defined(__x86_64__) || defined(_M_X64)
+#	define CPU_ARCH_X64 1
+#	include <emmintrin.h> // sse2
+#	include <tmmintrin.h> // sse3
+#	include <smmintrin.h> // sse4.1
+#endif
+#if defined(__aarch64__) || defined(_M_ARM64)
+#	define CPU_ARCH_ARM64 1
+#	include <arm_neon.h>
+#endif
+
+
 static std::vector<int> GetGenericLevelRange(CompressionFormat format)
 {
     switch (format)
@@ -77,6 +90,18 @@ static void DecodeDeltaDif(T* data, size_t dataElems)
         ++data;
     }
 }
+
+// https://gist.github.com/rygorous/4212be0cd009584e4184e641ca210528
+#if CPU_ARCH_X64
+static inline __m128i prefix_sum_u8(__m128i x)
+{
+    x = _mm_add_epi8(x, _mm_slli_epi64(x, 8));
+    x = _mm_add_epi8(x, _mm_slli_epi64(x, 16));
+    x = _mm_add_epi8(x, _mm_slli_epi64(x, 32));
+    x = _mm_add_epi8(x, _mm_shuffle_epi8(x, _mm_setr_epi8(-1, -1, -1, -1, -1, -1, -1, -1, 7, 7, 7, 7, 7, 7, 7, 7)));
+    return x;
+}
+#endif // #if CPU_ARCH_X64
 
 template<typename T>
 static void EncodeDeltaXor(T* data, size_t dataElems)
@@ -141,7 +166,32 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
     for (int ich = 0; ich < channels; ++ich)
     {
         const uint8_t* srcPtr = src + ich;
-        for (size_t ip = 0; ip < planeElems; ++ip)
+        size_t ip = 0;
+
+#	    if CPU_ARCH_X64
+        // SSE simd loop, 16 bytes at a time
+        __m128i prev16 = _mm_set1_epi8(prev);
+        alignas(16) uint8_t gathered[16];
+        for (; ip < planeElems / 16; ++ip)
+        {
+            // gather 16 bytes from source data
+            for (int lane = 0; lane < 16; ++lane)
+            {
+                gathered[lane] = *srcPtr;
+                srcPtr += channels;
+            }
+            __m128i v = _mm_load_si128((const __m128i*)gathered);
+            // delta from previous
+            __m128i delta = _mm_sub_epi8(v, _mm_alignr_epi8(v, prev16, 15)); // sse3
+            _mm_storeu_si128((__m128i*)dst, delta);
+            prev16 = v;
+            dst += 16;
+        }
+        prev = _mm_extract_epi8(prev16, 15); // sse4.1
+#       endif // if CPU_ARCH_X64
+
+        // any trailing leftover
+        for (ip = ip * 16; ip < planeElems; ++ip)
         {
             uint8_t v = *srcPtr;
             *dst = v - prev;
@@ -159,7 +209,33 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
     for (int ich = 0; ich < channels; ++ich)
     {
         uint8_t* dstPtr = dst + ich;
-        for (size_t ip = 0; ip < planeElems; ++ip)
+        size_t ip = 0;
+
+#	    if CPU_ARCH_X64
+        // SSE simd loop, 16 bytes at a time
+        __m128i prev16 = _mm_set1_epi8(prev);
+        __m128i hibyte = _mm_set1_epi8(15);
+        alignas(16) uint8_t scatter[16];
+        for (; ip < planeElems / 16; ++ip)
+        {
+            // load 16 bytes of filtered data
+            __m128i v = _mm_loadu_si128((const __m128i*)src);
+            // un-delta via prefix sum
+            prev16 = _mm_add_epi8(prefix_sum_u8(v), _mm_shuffle_epi8(prev16, hibyte));
+            // scattered write into destination
+            _mm_store_si128((__m128i*)scatter, prev16);
+            for (int lane = 0; lane < 16; ++lane)
+            {
+                *dstPtr = scatter[lane];
+                dstPtr += channels;
+            }
+            src += 16;
+        }
+        prev = _mm_extract_epi8(prev16, 15); // sse4.1
+#       endif // if CPU_ARCH_X64
+
+        // any trailing leftover
+        for (ip = ip * 16; ip < planeElems; ++ip)
         {
             uint8_t v = *src + prev;
             prev = v;

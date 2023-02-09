@@ -28,7 +28,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 #	endif
 
 	constexpr bool kWriteResultsCache = false;
-	const int kRuns = 2;
+	const int kRuns = 3;
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8Delta));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8Delta));
