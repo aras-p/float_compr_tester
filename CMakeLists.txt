@@ -206,6 +206,15 @@ target_compile_definitions(float_compr_tester PRIVATE
 	NOMINMAX
 )
 
+
+# Enable debug symbols (RelWithDebInfo is not only that; it also turns on
+# incremental linking, disables some inlining, etc. etc.)
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(float_compr_tester PRIVATE /Zi)
+    target_link_options(float_compr_tester PRIVATE /DEBUG /OPT:ICF /OPT:REF)
+endif()
+
+
 if (EXISTS "${CMAKE_SOURCE_DIR}/src/oodle_wrapper.cpp")
 	message (STATUS "Including Oodle compressors")
 	target_compile_definitions(float_compr_tester PRIVATE BUILD_WITH_OODLE=1)

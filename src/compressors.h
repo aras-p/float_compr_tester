@@ -11,6 +11,7 @@ enum Filter {
 	kFilterDeltaDiff = (1 << 3),
 	kFilterDeltaXor = (1 << 4),
 	kFilterRot1 = (1 << 5),
+	kFilterSplit8Delta = (1 << 6),
 };
 
 struct Compressor

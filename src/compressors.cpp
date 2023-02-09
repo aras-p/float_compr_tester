@@ -22,10 +22,12 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
     {
     case kCompressionZstd:
         //return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
-        return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15 }; // comp time under 3s
+        //return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15 }; // comp time under 3s
+        return { -5, -1, 1, 5, 9 };
     case kCompressionLZ4:
         //return { -5, -1, 0, 1, 6, 9, 12 };
-        return { -5, -1, 0, 1, 6, 9 }; // comp time under 3s
+        //return { -5, -1, 0, 1, 6, 9 }; // comp time under 3s
+        return { -5, 0, 1 };
     case kCompressionZlib:
         //return { 1, 3, 5, 6, 7, 9 };
         return { 1, 3, 5, 6, 7 }; // comp time under 3s
@@ -39,7 +41,8 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
     case kCompressionOoodleMermaid:
     case kCompressionOoodleKraken:
         //return { -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8 };
-        return { -4, -3, -2, -1, 1, 2, 3, 4, 5 }; // comp time under 3s
+        //return { -4, -3, -2, -1, 1, 2, 3, 4, 5 }; // comp time under 3s
+        return { -4, -2, 1, 4 };
     default:
         return { 0 };
     }
@@ -132,6 +135,18 @@ static void UnSplit(const T* src, T* dst, int channels, int planeElems)
     }
 }
 
+static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, int planeElems)
+{
+    Split<uint8_t>(src, dst, channels, planeElems);
+    EncodeDeltaDif(dst, channels * planeElems);
+}
+
+static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, int planeElems)
+{
+    DecodeDeltaDif(src, channels * planeElems);
+    UnSplit<uint8_t>(src, dst, channels, planeElems);
+}
+
 static uint32_t rotl(uint32_t x, int s)
 {
     return (x << s) | (x >> (32 - s));
@@ -179,10 +194,12 @@ static uint8_t* CompressionFilter(uint32_t filter, const float* data, int width,
         }
         if ((filter & kFilterSplit8) != 0)
         {
-            Split((uint8_t*)data, tmp, channels * sizeof(float), planeElems);
+            Split((const uint8_t*)data, tmp, channels * sizeof(float), planeElems);
             if ((filter & kFilterDeltaDiff) != 0) EncodeDeltaDif((uint8_t*)tmp, dataSize);
             if ((filter & kFilterDeltaXor) != 0) EncodeDeltaXor((uint8_t*)tmp, dataSize);
         }
+        if (filter & kFilterSplit8Delta)
+            Split8Delta((const uint8_t*)data, tmp, channels * sizeof(float), planeElems);
         if ((filter & kFilterBitShuffle) != 0)
         {
             bshuf_bitshuffle(data, tmp, planeElems, channels * sizeof(float), 0);
@@ -217,6 +234,8 @@ static void DecompressionFilter(uint32_t filter, uint8_t* tmp, float* data, int 
             if ((filter & kFilterDeltaXor) != 0) DecodeDeltaXor(tmp, dataSize);
             UnSplit(tmp, dstData, channels * sizeof(float), planeElems);
         }
+        if (filter & kFilterSplit8Delta)
+            UnSplit8Delta(tmp, dstData, channels * sizeof(float), planeElems);
         if ((filter & kFilterBitShuffle) != 0)
         {
             if ((filter & kFilterDeltaDiff) != 0) DecodeDeltaDif(tmp, dataSize);
@@ -280,6 +299,7 @@ static std::string GetFilterName(uint32_t filter)
     std::string delta = "";
     if ((filter & kFilterDeltaDiff) != 0) delta += "-dif";
     if ((filter & kFilterDeltaXor) != 0) delta += "-xor";
+    if ((filter & kFilterSplit8Delta) != 0) split += "-s8dif";
     return split + delta;
 }
 
@@ -326,7 +346,7 @@ purple:
 uint32_t GenericCompressor::GetColor() const
 {
     // https://www.w3schools.com/colors/colors_picker.asp
-    bool faded = true; // (m_Filter & kFilterSplit8) == 0;
+    bool faded = m_Filter == 0;// (m_Filter & kFilterSplit8Delta) == 0;
     if (m_Format == kCompressionZstd) return faded ? 0x90d596 : 0x0c9618; // green
     if (m_Format == kCompressionLZ4) return faded ? 0xd9d18c : 0xb19f00; // yellow
     if (m_Format == kCompressionZlib) return faded ? 0x8cd9cf : 0x00bfa7; // cyan
@@ -342,6 +362,7 @@ uint32_t GenericCompressor::GetColor() const
 static const char* GetGenericShape(uint filter)
 {
     if (filter == 0) return "'circle', lineDashStyle: [4, 2]";
+    if (filter & kFilterSplit8Delta) return "{type:'circle'}, pointSize: 12, lineWidth: 3";
     if ((filter & kFilterSplit8) && (filter & kFilterDeltaDiff)) return "{type:'square', rotation: 45}, pointSize: 8";
     if ((filter & kFilterSplit8) && (filter & kFilterDeltaXor))  return "{type:'star', sides:4, dent: 0.5}, pointSize: 8";
     if ((filter & kFilterSplit8)) return "'square', pointSize: 8, lineDashStyle: [4, 2]";
