@@ -135,16 +135,39 @@ static void UnSplit(const T* src, T* dst, int channels, int planeElems)
     }
 }
 
-static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, int planeElems)
+static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t planeElems)
 {
-    Split<uint8_t>(src, dst, channels, planeElems);
-    EncodeDeltaDif(dst, channels * planeElems);
+    uint8_t prev = 0;
+    for (int ich = 0; ich < channels; ++ich)
+    {
+        const uint8_t* srcPtr = src + ich;
+        for (size_t ip = 0; ip < planeElems; ++ip)
+        {
+            uint8_t v = *srcPtr;
+            *dst = v - prev;
+            prev = v;
+
+            srcPtr += channels;
+            dst += 1;
+        }
+    }
 }
 
-static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, int planeElems)
+static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t planeElems)
 {
-    DecodeDeltaDif(src, channels * planeElems);
-    UnSplit<uint8_t>(src, dst, channels, planeElems);
+    uint8_t prev = 0;
+    for (int ich = 0; ich < channels; ++ich)
+    {
+        uint8_t* dstPtr = dst + ich;
+        for (size_t ip = 0; ip < planeElems; ++ip)
+        {
+            uint8_t v = *src + prev;
+            prev = v;
+            *dstPtr = v;
+            src += 1;
+            dstPtr += channels;
+        }
+    }
 }
 
 static uint32_t rotl(uint32_t x, int s)
@@ -346,7 +369,7 @@ purple:
 uint32_t GenericCompressor::GetColor() const
 {
     // https://www.w3schools.com/colors/colors_picker.asp
-    bool faded = m_Filter == 0;// (m_Filter & kFilterSplit8Delta) == 0;
+    bool faded = (m_Filter & kFilterSplit8Delta) == 0;
     if (m_Format == kCompressionZstd) return faded ? 0x90d596 : 0x0c9618; // green
     if (m_Format == kCompressionLZ4) return faded ? 0xd9d18c : 0xb19f00; // yellow
     if (m_Format == kCompressionZlib) return faded ? 0x8cd9cf : 0x00bfa7; // cyan

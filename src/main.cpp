@@ -30,8 +30,11 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	constexpr bool kWriteResultsCache = false;
 	const int kRuns = 2;
 
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8Delta));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8Delta));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8Delta));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8Delta));
+#	if BUILD_WITH_OODLE
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8Delta));
+#	endif
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8 | kFilterDeltaDiff));
 #	if BUILD_WITH_OODLE
