@@ -91,8 +91,8 @@ static void DecodeDeltaDif(T* data, size_t dataElems)
     }
 }
 
-// https://gist.github.com/rygorous/4212be0cd009584e4184e641ca210528
 #if CPU_ARCH_X64
+// https://gist.github.com/rygorous/4212be0cd009584e4184e641ca210528
 static inline __m128i prefix_sum_u8(__m128i x)
 {
     x = _mm_add_epi8(x, _mm_slli_epi64(x, 8));
@@ -102,6 +102,18 @@ static inline __m128i prefix_sum_u8(__m128i x)
     return x;
 }
 #endif // #if CPU_ARCH_X64
+#if CPU_ARCH_ARM64
+// straight-up port to NEON of the above; no idea if this is efficient at all, yolo!
+static inline uint8x16_t prefix_sum_u8(uint8x16_t x)
+{
+    x = vaddq_u8(x, vshlq_u64(x, vdupq_n_u64(8)));
+    x = vaddq_u8(x, vshlq_u64(x, vdupq_n_u64(16)));
+    x = vaddq_u8(x, vshlq_u64(x, vdupq_n_u64(32)));
+    alignas(16) uint8_t tbl[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 7, 7, 7, 7, 7, 7, 7, 7};
+    x = vaddq_u8(x, vqtbl1q_u8(x, vld1q_u8(tbl)));
+    return x;
+}
+#endif // #if CPU_ARCH_ARM64
 
 template<typename T>
 static void EncodeDeltaXor(T* data, size_t dataElems)
@@ -190,6 +202,28 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
         prev = _mm_extract_epi8(prev16, 15); // sse4.1
 #       endif // if CPU_ARCH_X64
 
+#       if CPU_ARCH_ARM64
+        // NEON simd loop, 16 bytes at a time
+        uint8x16_t prev16 = vdupq_n_u8(prev);
+        alignas(16) uint8_t gathered[16];
+        for (; ip < planeElems / 16; ++ip)
+        {
+            // gather 16 bytes from source data
+            for (int lane = 0; lane < 16; ++lane)
+            {
+                gathered[lane] = *srcPtr;
+                srcPtr += channels;
+            }
+            uint8x16_t v = vld1q_u8(gathered);
+            // delta from previous
+            uint8x16_t delta = vsubq_u8(v, vextq_u8(prev16, v, 15));
+            vst1q_u8(dst, delta);
+            prev16 = v;
+            dst += 16;
+        }
+        prev = vgetq_lane_u8(prev16, 15);
+#       endif // if CPU_ARCH_ARM64
+
         // any trailing leftover
         for (ip = ip * 16; ip < planeElems; ++ip)
         {
@@ -233,6 +267,29 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
         }
         prev = _mm_extract_epi8(prev16, 15); // sse4.1
 #       endif // if CPU_ARCH_X64
+
+#       if CPU_ARCH_ARM64
+        // NEON simd loop, 16 bytes at a time
+        uint8x16_t prev16 = vdupq_n_u8(prev);
+        uint8x16_t hibyte = vdupq_n_u8(15);
+        alignas(16) uint8_t scatter[16];
+        for (; ip < planeElems / 16; ++ip)
+        {
+            // load 16 bytes of filtered data
+            uint8x16_t v = vld1q_u8(src);
+            // un-delta via prefix sum
+            prev16 = vaddq_u8(prefix_sum_u8(v), vqtbl1q_u8(prev16, hibyte));
+            // scattered write into destination
+            vst1q_u8(scatter, prev16);
+            for (int lane = 0; lane < 16; ++lane)
+            {
+                *dstPtr = scatter[lane];
+                dstPtr += channels;
+            }
+            src += 16;
+        }
+        prev = vgetq_lane_u8(prev16, 15);
+#       endif // if CPU_ARCH_ARM64
 
         // any trailing leftover
         for (ip = ip * 16; ip < planeElems; ++ip)
