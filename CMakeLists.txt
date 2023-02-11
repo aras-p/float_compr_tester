@@ -122,7 +122,7 @@ set(BUILD_UTILITIES OFF)
 FetchContent_MakeAvailable(zfp)
 
 # ndzip
-if (NOT APPLE) # ndzip does not build on Mac
+if (NOT(APPLE OR (CMAKE_CXX_COMPILER MATCHES "clang-cl"))) # ndzip does not build on Mac or clang-cl
     set(BUILD_WITH_NDZIP ON)
     FetchContent_Declare(
         ndzip
@@ -205,6 +205,10 @@ target_compile_definitions(float_compr_tester PRIVATE
 	_CRT_NONSTDC_NO_WARNINGS
 	NOMINMAX
 )
+
+if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64"))
+	target_compile_options(float_compr_tester PRIVATE -msse4.1)
+endif()
 
 
 # Enable debug symbols (RelWithDebInfo is not only that; it also turns on
