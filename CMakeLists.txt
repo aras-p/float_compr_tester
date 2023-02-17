@@ -213,10 +213,16 @@ endif()
 
 # Enable debug symbols (RelWithDebInfo is not only that; it also turns on
 # incremental linking, disables some inlining, etc. etc.)
-if (MSVC AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
-    target_compile_options(float_compr_tester PRIVATE /Zi)
-    target_link_options(float_compr_tester PRIVATE /DEBUG /OPT:ICF /OPT:REF)
-endif()
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+	if (MSVC)
+		target_compile_options(float_compr_tester PRIVATE /Zi)
+		target_link_options(float_compr_tester PRIVATE /DEBUG /OPT:ICF /OPT:REF)
+	endif()
+	if (CMAKE_CXX_COMPILER_ID MATCHES "clang")
+		target_compile_options(float_compr_tester PRIVATE -g)
+		target_link_options(float_compr_tester PRIVATE -g)
+	endif()
+endif ()
 
 
 if (EXISTS "${CMAKE_SOURCE_DIR}/src/oodle_wrapper.cpp")

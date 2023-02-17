@@ -249,7 +249,7 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
         // SSE simd loop, 16 bytes at a time
         __m128i prev16 = _mm_set1_epi8(prev);
         __m128i hibyte = _mm_set1_epi8(15);
-        alignas(16) uint8_t scatter[16];
+        //alignas(16) uint8_t scatter[16];
         for (; ip < planeElems / 16; ++ip)
         {
             // load 16 bytes of filtered data
@@ -257,12 +257,28 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
             // un-delta via prefix sum
             prev16 = _mm_add_epi8(prefix_sum_u8(v), _mm_shuffle_epi8(prev16, hibyte));
             // scattered write into destination
-            _mm_store_si128((__m128i*)scatter, prev16);
-            for (int lane = 0; lane < 16; ++lane)
-            {
-                *dstPtr = scatter[lane];
-                dstPtr += channels;
-            }
+            //_mm_store_si128((__m128i*)scatter, prev16);
+            //for (int lane = 0; lane < 16; ++lane)
+            //{
+            //    *dstPtr = scatter[lane];
+            //    dstPtr += channels;
+            //}
+            *dstPtr = _mm_extract_epi8(prev16, 0); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 1); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 2); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 3); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 4); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 5); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 6); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 7); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 8); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 9); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 10); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 11); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 12); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 13); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 14); dstPtr += channels;
+            *dstPtr = _mm_extract_epi8(prev16, 15); dstPtr += channels;
             src += 16;
         }
         prev = _mm_extract_epi8(prev16, 15); // sse4.1
