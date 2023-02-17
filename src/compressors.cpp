@@ -183,16 +183,26 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
 #	    if CPU_ARCH_X64
         // SSE simd loop, 16 bytes at a time
         __m128i prev16 = _mm_set1_epi8(prev);
-        alignas(16) uint8_t gathered[16];
         for (; ip < planeElems / 16; ++ip)
         {
             // gather 16 bytes from source data
-            for (int lane = 0; lane < 16; ++lane)
-            {
-                gathered[lane] = *srcPtr;
-                srcPtr += channels;
-            }
-            __m128i v = _mm_load_si128((const __m128i*)gathered);
+            __m128i v = _mm_set1_epi8(0);
+            v = _mm_insert_epi8(v, *srcPtr, 0); srcPtr += channels; // sse4.1
+            v = _mm_insert_epi8(v, *srcPtr, 1); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 2); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 3); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 4); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 5); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 6); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 7); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 8); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 9); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 10); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 11); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 12); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 13); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 14); srcPtr += channels;
+            v = _mm_insert_epi8(v, *srcPtr, 15); srcPtr += channels;
             // delta from previous
             __m128i delta = _mm_sub_epi8(v, _mm_alignr_epi8(v, prev16, 15)); // sse3
             _mm_storeu_si128((__m128i*)dst, delta);
@@ -205,16 +215,9 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
 #       if CPU_ARCH_ARM64
         // NEON simd loop, 16 bytes at a time
         uint8x16_t prev16 = vdupq_n_u8(prev);
-        //alignas(16) uint8_t gathered[16];
         for (; ip < planeElems / 16; ++ip)
         {
             // gather 16 bytes from source data
-            //for (int lane = 0; lane < 16; ++lane)
-            //{
-            //    gathered[lane] = *srcPtr;
-            //    srcPtr += channels;
-            //}
-            //uint8x16_t v = vld1q_u8(gathered);
             uint8x16_t v = vdupq_n_u8(0);
             v = vsetq_lane_u8(*srcPtr, v, 0); srcPtr += channels;
             v = vsetq_lane_u8(*srcPtr, v, 1); srcPtr += channels;

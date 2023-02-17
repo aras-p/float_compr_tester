@@ -1,0 +1,142 @@
+<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
+<center style='font-family: Arial;'>
+<div style='border: 1px solid #ccc; width: 1290px;'>
+<div id='chart_cmp' style='width: 640px; height: 480px; display:inline-block;'></div>
+<div id='chart_dec' style='width: 640px; height: 480px; display:inline-block;'></div>
+</div>
+<p>CPU: AMD Ryzen 9 5950X 16-Core Processor Compiler: MSVC 2022 17.4</p>
+<p>lz4-1.9.3 oodle-2.9.8 zstd-1.5.2 </p></center><script type='text/javascript'>
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(drawChart);
+function drawChart() {
+var dataCmp = new google.visualization.DataTable();
+var dataDec = new google.visualization.DataTable();
+dataCmp.addColumn('number', 'Throughput');
+dataDec.addColumn('number', 'Throughput');
+dataCmp.addColumn('number', 'zstd-s8dif'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd-s8dif'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4-s8dif'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4-s8dif'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'okraken-s8dif'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'okraken-s8dif'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zstd-s8-dif'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd-s8-dif'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4-s8-dif'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4-s8-dif'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'okraken-s8-dif'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'okraken-s8-dif'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zstd'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'okraken'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'okraken'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addRows([
+  [0.730, 3.289,'zstd-s8dif -5\n3.289x at 0.730 GB/s\n28.7MB 0.126s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.614, 3.530,'zstd-s8dif -1\n3.530x at 0.614 GB/s\n26.8MB 0.150s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.589, 3.945,'zstd-s8dif 1\n3.945x at 0.589 GB/s\n23.9MB 0.157s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.198, 4.049,'zstd-s8dif 5\n4.049x at 0.198 GB/s\n23.3MB 0.465s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.115, 4.119,'zstd-s8dif 9\n4.119x at 0.115 GB/s\n22.9MB 0.801s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.950,null,null,null, 2.903,'lz4-s8dif -5\n2.903x at 0.950 GB/s\n32.5MB 0.097s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.795,null,null,null, 3.218,'lz4-s8dif 0\n3.218x at 0.795 GB/s\n29.4MB 0.116s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.176,null,null,null, 3.476,'lz4-s8dif 1\n3.476x at 0.176 GB/s\n27.2MB 0.524s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.712,null,null,null,null,null,null, 3.372,'okraken-s8dif -4\n3.372x at 0.712 GB/s\n28.0MB 0.130s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.593,null,null,null,null,null,null, 3.800,'okraken-s8dif -2\n3.800x at 0.593 GB/s\n24.9MB 0.156s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.375,null,null,null,null,null,null, 3.924,'okraken-s8dif 1\n3.924x at 0.375 GB/s\n24.1MB 0.246s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.059,null,null,null,null,null,null, 4.146,'okraken-s8dif 4\n4.146x at 0.059 GB/s\n22.8MB 1.573s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.536,null,null,null,null,null,null,null,null,null, 3.289,'zstd-s8-dif -5\n3.289x at 0.536 GB/s\n28.7MB 0.172s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.464,null,null,null,null,null,null,null,null,null, 3.530,'zstd-s8-dif -1\n3.530x at 0.464 GB/s\n26.8MB 0.199s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.447,null,null,null,null,null,null,null,null,null, 3.945,'zstd-s8-dif 1\n3.945x at 0.447 GB/s\n23.9MB 0.206s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.186,null,null,null,null,null,null,null,null,null, 4.049,'zstd-s8-dif 5\n4.049x at 0.186 GB/s\n23.3MB 0.496s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.109,null,null,null,null,null,null,null,null,null, 4.119,'zstd-s8-dif 9\n4.119x at 0.109 GB/s\n22.9MB 0.843s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.677,null,null,null,null,null,null,null,null,null,null,null,null, 2.903,'lz4-s8-dif -5\n2.903x at 0.677 GB/s\n32.5MB 0.136s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.588,null,null,null,null,null,null,null,null,null,null,null,null, 3.218,'lz4-s8-dif 0\n3.218x at 0.588 GB/s\n29.4MB 0.157s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.163,null,null,null,null,null,null,null,null,null,null,null,null, 3.476,'lz4-s8-dif 1\n3.476x at 0.163 GB/s\n27.2MB 0.566s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.498,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.372,'okraken-s8-dif -4\n3.372x at 0.498 GB/s\n28.0MB 0.185s','' ,null,null,null,null,null,null,null,null,null],
+  [0.446,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.800,'okraken-s8-dif -2\n3.800x at 0.446 GB/s\n24.9MB 0.207s','' ,null,null,null,null,null,null,null,null,null],
+  [0.310,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.924,'okraken-s8-dif 1\n3.924x at 0.310 GB/s\n24.1MB 0.298s','' ,null,null,null,null,null,null,null,null,null],
+  [0.057,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.146,'okraken-s8-dif 4\n4.146x at 0.057 GB/s\n22.8MB 1.619s','' ,null,null,null,null,null,null,null,null,null],
+  [0.933,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.960,'zstd -5\n1.960x at 0.933 GB/s\n48.2MB 0.099s','' ,null,null,null,null,null,null],
+  [0.696,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.536,'zstd -1\n2.536x at 0.696 GB/s\n37.3MB 0.133s','' ,null,null,null,null,null,null],
+  [0.600,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.628,'zstd 1\n2.628x at 0.600 GB/s\n35.9MB 0.154s','' ,null,null,null,null,null,null],
+  [0.160,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.703,'zstd 5\n2.703x at 0.160 GB/s\n34.9MB 0.578s','' ,null,null,null,null,null,null],
+  [0.080,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.885,'zstd 9\n2.885x at 0.080 GB/s\n32.7MB 1.155s','' ,null,null,null,null,null,null],
+  [1.708,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.533,'lz4 -5\n1.533x at 1.708 GB/s\n61.6MB 0.054s','' ,null,null,null],
+  [1.030,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.948,'lz4 0\n1.948x at 1.030 GB/s\n48.5MB 0.090s','' ,null,null,null],
+  [0.150,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.140,'lz4 1\n2.140x at 0.150 GB/s\n44.1MB 0.616s','' ,null,null,null],
+  [1.130,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.394,'okraken -4\n2.394x at 1.130 GB/s\n39.5MB 0.082s','' ],
+  [0.767,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.743,'okraken -2\n2.743x at 0.767 GB/s\n34.4MB 0.120s','' ],
+  [0.354,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.137,'okraken 1\n3.137x at 0.354 GB/s\n30.1MB 0.261s','' ],
+  [0.037,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.553,'okraken 4\n3.553x at 0.037 GB/s\n26.6MB 2.469s','' ]
+]);
+dataDec.addRows([
+  [0.808, 3.289,'zstd-s8dif -5\n3.289x at 0.808 GB/s\n28.7MB 0.114s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.732, 3.530,'zstd-s8dif -1\n3.530x at 0.732 GB/s\n26.8MB 0.126s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.700, 3.945,'zstd-s8dif 1\n3.945x at 0.700 GB/s\n23.9MB 0.132s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.664, 4.049,'zstd-s8dif 5\n4.049x at 0.664 GB/s\n23.3MB 0.139s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.709, 4.119,'zstd-s8dif 9\n4.119x at 0.709 GB/s\n22.9MB 0.130s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.981,null,null,null, 2.903,'lz4-s8dif -5\n2.903x at 0.981 GB/s\n32.5MB 0.094s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.952,null,null,null, 3.218,'lz4-s8dif 0\n3.218x at 0.952 GB/s\n29.4MB 0.097s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.906,null,null,null, 3.476,'lz4-s8dif 1\n3.476x at 0.906 GB/s\n27.2MB 0.102s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.870,null,null,null,null,null,null, 3.372,'okraken-s8dif -4\n3.372x at 0.870 GB/s\n28.0MB 0.106s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.849,null,null,null,null,null,null, 3.800,'okraken-s8dif -2\n3.800x at 0.849 GB/s\n24.9MB 0.109s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.820,null,null,null,null,null,null, 3.924,'okraken-s8dif 1\n3.924x at 0.820 GB/s\n24.1MB 0.112s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.883,null,null,null,null,null,null, 4.146,'okraken-s8dif 4\n4.146x at 0.883 GB/s\n22.8MB 0.104s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.653,null,null,null,null,null,null,null,null,null, 3.289,'zstd-s8-dif -5\n3.289x at 0.653 GB/s\n28.7MB 0.141s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.610,null,null,null,null,null,null,null,null,null, 3.530,'zstd-s8-dif -1\n3.530x at 0.610 GB/s\n26.8MB 0.151s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.563,null,null,null,null,null,null,null,null,null, 3.945,'zstd-s8-dif 1\n3.945x at 0.563 GB/s\n23.9MB 0.164s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.566,null,null,null,null,null,null,null,null,null, 4.049,'zstd-s8-dif 5\n4.049x at 0.566 GB/s\n23.3MB 0.163s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.570,null,null,null,null,null,null,null,null,null, 4.119,'zstd-s8-dif 9\n4.119x at 0.570 GB/s\n22.9MB 0.162s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.755,null,null,null,null,null,null,null,null,null,null,null,null, 2.903,'lz4-s8-dif -5\n2.903x at 0.755 GB/s\n32.5MB 0.122s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.740,null,null,null,null,null,null,null,null,null,null,null,null, 3.218,'lz4-s8-dif 0\n3.218x at 0.740 GB/s\n29.4MB 0.125s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.736,null,null,null,null,null,null,null,null,null,null,null,null, 3.476,'lz4-s8-dif 1\n3.476x at 0.736 GB/s\n27.2MB 0.125s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.691,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.372,'okraken-s8-dif -4\n3.372x at 0.691 GB/s\n28.0MB 0.134s','' ,null,null,null,null,null,null,null,null,null],
+  [0.674,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.800,'okraken-s8-dif -2\n3.800x at 0.674 GB/s\n24.9MB 0.137s','' ,null,null,null,null,null,null,null,null,null],
+  [0.656,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.924,'okraken-s8-dif 1\n3.924x at 0.656 GB/s\n24.1MB 0.141s','' ,null,null,null,null,null,null,null,null,null],
+  [0.666,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.146,'okraken-s8-dif 4\n4.146x at 0.666 GB/s\n22.8MB 0.139s','' ,null,null,null,null,null,null,null,null,null],
+  [1.335,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.960,'zstd -5\n1.960x at 1.335 GB/s\n48.2MB 0.069s','' ,null,null,null,null,null,null],
+  [1.349,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.536,'zstd -1\n2.536x at 1.349 GB/s\n37.3MB 0.068s','' ,null,null,null,null,null,null],
+  [1.025,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.628,'zstd 1\n2.628x at 1.025 GB/s\n35.9MB 0.090s','' ,null,null,null,null,null,null],
+  [1.018,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.703,'zstd 5\n2.703x at 1.018 GB/s\n34.9MB 0.091s','' ,null,null,null,null,null,null],
+  [1.014,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.885,'zstd 9\n2.885x at 1.014 GB/s\n32.7MB 0.091s','' ,null,null,null,null,null,null],
+  [6.069,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.533,'lz4 -5\n1.533x at 6.069 GB/s\n61.6MB 0.015s','' ,null,null,null],
+  [4.193,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.948,'lz4 0\n1.948x at 4.193 GB/s\n48.5MB 0.022s','' ,null,null,null],
+  [4.907,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.140,'lz4 1\n2.140x at 4.907 GB/s\n44.1MB 0.019s','' ,null,null,null],
+  [3.719,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.394,'okraken -4\n2.394x at 3.719 GB/s\n39.5MB 0.025s','' ],
+  [2.460,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.743,'okraken -2\n2.743x at 2.460 GB/s\n34.4MB 0.037s','' ],
+  [1.963,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.137,'okraken 1\n3.137x at 1.963 GB/s\n30.1MB 0.047s','' ],
+  [1.662,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.553,'okraken 4\n3.553x at 1.662 GB/s\n26.6MB 0.056s','' ]
+]);
+var titleDec = 'Decompression Ratio vs Throughput';
+var options = {
+title: 'Compression Ratio vs Throughput',
+pointSize: 6,
+series: {
+  0: {pointShape: {type:'circle'}, pointSize: 12, lineWidth: 3},
+  1: {pointShape: {type:'circle'}, pointSize: 12, lineWidth: 3},
+  2: {pointShape: {type:'circle'}, pointSize: 12, lineWidth: 3},
+  3: {pointShape: {type:'square', rotation: 45}, pointSize: 8},
+  4: {pointShape: {type:'square', rotation: 45}, pointSize: 8},
+  5: {pointShape: {type:'square', rotation: 45}, pointSize: 8},
+  6: {pointShape: 'circle', lineDashStyle: [4, 2]},
+  7: {pointShape: 'circle', lineDashStyle: [4, 2]},
+  8: {pointShape: 'circle', lineDashStyle: [4, 2]},
+  9: {},
+},
+colors: ['0c9618','b19f00','8a4b9d','90d596','d9d18c','c4b6c9','90d596','d9d18c','c4b6c9'],
+hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.03, max:2.0}},
+vAxis: {title: 'Ratio', viewWindow: {min:1.0, max:4.5}},
+chartArea: {left:60, right:10, top:50, bottom:50},
+legend: {position: 'top'},
+lineWidth: 1
+};
+var chartCmp = new google.visualization.ScatterChart(document.getElementById('chart_cmp'));
+chartCmp.draw(dataCmp, options);
+options.title = titleDec;
+options.hAxis.title = 'Decompression GB/s';
+options.hAxis.viewWindow.min = 0.5;
+options.hAxis.viewWindow.max = 8.0;
+var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));
+chartDec.draw(dataDec, options);
+}
+</script>
