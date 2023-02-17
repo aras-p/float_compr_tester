@@ -213,12 +213,19 @@ endif()
 
 # Enable debug symbols (RelWithDebInfo is not only that; it also turns on
 # incremental linking, disables some inlining, etc. etc.)
+set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
+set(CMAKE_XCODE_ATTRIBUTE_COPY_PHASE_STRIP "NO")
+set(CMAKE_XCODE_ATTRIBUTE_STRIP_INSTALLED_PRODUCT "NO")
+
+# note: this does not work; have to pass -g instead
+#set(CMAKE_XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS "YES")
+
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
 	if (MSVC)
 		target_compile_options(float_compr_tester PRIVATE /Zi)
 		target_link_options(float_compr_tester PRIVATE /DEBUG /OPT:ICF /OPT:REF)
 	endif()
-	if (CMAKE_CXX_COMPILER_ID MATCHES "clang")
+	if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		target_compile_options(float_compr_tester PRIVATE -g)
 		target_link_options(float_compr_tester PRIVATE -g)
 	endif()
