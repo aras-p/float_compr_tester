@@ -255,12 +255,29 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
         __m128i v = _mm_loadu_si128((const __m128i*)ptr);
         // un-delta via prefix sum
         prev16 = _mm_add_epi8(prefix_sum_u8(v), _mm_shuffle_epi8(prev16, hibyte));
-        // scattered write into destination
         _mm_storeu_si128((__m128i*)ptr, prev16);
         ptr += 16;
     }
     prev = _mm_extract_epi8(prev16, 15); // sse4.1
 #   endif // if CPU_ARCH_X64
+    
+#   if CPU_ARCH_ARM64
+    // NEON simd loop, 16 bytes at a time
+    uint8x16_t prev16 = vdupq_n_u8(prev);
+    uint8x16_t hibyte = vdupq_n_u8(15);
+    //alignas(16) uint8_t scatter[16];
+    for (; ip < dataSize / 16; ++ip)
+    {
+        // load 16 bytes of filtered data
+        uint8x16_t v = vld1q_u8(ptr);
+        // un-delta via prefix sum
+        prev16 = vaddq_u8(prefix_sum_u8(v), vqtbl1q_u8(prev16, hibyte));
+        vst1q_u8(ptr, prev16);
+        ptr += 16;
+    }
+    prev = vgetq_lane_u8(prev16, 15);
+#   endif // if CPU_ARCH_ARM64
+
     // any trailing leftover
     for (ip = ip * 16; ip < dataSize; ++ip)
     {
