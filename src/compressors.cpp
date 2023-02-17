@@ -288,7 +288,7 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
         // NEON simd loop, 16 bytes at a time
         uint8x16_t prev16 = vdupq_n_u8(prev);
         uint8x16_t hibyte = vdupq_n_u8(15);
-        alignas(16) uint8_t scatter[16];
+        //alignas(16) uint8_t scatter[16];
         for (; ip < planeElems / 16; ++ip)
         {
             // load 16 bytes of filtered data
@@ -296,12 +296,28 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
             // un-delta via prefix sum
             prev16 = vaddq_u8(prefix_sum_u8(v), vqtbl1q_u8(prev16, hibyte));
             // scattered write into destination
-            vst1q_u8(scatter, prev16);
-            for (int lane = 0; lane < 16; ++lane)
-            {
-                *dstPtr = scatter[lane];
-                dstPtr += channels;
-            }
+            //vst1q_u8(scatter, prev16);
+            //for (int lane = 0; lane < 16; ++lane)
+            //{
+            //    *dstPtr = scatter[lane];
+            //    dstPtr += channels;
+            //}
+            *dstPtr = vgetq_lane_u8(prev16, 0); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 1); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 2); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 3); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 4); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 5); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 6); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 7); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 8); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 9); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 10); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 11); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 12); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 13); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 14); dstPtr += channels;
+            *dstPtr = vgetq_lane_u8(prev16, 15); dstPtr += channels;
             src += 16;
         }
         prev = vgetq_lane_u8(prev16, 15);
