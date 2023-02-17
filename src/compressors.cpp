@@ -239,6 +239,54 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
 
 static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t planeElems)
 {
+#if 1
+    // "e" case: two pass: delta with SIMD prefix sum, followed by sequential unsplit into destination
+    // first pass: decode delta
+    const size_t dataSize = planeElems * channels;
+    uint8_t* ptr = src;
+    size_t ip = 0;
+    uint8_t prev = 0;
+#	if CPU_ARCH_X64
+    // SSE simd loop, 16 bytes at a time
+    __m128i prev16 = _mm_set1_epi8(0);
+    __m128i hibyte = _mm_set1_epi8(15);
+    for (; ip < dataSize / 16; ++ip)
+    {
+        __m128i v = _mm_loadu_si128((const __m128i*)ptr);
+        // un-delta via prefix sum
+        prev16 = _mm_add_epi8(prefix_sum_u8(v), _mm_shuffle_epi8(prev16, hibyte));
+        // scattered write into destination
+        _mm_storeu_si128((__m128i*)ptr, prev16);
+        ptr += 16;
+    }
+    prev = _mm_extract_epi8(prev16, 15); // sse4.1
+#   endif // if CPU_ARCH_X64
+    // any trailing leftover
+    for (ip = ip * 16; ip < dataSize; ++ip)
+    {
+        uint8_t v = *ptr + prev;
+        prev = v;
+        *ptr = v;
+        ptr += 1;
+    }
+
+    // second pass: un-split; sequential write into destination
+    uint8_t* dstPtr = dst;
+    for (int ip = 0; ip < planeElems; ++ip)
+    {
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            uint8_t v = *srcPtr;
+            *dstPtr = v;
+            srcPtr += planeElems;
+            dstPtr += 1;
+        }
+    }
+#endif
+
+#if 0
+    // "d" case: combined delta+unsplit; SIMD prefix sum delta, unrolled scattered writes into destination
     uint8_t prev = 0;
     for (int ich = 0; ich < channels; ++ich)
     {
@@ -333,6 +381,7 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
             dstPtr += channels;
         }
     }
+#endif
 }
 
 static uint32_t rotl(uint32_t x, int s)
