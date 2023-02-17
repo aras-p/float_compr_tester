@@ -205,16 +205,34 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
 #       if CPU_ARCH_ARM64
         // NEON simd loop, 16 bytes at a time
         uint8x16_t prev16 = vdupq_n_u8(prev);
-        alignas(16) uint8_t gathered[16];
+        //alignas(16) uint8_t gathered[16];
         for (; ip < planeElems / 16; ++ip)
         {
             // gather 16 bytes from source data
-            for (int lane = 0; lane < 16; ++lane)
-            {
-                gathered[lane] = *srcPtr;
-                srcPtr += channels;
-            }
-            uint8x16_t v = vld1q_u8(gathered);
+            //for (int lane = 0; lane < 16; ++lane)
+            //{
+            //    gathered[lane] = *srcPtr;
+            //    srcPtr += channels;
+            //}
+            //uint8x16_t v = vld1q_u8(gathered);
+            uint8x16_t v = vdupq_n_u8(0);
+            v = vsetq_lane_u8(*srcPtr, v, 0); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 1); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 2); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 3); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 4); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 5); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 6); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 7); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 8); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 9); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 10); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 11); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 12); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 13); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 14); srcPtr += channels;
+            v = vsetq_lane_u8(*srcPtr, v, 15); srcPtr += channels;
+
             // delta from previous
             uint8x16_t delta = vsubq_u8(v, vextq_u8(prev16, v, 15));
             vst1q_u8(dst, delta);
@@ -239,7 +257,7 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
 
 static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t planeElems)
 {
-#if 1
+#if 0
     // "e" case: two pass: delta with SIMD prefix sum, followed by sequential unsplit into destination
     // first pass: decode delta
     const size_t dataSize = planeElems * channels;
@@ -302,7 +320,7 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
     }
 #endif
 
-#if 0
+#if 1
     // "d" case: combined delta+unsplit; SIMD prefix sum delta, unrolled scattered writes into destination
     uint8_t prev = 0;
     for (int ich = 0; ich < channels; ++ich)
