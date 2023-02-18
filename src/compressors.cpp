@@ -426,6 +426,103 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
 #endif
 }
 
+// memcpy: 3.6ms
+// part 6 B: 20.1ms
+static void TestFilterImpl(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+{
+    uint8_t prev = 0;
+    for (int ich = 0; ich < channels; ++ich)
+    {
+        const uint8_t* srcPtr = src + ich;
+        for (size_t ip = 0; ip < dataElems; ++ip)
+        {
+            uint8_t v = *srcPtr;
+            *dst = v - prev;
+            prev = v;
+            srcPtr += channels;
+            dst += 1;
+        }
+    }
+}
+
+// memcpy: 2.9ms
+// part 6 B: 21.5ms
+static void TestUnFilterImpl(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+{
+    uint8_t prev = 0;
+    for (int ich = 0; ich < channels; ++ich)
+    {
+        uint8_t* dstPtr = dst + ich;
+        for (size_t ip = 0; ip < dataElems; ++ip)
+        {
+            uint8_t v = *src + prev;
+            prev = v;
+            *dstPtr = v;
+            src += 1;
+            dstPtr += channels;
+        }
+    }
+}
+
+// WinVS
+// memcpy:                   cmp  3.6ms dec  2.9ms
+// 
+// Part 6 B:   zstd1 3.945x, cmp 20.1ms dec 21.5ms
+// Part 6 D:   zstd1 3.945x, cmp 17.5ms dec 18.8ms
+// 
+// Split into chunks, using attempt B from part 6:
+// split   1k: zstd1 3.460x, cmp 12.1ms dec  8.6ms
+// split   2k: zstd1 3.543x, cmp 12.9ms dec  8.3ms
+// split   4k: zstd1 3.596x, cmp 13.2ms dec  8.4ms
+// split   8k: zstd1 3.627x, cmp 12.7ms dec  8.3ms
+// split  16k: zstd1 3.645x, cmp 12.8ms dec  8.7ms
+// split  32k: zstd1 3.658x, cmp 12.9ms dec  9.1ms
+// split  64k: zstd1 3.663x, cmp 12.9ms dec  8.8ms
+// split 128k: zstd1 3.676x, cmp 12.9ms dec  9.2ms
+// split 256k: zstd1 3.703x, cmp 13.0ms dec  9.7ms
+// split 512k: zstd1 3.757x, cmp 12.9ms dec  9.0ms
+// split   1M: zstd1 3.870x, cmp 13.2ms dec  8.9ms
+// split   2M: zstd1 3.939x, cmp 13.2ms dec  9.1ms
+// split   4M: zstd1 3.943x, cmp 13.4ms dec  9.8ms
+// split   8M: zstd1 3.943x, cmp 13.3ms dec  9.6ms
+// split  16M: zstd1 3.945x, cmp 14.0ms dec  9.7ms
+// split  32M: zstd1 3.945x, cmp 17.6ms dec 16.8ms
+// split  64M: zstd1 3.945x, cmp 19.2ms dec 20.1ms
+// split 128M: zstd1 3.945x, cmp 20.5ms dec 19.4ms
+//
+// Split into chunks, using attempt D from part 6:
+// split  16k: zstd1 3.645x, cmp  9.1ms dec 7.4ms
+// split  64k: zstd1 3.663x, cmp  9.3ms dec 7.3ms
+// split 256k: zstd1 3.703x, cmp  9.4ms dec 7.5ms
+// split   1M: zstd1 3.870x, cmp  9.5ms dec 7.8ms
+// split   2M: zstd1 3.939x, cmp  9.6ms dec 7.7ms
+// split   4M: zstd1 3.943x, cmp  9.7ms dec 7.9ms
+
+const size_t kSplitChunkSize = 2 * 1024 * 1024;
+static void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+{
+    const size_t elemsPerChunk = kSplitChunkSize / channels;
+    const size_t chunkSize = elemsPerChunk * channels;
+    for (size_t de = 0; de < dataElems; de += elemsPerChunk)
+    {
+        Split8Delta(src, dst, channels, de + elemsPerChunk > dataElems ? dataElems - de : elemsPerChunk);
+        src += chunkSize;
+        dst += chunkSize;
+    }
+}
+static void TestUnFilter(uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+{
+    const size_t elemsPerChunk = kSplitChunkSize / channels;
+    const size_t chunkSize = elemsPerChunk * channels;
+    for (size_t de = 0; de < dataElems; de += elemsPerChunk)
+    {
+        UnSplit8Delta(src, dst, channels, de + elemsPerChunk > dataElems ? dataElems - de : elemsPerChunk);
+        src += chunkSize;
+        dst += chunkSize;
+    }
+}
+
+
 static uint32_t rotl(uint32_t x, int s)
 {
     return (x << s) | (x >> (32 - s));
@@ -480,6 +577,8 @@ static uint8_t* CompressionFilter(uint32_t filter, const float* data, int width,
         }
         if (filter & kFilterSplit8Delta)
             Split8Delta((const uint8_t*)data, tmp, channels * sizeof(float), planeElems);
+        if (filter & kFilterTest)
+            TestFilter((const uint8_t*)data, tmp, channels * sizeof(float), planeElems);
         if ((filter & kFilterBitShuffle) != 0)
         {
             bshuf_bitshuffle(data, tmp, planeElems, channels * sizeof(float), 0);
@@ -519,6 +618,8 @@ static void DecompressionFilter(uint32_t filter, uint8_t* tmp, float* data, int 
         }
         if (filter & kFilterSplit8Delta)
             UnSplit8Delta(tmp, dstData, channels * sizeof(float), planeElems);
+        if (filter & kFilterTest)
+            TestUnFilter(tmp, dstData, channels * sizeof(float), planeElems);
         if ((filter & kFilterBitShuffle) != 0)
         {
             if ((filter & kFilterDeltaDiff) != 0) DecodeDeltaDif(tmp, dataSize);
@@ -585,6 +686,7 @@ static std::string GetFilterName(uint32_t filter)
     if ((filter & kFilterDeltaDiff) != 0) delta += "-dif";
     if ((filter & kFilterDeltaXor) != 0) delta += "-xor";
     if ((filter & kFilterSplit8Delta) != 0) split += "-s8dif";
+    if ((filter & kFilterTest) != 0) split += "-tst";
     return split + delta;
 }
 
@@ -631,7 +733,7 @@ purple:
 uint32_t GenericCompressor::GetColor() const
 {
     // https://www.w3schools.com/colors/colors_picker.asp
-    bool faded = (m_Filter & kFilterSplit8Delta) == 0;
+    bool faded = (m_Filter & kFilterTest) == 0;
     if (m_Format == kCompressionZstd) return faded ? 0x90d596 : 0x0c9618; // green
     if (m_Format == kCompressionLZ4) return faded ? 0xd9d18c : 0xb19f00; // yellow
     if (m_Format == kCompressionZlib) return faded ? 0x8cd9cf : 0x00bfa7; // cyan
@@ -647,7 +749,8 @@ uint32_t GenericCompressor::GetColor() const
 static const char* GetGenericShape(uint filter)
 {
     if (filter == 0) return "'circle', lineDashStyle: [4, 2]";
-    if (filter & kFilterSplit8Delta) return "{type:'circle'}, pointSize: 12, lineWidth: 3";
+    if (filter & kFilterTest) return "{type:'circle'}, pointSize: 12, lineWidth: 3";
+    if (filter & kFilterSplit8Delta) return "{type:'square', rotation: 45}, pointSize: 8";
     if ((filter & kFilterSplit8) && (filter & kFilterDeltaDiff)) return "{type:'square', rotation: 45}, pointSize: 8";
     if ((filter & kFilterSplit8) && (filter & kFilterDeltaXor))  return "{type:'star', sides:4, dent: 0.5}, pointSize: 8";
     if ((filter & kFilterSplit8)) return "'square', pointSize: 8, lineDashStyle: [4, 2]";
