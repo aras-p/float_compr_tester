@@ -35,6 +35,19 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 #	if BUILD_WITH_OODLE
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8Delta));
 #	endif
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
+#	if BUILD_WITH_OODLE
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
+#	endif
+
+	// For: https://aras-p.info/blog/2023/02/18/Float-Compression-6-Filtering-Optimization/
+	/*
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8Delta));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8Delta));
+#	if BUILD_WITH_OODLE
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8Delta));
+#	endif
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8 | kFilterDeltaDiff));
 #	if BUILD_WITH_OODLE
@@ -45,6 +58,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 #	if BUILD_WITH_OODLE
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
 #	endif
+	*/
 
 	// For: https://aras-p.info/blog/2023/02/03/Float-Compression-5-Science/
 	/*
@@ -139,6 +153,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		results.emplace_back(res);
 	}
 
+	extern uint64_t g_time_filter, g_time_unfilter;
+	extern int g_count_filter, g_count_unfilter;
 	char cmpName[1000];
 	for (int ir = 0; ir < kRuns; ++ir)
 	{
@@ -209,6 +225,9 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		}
 		printf("\n");
 	}
+
+	if (g_count_filter && g_count_unfilter)
+		printf("Filter times: cmp %.1f ms dec %.1f ms\n", stm_ms(g_time_filter) / g_count_filter, stm_ms(g_time_unfilter) / g_count_unfilter);
 
 	// normalize results, cache the ones we ran, produce compressor versions
 	int counterRan = 0, counterCached = 0;

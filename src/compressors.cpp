@@ -5,6 +5,10 @@
 #include <zfp.h>
 #include "../libs/bitshuffle/src/bitshuffle_core.h"
 #include "../libs/spdp/spdp_11.h"
+#include "../libs/sokol_time.h"
+
+uint64_t g_time_filter, g_time_unfilter;
+int g_count_filter, g_count_unfilter;
 
 #if BUILD_WITH_NDZIP
 #include <assert.h> // ndzip needs it
@@ -449,6 +453,7 @@ static uint8_t* CompressionFilter(uint32_t filter, const float* data, int width,
     uint8_t* tmp = (uint8_t*)data;
     if (filter != kFilterNone)
     {
+        uint64_t t0 = stm_now();
         bool extraSpaceForRotation = ((filter & kFilterRot1) != 0) && (filter != kFilterRot1);
         const int planeElems = width * height;
         const int dataSize = planeElems * channels * sizeof(float);
@@ -481,6 +486,8 @@ static uint8_t* CompressionFilter(uint32_t filter, const float* data, int width,
             if ((filter & kFilterDeltaDiff) != 0) EncodeDeltaDif((uint8_t*)tmp, dataSize);
             if ((filter & kFilterDeltaXor) != 0) EncodeDeltaXor((uint8_t*)tmp, dataSize);
         }
+        g_time_filter += stm_since(t0);
+        ++g_count_filter;
     }
     return tmp;
 }
@@ -489,6 +496,7 @@ static void DecompressionFilter(uint32_t filter, uint8_t* tmp, float* data, int 
 {
     if (filter != kFilterNone)
     {
+        uint64_t t0 = stm_now();
         const int planeElems = width * height;
         const int dataElems = planeElems * channels;
         const int dataSize = planeElems * channels * sizeof(float);
@@ -523,6 +531,8 @@ static void DecompressionFilter(uint32_t filter, uint8_t* tmp, float* data, int 
         }
 
         delete[] tmp;
+        g_time_unfilter += stm_since(t0);
+        ++g_count_unfilter;
     }
 }
 
