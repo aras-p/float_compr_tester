@@ -384,7 +384,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
     }
 #endif
 
-#if 1
+#if 0
     // I: seq write into dst, special SIMD case for 16 channels
     const int k16Channels = 16;
     if (channels == k16Channels)
@@ -418,6 +418,98 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
                 prev = prev + xposed[i];
                 SimdStore(dstPtr, prev);
                 dstPtr += 16;
+            }
+        }
+        // scalar loop for any non-multiple-of-16 remainder
+        for (; ip < dataElems; ip++)
+        {
+            // read from each channel
+            alignas(16) uint8_t chdata[k16Channels];
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < k16Channels; ++ich)
+            {
+                chdata[ich] = *srcPtr;
+                srcPtr += dataElems;
+            }
+            // accumulate sum and write into destination
+            prev = prev + SimdLoadA(chdata);
+            SimdStore(dstPtr, prev);
+            dstPtr += 16;
+        }
+    }
+    else
+    {
+        // temp: generic fallback
+        const size_t kMaxChannels = 64;
+        uint8_t prev[kMaxChannels] = {};
+        uint8_t* dstPtr = dst;
+        for (size_t ip = 0; ip < dataElems; ++ip)
+        {
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < channels; ++ich)
+            {
+                uint8_t v = *srcPtr + prev[ich];
+                prev[ich] = v;
+                *dstPtr = v;
+                srcPtr += dataElems;
+                dstPtr += 1;
+            }
+        }
+    }
+#endif
+    
+#if 1
+    // J: fetch+interleave groups of 4 channels to stack; then interleave+sum+store groups of 4 channels mac 4.2
+    const int k16Channels = 16;
+    if (channels == k16Channels)
+    {
+        uint8_t* dstPtr = dst;
+        size_t ip = 0;
+        Bytes16 prev = SimdZero();
+        // I(256): mac 5.2
+        // mac chunk 16: 4.2
+        const int kChunkBytes = 16;
+        //const int kChunkSimdSize = kChunkBytes / 16;
+        for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
+        {
+            // read chunk of bytes from each channel
+            Bytes16 chdata[k16Channels]; //[kChunkSimdSize];
+            const uint8_t* srcPtr = src + ip;
+            // fetch data for groups of 4 channels, interleave
+            // so that first in chdata is (a0b0c0d0 a1b1c1d1 a2b2c2d2 a3b3c3d3) etc.
+            for (int ichgrp = 0; ichgrp < 4; ++ichgrp)
+            {
+                Bytes16 d0 = SimdLoad(srcPtr); srcPtr += dataElems;
+                Bytes16 d1 = SimdLoad(srcPtr); srcPtr += dataElems;
+                Bytes16 d2 = SimdLoad(srcPtr); srcPtr += dataElems;
+                Bytes16 d3 = SimdLoad(srcPtr); srcPtr += dataElems;
+                // interleaves like from https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
+                Bytes16 e0 = SimdInterleaveL(d0, d2); Bytes16 e1 = SimdInterleaveR(d0, d2);
+                Bytes16 e2 = SimdInterleaveL(d1, d3); Bytes16 e3 = SimdInterleaveR(d1, d3);
+                Bytes16 f0 = SimdInterleaveL(e0, e2); Bytes16 f1 = SimdInterleaveR(e0, e2);
+                Bytes16 f2 = SimdInterleaveL(e1, e3); Bytes16 f3 = SimdInterleaveR(e1, e3);
+                chdata[ichgrp*4+0] = f0;
+                chdata[ichgrp*4+1] = f1;
+                chdata[ichgrp*4+2] = f2;
+                chdata[ichgrp*4+3] = f3;
+            }
+            // read groups of data from stack, interleave, accumulate sum, store
+            for (int ichgrp = 0; ichgrp < 4; ++ichgrp)
+            {
+                Bytes16 a0 = chdata[ichgrp];
+                Bytes16 a1 = chdata[ichgrp + 4];
+                Bytes16 a2 = chdata[ichgrp + 8];
+                Bytes16 a3 = chdata[ichgrp + 12];
+                // now we want a 4x4 as-uint matrix transpose
+                Bytes16 b0 = SimdInterleave4L(a0, a2); Bytes16 b1 = SimdInterleave4R(a0, a2);
+                Bytes16 b2 = SimdInterleave4L(a1, a3); Bytes16 b3 = SimdInterleave4R(a1, a3);
+                Bytes16 c0 = SimdInterleave4L(b0, b2); Bytes16 c1 = SimdInterleave4R(b0, b2);
+                Bytes16 c2 = SimdInterleave4L(b1, b3); Bytes16 c3 = SimdInterleave4R(b1, b3);
+                // c0..c3 is what we should do accumulate sum on, and store
+                prev = prev + c0; SimdStore(dstPtr, prev); dstPtr += 16;
+                prev = prev + c1; SimdStore(dstPtr, prev); dstPtr += 16;
+                prev = prev + c2; SimdStore(dstPtr, prev); dstPtr += 16;
+                prev = prev + c3; SimdStore(dstPtr, prev); dstPtr += 16;
             }
         }
         // scalar loop for any non-multiple-of-16 remainder
@@ -499,7 +591,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
 // split  64k: cmp 11.1 dec 5.6 ratio 3.664
 // split 256k: cmp 11.5 dec 4.9 ratio 3.703
 // split   1M: cmp 11.2 dec 4.6 ratio 3.870
-// split   2M: cmp 11.2 dec 4.9 ratio 3.939
+// split   2M: cmp 11.2 dec 4.9 ratio 3.939 <--
 // split   4M: cmp 11.4 dec 5.7 ratio 3.943
 
 const size_t kSplitChunkSize = 128 * 1024 * 1024;
