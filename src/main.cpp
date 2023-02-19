@@ -331,6 +331,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			fprintf(fout, ", %.3f,'%s", ratio, cmpName);
 			if (levelRes.size() > 1)
 				fprintf(fout, " %i", res.level);
+			if (strcmp(cmpName, "zstd-tst") == 0 && res.level == 1) // TEST TEST TEST
+				printf("%s_%i ratio: %.3f\n", cmpName, res.level, ratio);
 			fprintf(fout, "\\n%.3fx at %.3f GB/s\\n%.1FMB %.3fs','' ", ratio, cspeed / oneGB, csize / oneMB, ctime);
 			for (size_t j = ic + 1; j < g_Compressors.size(); ++j) fprintf(fout, ",null,null,null");
 			fprintf(fout, "]%s\n", (ic == g_Compressors.size() - 1) && (&res == &levelRes.back()) ? "" : ",");

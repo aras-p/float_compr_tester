@@ -1,5 +1,6 @@
 #include "compressors.h"
 #include <stdio.h>
+#include <assert.h>
 
 #include <fpzip.h>
 #include <zfp.h>
@@ -11,7 +12,6 @@ uint64_t g_time_filter, g_time_unfilter;
 int g_count_filter, g_count_unfilter;
 
 #if BUILD_WITH_NDZIP
-#include <assert.h> // ndzip needs it
 #include <ndzip/ndzip.hh>
 #endif // #if BUILD_WITH_NDZIP
 
@@ -427,12 +427,13 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
 }
 
 // memcpy: 3.6ms
-// part 6 B: 20.1ms
+// part 6 B: 20.1ms ratio 3.945x
+// split 2M, part 6 B: 13.2ms ratio 3.939x
 static void TestFilterImpl(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
-    uint8_t prev = 0;
     for (int ich = 0; ich < channels; ++ich)
     {
+        uint8_t prev = 0;
         const uint8_t* srcPtr = src + ich;
         for (size_t ip = 0; ip < dataElems; ++ip)
         {
@@ -447,11 +448,15 @@ static void TestFilterImpl(const uint8_t* src, uint8_t* dst, int channels, size_
 
 // memcpy: 2.9ms
 // part 6 B: 21.5ms
+// split 2M, part 6 B: 9.1ms ratio 3.939x
 static void TestUnFilterImpl(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
-    uint8_t prev = 0;
+    // two pass, seq dst write: 31.6ms
+    // two pass, seq src read: 15.8ms
+    // one pass, seq src read (Part 6 B), Split 2M: 8.8ms 
     for (int ich = 0; ich < channels; ++ich)
     {
+        uint8_t prev = 0;
         uint8_t* dstPtr = dst + ich;
         for (size_t ip = 0; ip < dataElems; ++ip)
         {
@@ -482,7 +487,7 @@ static void TestUnFilterImpl(const uint8_t* src, uint8_t* dst, int channels, siz
 // split 256k: zstd1 3.703x, cmp 13.0ms dec  9.7ms
 // split 512k: zstd1 3.757x, cmp 12.9ms dec  9.0ms
 // split   1M: zstd1 3.870x, cmp 13.2ms dec  8.9ms
-// split   2M: zstd1 3.939x, cmp 13.2ms dec  9.1ms
+// split   2M: zstd1 3.939x, cmp 13.2ms dec  9.1ms <--
 // split   4M: zstd1 3.943x, cmp 13.4ms dec  9.8ms
 // split   8M: zstd1 3.943x, cmp 13.3ms dec  9.6ms
 // split  16M: zstd1 3.945x, cmp 14.0ms dec  9.7ms
@@ -495,7 +500,7 @@ static void TestUnFilterImpl(const uint8_t* src, uint8_t* dst, int channels, siz
 // split  64k: zstd1 3.663x, cmp  9.3ms dec 7.3ms
 // split 256k: zstd1 3.703x, cmp  9.4ms dec 7.5ms
 // split   1M: zstd1 3.870x, cmp  9.5ms dec 7.8ms
-// split   2M: zstd1 3.939x, cmp  9.6ms dec 7.7ms
+// split   2M: zstd1 3.939x, cmp  9.6ms dec 7.7ms <--
 // split   4M: zstd1 3.943x, cmp  9.7ms dec 7.9ms
 
 const size_t kSplitChunkSize = 2 * 1024 * 1024;
@@ -505,7 +510,7 @@ static void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t da
     const size_t chunkSize = elemsPerChunk * channels;
     for (size_t de = 0; de < dataElems; de += elemsPerChunk)
     {
-        Split8Delta(src, dst, channels, de + elemsPerChunk > dataElems ? dataElems - de : elemsPerChunk);
+        TestFilterImpl(src, dst, channels, de + elemsPerChunk > dataElems ? dataElems - de : elemsPerChunk);
         src += chunkSize;
         dst += chunkSize;
     }
@@ -516,7 +521,7 @@ static void TestUnFilter(uint8_t* src, uint8_t* dst, int channels, size_t dataEl
     const size_t chunkSize = elemsPerChunk * channels;
     for (size_t de = 0; de < dataElems; de += elemsPerChunk)
     {
-        UnSplit8Delta(src, dst, channels, de + elemsPerChunk > dataElems ? dataElems - de : elemsPerChunk);
+        TestUnFilterImpl(src, dst, channels, de + elemsPerChunk > dataElems ? dataElems - de : elemsPerChunk);
         src += chunkSize;
         dst += chunkSize;
     }
