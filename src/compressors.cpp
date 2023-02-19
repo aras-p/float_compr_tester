@@ -265,24 +265,35 @@ static void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t da
 }
 
 // https://fgiesen.wordpress.com/2013/07/09/simd-transposes-1/ and https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
-static void EvenOddInterleave16(const Bytes16* a, Bytes16* b)
+static void EvenOddInterleave16(const Bytes16* a, Bytes16* b, int astride)
 {
+    int bidx = 0;
     for (int i = 0; i < 8; ++i)
     {
-        b[i * 2 + 0] = SimdInterleaveL(a[i], a[i + 8]);
-        b[i * 2 + 1] = SimdInterleaveR(a[i], a[i + 8]);
+        b[bidx] = SimdInterleaveL(a[i * astride], a[(i + 8)*astride]); bidx++;
+        b[bidx] = SimdInterleaveR(a[i * astride], a[(i + 8)*astride]); bidx++;
     }
 }
 
-static void Transpose(const uint8_t* a, uint8_t* b, int rows, int cols)
+static void Transpose16x16(const Bytes16* a, Bytes16* b, int astride)
 {
-    if (rows == 16 && cols == 16)
+    Bytes16 tmp1[16], tmp2[16];
+    EvenOddInterleave16((const Bytes16*)a, tmp1, astride);
+    EvenOddInterleave16(tmp1, tmp2, 1);
+    EvenOddInterleave16(tmp2, tmp1, 1);
+    EvenOddInterleave16(tmp1, (Bytes16*)b, 1);
+}
+
+template<int cols, int rows>
+static void Transpose(const uint8_t* a, uint8_t* b)
+{
+    if (rows == 16 && ((cols % 16) == 0))
     {
-        Bytes16 tmp1[16], tmp2[16];
-        EvenOddInterleave16((const Bytes16*)a, tmp1);
-        EvenOddInterleave16(tmp1, tmp2);
-        EvenOddInterleave16(tmp2, tmp1);
-        EvenOddInterleave16(tmp1, (Bytes16*)b);
+        int blocks = cols / rows;
+        for (int i = 0; i < blocks; ++i)
+        {
+            Transpose16x16(((const Bytes16*)a) + i, ((Bytes16*)b) + i*16, blocks);
+        }
     }
     else
     {
@@ -290,7 +301,7 @@ static void Transpose(const uint8_t* a, uint8_t* b, int rows, int cols)
         {
             for (int i = 0; i < cols; ++i)
             {
-                b[j * cols + i] = a[i * rows + j];
+                b[i * rows + j] = a[j * cols + i];
             }
         }
     }
@@ -304,6 +315,7 @@ static void Transpose(const uint8_t* a, uint8_t* b, int rows, int cols)
 // no split, SIMD case for 16 channels, read 1 byte from streams: 15.7ms
 // no split, SIMD for 16 channels, read 16 bytes from streams: 8.6ms
 // no split, SIMD for 16 channels, read 16 bytes from streams, SIMD 16x16 transpose: 7.2ms
+// no split, SIMD for 16 channels, read 256 bytes from streams, SIMD transpose: 7.2ms
 static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     // two pass, seq dst write: 31.6ms
@@ -373,7 +385,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
 #endif
 
 #if 1
-    // seq write into dst, special SSE case for 16 channels, w/ 16-byte SSE fetches in each: vs 8.6ms clang 8.5ms
+    // seq write into dst, special SIMD case for 16 channels
     const int k16Channels = 16;
     if (channels == k16Channels)
     {
@@ -381,51 +393,47 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
         size_t ip = 0;
         Bytes16 prev = SimdZero();
         // SIMD loop; reading from each channel Chunk bytes at a time
-        // 16: 8.6, 32: 8.4, 64: 8.4, 128: 8.8, 256: 9.0
-        // 16 w/ SSE transpose: 7.3
-        const int kChunkBytes = 16;
+        // Scalar transpose: 16: 8.6, 32: 8.3, 64: 8.2, 128: 8.6, 256: 8.9, 512: 9.3, 1024: 9.7, 2048: 10.2, 4096: 16.6, 8192: 16.4
+        // SIMD transpose:   16: 7.3, 32: 6.9, 64: 7.0, 128: 7.4, 256: 7.2, 512: 7.4, 1024: 7.5, 2048:  8.0, 4096:  8.6, 8192:  8.6, 16384: 8.4
+        const int kChunkBytes = 256;
         const int kChunkSimdSize = kChunkBytes / 16;
+        for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
         {
-            for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
+            // read chunk of bytes from each channel
+            Bytes16 chdata[k16Channels][kChunkSimdSize];
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < k16Channels; ++ich)
             {
-                // read chunk of bytes from each channel
-                Bytes16 chdata[k16Channels][kChunkSimdSize];
-                const uint8_t* srcPtr = src + ip;
-                for (int ich = 0; ich < k16Channels; ++ich)
-                {
-                    for (int ib = 0; ib < kChunkSimdSize; ++ib)
-                        chdata[ich][ib] = SimdLoad(((const Bytes16*)srcPtr) + ib);
-                    srcPtr += dataElems;
-                }
-                // transpose
-                Bytes16 xposed[kChunkBytes * k16Channels / 16];
-                Transpose((const uint8_t*)chdata, (uint8_t*)xposed, kChunkBytes, k16Channels);
-                // accumulate sum and write into destination
-                for (int i = 0; i < sizeof(xposed)/sizeof(xposed[0]); ++i)
-                {
-                    prev = prev + xposed[i];
-                    SimdStore(dstPtr, prev);
-                    dstPtr += 16;
-                }
+                for (int ib = 0; ib < kChunkSimdSize; ++ib)
+                    chdata[ich][ib] = SimdLoad(((const Bytes16*)srcPtr) + ib);
+                srcPtr += dataElems;
             }
-        }
-        // scalar loop for any non-multiple-of-16 remainder
-        {
-            for (; ip < dataElems; ip++)
+            // transpose
+            Bytes16 xposed[kChunkBytes * k16Channels / 16];
+            Transpose<kChunkBytes, k16Channels>((const uint8_t*)chdata, (uint8_t*)xposed);
+            // accumulate sum and write into destination
+            for (int i = 0; i < sizeof(xposed)/sizeof(xposed[0]); ++i)
             {
-                // read from each channel
-                alignas(16) uint8_t chdata[k16Channels];
-                const uint8_t* srcPtr = src + ip;
-                for (int ich = 0; ich < k16Channels; ++ich)
-                {
-                    chdata[ich] = *srcPtr;
-                    srcPtr += dataElems;
-                }
-                // accumulate sum and write into destination
-                prev = prev + SimdLoadA(chdata);
+                prev = prev + xposed[i];
                 SimdStore(dstPtr, prev);
                 dstPtr += 16;
             }
+        }
+        // scalar loop for any non-multiple-of-16 remainder
+        for (; ip < dataElems; ip++)
+        {
+            // read from each channel
+            alignas(16) uint8_t chdata[k16Channels];
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < k16Channels; ++ich)
+            {
+                chdata[ich] = *srcPtr;
+                srcPtr += dataElems;
+            }
+            // accumulate sum and write into destination
+            prev = prev + SimdLoadA(chdata);
+            SimdStore(dstPtr, prev);
+            dstPtr += 16;
         }
     }
     else
