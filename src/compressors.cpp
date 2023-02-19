@@ -446,8 +446,21 @@ static void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t da
     }
 }
 
+static void Transpose(const uint8_t* a, uint8_t* b, int rows, int cols)
+{
+    // TODO: SIMD
+    for (int j = 0; j < rows; ++j)
+    {
+        for (int i = 0; i < cols; ++i)
+        {
+            b[j * rows + i] = a[i * cols + j];
+        }
+    }
+}
+
 // memcpy: 2.9ms
 // part 6 B: 21.5ms
+// part 6 D: 18.8ms
 // split 2M, part 6 B: 9.1ms ratio 3.939x
 static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
@@ -474,7 +487,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
     }
 #endif
 
-#if 1
+#if 0
     // seq write into dst, special SSE case for 16 channels: vs 15.7ms clang 14.3ms
     if (channels == 16)
     {
@@ -494,6 +507,77 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
             prev = _mm_add_epi8(prev, _mm_load_si128((const __m128i*)chdata));
             _mm_storeu_si128((__m128i*)dstPtr, prev);
             dstPtr += 16;
+        }
+    }
+    else
+    {
+        // temp: generic fallback
+        const size_t kMaxChannels = 64;
+        uint8_t prev[kMaxChannels] = {};
+        uint8_t* dstPtr = dst;
+        for (size_t ip = 0; ip < dataElems; ++ip)
+        {
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < channels; ++ich)
+            {
+                uint8_t v = *srcPtr + prev[ich];
+                prev[ich] = v;
+                *dstPtr = v;
+                srcPtr += dataElems;
+                dstPtr += 1;
+            }
+        }
+    }
+#endif
+
+#if 1
+    // seq write into dst, special SSE case for 16 channels, w/ 16-byte SSE fetches in each: vs 8.6ms clang 8.5ms
+    if (channels == 16)
+    {
+        uint8_t* dstPtr = dst;
+        size_t ip = 0;
+        __m128i prev = _mm_setzero_si128();
+        // SIMD loop; reading from each channel 16 bytes at a time
+        {
+            for (; ip < dataElems-15; ip += 16)
+            {
+                // read 16b from each of 16 channels
+                __m128i chdata[16];
+                const uint8_t* srcPtr = src + ip;
+                for (int ich = 0; ich < channels; ++ich)
+                {
+                    chdata[ich] = _mm_loadu_si128((const __m128i*)srcPtr);
+                    srcPtr += dataElems;
+                }
+                // transpose
+                __m128i xposed[16];
+                Transpose((const uint8_t*)chdata, (uint8_t*)xposed, 16, 16);
+                // accumulate sum and write into destination
+                for (int i = 0; i < 16; ++i)
+                {
+                    prev = _mm_add_epi8(prev, xposed[i]);
+                    _mm_storeu_si128((__m128i*)dstPtr, prev);
+                    dstPtr += 16;
+                }
+            }
+        }
+        // scalar loop for any non-multiple-of-16 remainder
+        {
+            for (; ip < dataElems; ip++)
+            {
+                // read from each of 16 channels
+                alignas(16) uint8_t chdata[16];
+                const uint8_t* srcPtr = src + ip;
+                for (int ich = 0; ich < 16; ++ich)
+                {
+                    chdata[ich] = *srcPtr;
+                    srcPtr += dataElems;
+                }
+                // accumulate sum and write into destination
+                prev = _mm_add_epi8(prev, _mm_load_si128((const __m128i*)chdata));
+                _mm_storeu_si128((__m128i*)dstPtr, prev);
+                dstPtr += 16;
+            }
         }
     }
     else
