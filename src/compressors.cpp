@@ -429,7 +429,7 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
 // memcpy: 3.6ms
 // part 6 B: 20.1ms ratio 3.945x
 // split 2M, part 6 B: 13.2ms ratio 3.939x
-static void TestFilterImpl(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+static void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     for (int ich = 0; ich < channels; ++ich)
     {
@@ -449,24 +449,73 @@ static void TestFilterImpl(const uint8_t* src, uint8_t* dst, int channels, size_
 // memcpy: 2.9ms
 // part 6 B: 21.5ms
 // split 2M, part 6 B: 9.1ms ratio 3.939x
-static void TestUnFilterImpl(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     // two pass, seq dst write: 31.6ms
     // two pass, seq src read: 15.8ms
     // one pass, seq src read (Part 6 B), Split 2M: 8.8ms 
-    for (int ich = 0; ich < channels; ++ich)
+
+#if 0
+    // sequential write into dst; scattered read from all streams (no 2M split): 33.6ms
+    const size_t kMaxChannels = 64;
+    uint8_t prev[kMaxChannels] = {};
+    uint8_t* dstPtr = dst;
+    for (size_t ip = 0; ip < dataElems; ++ip)
     {
-        uint8_t prev = 0;
-        uint8_t* dstPtr = dst + ich;
-        for (size_t ip = 0; ip < dataElems; ++ip)
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
         {
-            uint8_t v = *src + prev;
-            prev = v;
+            uint8_t v = *srcPtr + prev[ich];
+            prev[ich] = v;
             *dstPtr = v;
-            src += 1;
-            dstPtr += channels;
+            srcPtr += dataElems;
+            dstPtr += 1;
         }
     }
+#endif
+
+#if 1
+    // seq write into dst, special SSE case for 16 channels: vs 15.7ms clang 14.3ms
+    if (channels == 16)
+    {
+        uint8_t* dstPtr = dst;
+        __m128i prev = _mm_setzero_si128();
+        for (size_t ip = 0; ip < dataElems; ip++)
+        {
+            // read from each of 16 channels
+            alignas(16) uint8_t chdata[16] = {};
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < 16; ++ich)
+            {
+                chdata[ich] = *srcPtr;
+                srcPtr += dataElems;
+            }
+            // accumulate sum and write into destination
+            prev = _mm_add_epi8(prev, _mm_load_si128((const __m128i*)chdata));
+            _mm_storeu_si128((__m128i*)dstPtr, prev);
+            dstPtr += 16;
+        }
+    }
+    else
+    {
+        // temp: generic fallback
+        const size_t kMaxChannels = 64;
+        uint8_t prev[kMaxChannels] = {};
+        uint8_t* dstPtr = dst;
+        for (size_t ip = 0; ip < dataElems; ++ip)
+        {
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < channels; ++ich)
+            {
+                uint8_t v = *srcPtr + prev[ich];
+                prev[ich] = v;
+                *dstPtr = v;
+                srcPtr += dataElems;
+                dstPtr += 1;
+            }
+        }
+    }
+#endif
 }
 
 // WinVS
@@ -503,8 +552,9 @@ static void TestUnFilterImpl(const uint8_t* src, uint8_t* dst, int channels, siz
 // split   2M: zstd1 3.939x, cmp  9.6ms dec 7.7ms <--
 // split   4M: zstd1 3.943x, cmp  9.7ms dec 7.9ms
 
-const size_t kSplitChunkSize = 2 * 1024 * 1024;
-static void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+/*
+const size_t kSplitChunkSize = 128 * 1024 * 1024;
+static void TestFilterWithSplit(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     const size_t elemsPerChunk = kSplitChunkSize / channels;
     const size_t chunkSize = elemsPerChunk * channels;
@@ -515,7 +565,7 @@ static void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t da
         dst += chunkSize;
     }
 }
-static void TestUnFilter(uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+static void TestUnFilterWithSplit(uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     const size_t elemsPerChunk = kSplitChunkSize / channels;
     const size_t chunkSize = elemsPerChunk * channels;
@@ -526,6 +576,7 @@ static void TestUnFilter(uint8_t* src, uint8_t* dst, int channels, size_t dataEl
         dst += chunkSize;
     }
 }
+*/
 
 
 static uint32_t rotl(uint32_t x, int s)
