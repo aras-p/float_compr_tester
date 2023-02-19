@@ -307,15 +307,15 @@ static void Transpose(const uint8_t* a, uint8_t* b)
     }
 }
 
-// memcpy: 2.9ms
-// part 6 B: 21.5ms
-// part 6 D: 18.8ms
-// split 2M, part 6 B: 9.1ms ratio 3.939x
-// no split, sequential write into dst, scatter read from all streams, no SIMD: 33.6ms
-// no split, SIMD case for 16 channels, read 1 byte from streams: 15.7ms
-// no split, SIMD for 16 channels, read 16 bytes from streams: 8.6ms
-// no split, SIMD for 16 channels, read 16 bytes from streams, SIMD 16x16 transpose: 7.2ms
-// no split, SIMD for 16 channels, read 256 bytes from streams, SIMD transpose: 7.2ms
+// memcpy: winvs 2.9ms
+// part 6 B: winvs 21.5 (ratio 3.945x)
+// part 6 D: winvs 18.8
+// part 6 B + split 2M: winvs 9.1 (ratio 3.939x)
+// G: seq write, scalar: winvs 33.6 mac 25.2
+// H: seq write, ch=16 path, read   1b from streams: winvs 15.7
+//    seq write, ch=16 path, read  16b from streams: winvs  8.6
+//    seq write, ch=16 path, read  16b from streams, simd transpose: winvs 7.2
+// I: seq write, ch=16 path, read 256b from streams, simd transpose: winvs 7.2 mac 5.2
 static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     // two pass, seq dst write: 31.6ms
@@ -323,7 +323,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
     // one pass, seq src read (Part 6 B), Split 2M: 8.8ms 
 
 #if 0
-    // sequential write into dst; scattered read from all streams (no 2M split): 33.6ms
+    // G: sequential write into dst; scattered read from all streams (no 2M split): winvs 33.6 mac 25.2
     const size_t kMaxChannels = 64;
     uint8_t prev[kMaxChannels] = {};
     uint8_t* dstPtr = dst;
@@ -342,7 +342,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
 #endif
 
 #if 0
-    // seq write into dst, special SSE case for 16 channels: vs 15.7ms clang 14.3ms
+    // H: seq write into dst, special SIMD case for 16 channels: winvs 15.7 clang 14.3 mac 12.4
     if (channels == 16)
     {
         uint8_t* dstPtr = dst;
@@ -385,7 +385,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
 #endif
 
 #if 1
-    // seq write into dst, special SIMD case for 16 channels
+    // I: seq write into dst, special SIMD case for 16 channels
     const int k16Channels = 16;
     if (channels == k16Channels)
     {
@@ -393,9 +393,10 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
         size_t ip = 0;
         Bytes16 prev = SimdZero();
         // SIMD loop; reading from each channel Chunk bytes at a time
-        // Scalar transpose: 16: 8.6, 32: 8.3, 64: 8.2, 128: 8.6, 256: 8.9, 512: 9.3, 1024: 9.7, 2048: 10.2, 4096: 16.6, 8192: 16.4
-        // SIMD transpose:   16: 7.3, 32: 6.9, 64: 7.0, 128: 7.4, 256: 7.2, 512: 7.4, 1024: 7.5, 2048:  8.0, 4096:  8.6, 8192:  8.6, 16384: 8.4
-        const int kChunkBytes = 256;
+        // Scalar transpose: winvs 16: 8.6, 32: 8.3, 64: 8.2, 128: 8.6, 256: 8.9, 512: 9.3, 1024: 9.7, 2048: 10.2, 4096: 16.6, 8192: 16.4
+        // SIMD transpose:   winvs 16: 7.3, 32: 6.9, 64: 7.0, 128: 7.4, 256: 7.2, 512: 7.4, 1024: 7.5, 2048:  8.0, 4096:  8.6, 8192:  8.6, 16384: 8.4
+        // SIMD transpose:   mac   16: 6.1  32: 6.1  64: 5.3  128: 5.2  256: 5.2  512: 5.9  1024: 5.4  2048:  5.4  4096:  5.4  8192:  5.1  16384: 5.4
+        const int kChunkBytes = 256; // I: 256
         const int kChunkSimdSize = kChunkBytes / 16;
         for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
         {
@@ -492,7 +493,15 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
 // split   2M: zstd1 3.939x, cmp  9.6ms dec 7.7ms <--
 // split   4M: zstd1 3.943x, cmp  9.7ms dec 7.9ms
 
-/*
+// Mac:
+// Part6D:
+// I(256):     cmp 11.6 dec 5.2 ratio 3.945
+// split  64k: cmp 11.1 dec 5.6 ratio 3.664
+// split 256k: cmp 11.5 dec 4.9 ratio 3.703
+// split   1M: cmp 11.2 dec 4.6 ratio 3.870
+// split   2M: cmp 11.2 dec 4.9 ratio 3.939
+// split   4M: cmp 11.4 dec 5.7 ratio 3.943
+
 const size_t kSplitChunkSize = 128 * 1024 * 1024;
 static void TestFilterWithSplit(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
@@ -500,7 +509,7 @@ static void TestFilterWithSplit(const uint8_t* src, uint8_t* dst, int channels, 
     const size_t chunkSize = elemsPerChunk * channels;
     for (size_t de = 0; de < dataElems; de += elemsPerChunk)
     {
-        TestFilterImpl(src, dst, channels, de + elemsPerChunk > dataElems ? dataElems - de : elemsPerChunk);
+        TestFilter(src, dst, channels, de + elemsPerChunk > dataElems ? dataElems - de : elemsPerChunk);
         src += chunkSize;
         dst += chunkSize;
     }
@@ -511,12 +520,11 @@ static void TestUnFilterWithSplit(uint8_t* src, uint8_t* dst, int channels, size
     const size_t chunkSize = elemsPerChunk * channels;
     for (size_t de = 0; de < dataElems; de += elemsPerChunk)
     {
-        TestUnFilterImpl(src, dst, channels, de + elemsPerChunk > dataElems ? dataElems - de : elemsPerChunk);
+        TestUnFilter(src, dst, channels, de + elemsPerChunk > dataElems ? dataElems - de : elemsPerChunk);
         src += chunkSize;
         dst += chunkSize;
     }
 }
-*/
 
 
 static uint32_t rotl(uint32_t x, int s)
@@ -574,7 +582,7 @@ static uint8_t* CompressionFilter(uint32_t filter, const float* data, int width,
         if (filter & kFilterSplit8Delta)
             Split8Delta((const uint8_t*)data, tmp, channels * sizeof(float), planeElems);
         if (filter & kFilterTest)
-            TestFilter((const uint8_t*)data, tmp, channels * sizeof(float), planeElems);
+            TestFilterWithSplit((const uint8_t*)data, tmp, channels * sizeof(float), planeElems);
         if ((filter & kFilterBitShuffle) != 0)
         {
             bshuf_bitshuffle(data, tmp, planeElems, channels * sizeof(float), 0);
@@ -615,7 +623,7 @@ static void DecompressionFilter(uint32_t filter, uint8_t* tmp, float* data, int 
         if (filter & kFilterSplit8Delta)
             UnSplit8Delta(tmp, dstData, channels * sizeof(float), planeElems);
         if (filter & kFilterTest)
-            TestUnFilter(tmp, dstData, channels * sizeof(float), planeElems);
+            TestUnFilterWithSplit(tmp, dstData, channels * sizeof(float), planeElems);
         if ((filter & kFilterBitShuffle) != 0)
         {
             if ((filter & kFilterDeltaDiff) != 0) DecodeDeltaDif(tmp, dataSize);
