@@ -385,7 +385,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
 #endif
 
 #if 0
-    // I: seq write into dst, special SIMD case for 16 channels
+    // I: seq write into dst, special SIMD case for 16 channels. winvs 7.2 mac 5.2
     const int k16Channels = 16;
     if (channels == k16Channels)
     {
@@ -459,14 +459,15 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
 #endif
     
 #if 1
-    // J: fetch+interleave groups of 4 channels to stack; then interleave+sum+store groups of 4 channels mac 4.2
+    // J: fetch+interleave groups of 4 channels to stack; then interleave+sum+store groups of 4 channels.
     const int k16Channels = 16;
     if (channels == k16Channels)
     {
         uint8_t* dstPtr = dst;
         size_t ip = 0;
         Bytes16 prev = SimdZero();
-        // I(256): mac 5.2
+        // I(256): winvs 7.2 mac 5.2
+        // win chunk 16: 6.2
         // mac chunk 16: 4.2
         const int kChunkBytes = 16;
         //const int kChunkSimdSize = kChunkBytes / 16;
