@@ -160,6 +160,7 @@ add_executable (float_compr_tester
 	src/compression_helpers.h
 	src/compressors.cpp
 	src/compressors.h
+	src/simd.h
 	src/systeminfo.cpp
 	src/systeminfo.h
 	src/resultcache.cpp

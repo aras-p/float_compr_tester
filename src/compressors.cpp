@@ -20,17 +20,7 @@ int g_count_filter, g_count_unfilter;
 
 #include <string>
 
-
-#if defined(__x86_64__) || defined(_M_X64)
-#	define CPU_ARCH_X64 1
-#	include <emmintrin.h> // sse2
-#	include <tmmintrin.h> // sse3
-#	include <smmintrin.h> // sse4.1
-#endif
-#if defined(__aarch64__) || defined(_M_ARM64)
-#	define CPU_ARCH_ARM64 1
-#	include <arm_neon.h>
-#endif
+#include "simd.h"
 
 
 static std::vector<int> GetGenericLevelRange(CompressionFormat format)
@@ -94,30 +84,6 @@ static void DecodeDeltaDif(T* data, size_t dataElems)
         ++data;
     }
 }
-
-#if CPU_ARCH_X64
-// https://gist.github.com/rygorous/4212be0cd009584e4184e641ca210528
-static inline __m128i prefix_sum_u8(__m128i x)
-{
-    x = _mm_add_epi8(x, _mm_slli_epi64(x, 8));
-    x = _mm_add_epi8(x, _mm_slli_epi64(x, 16));
-    x = _mm_add_epi8(x, _mm_slli_epi64(x, 32));
-    x = _mm_add_epi8(x, _mm_shuffle_epi8(x, _mm_setr_epi8(-1, -1, -1, -1, -1, -1, -1, -1, 7, 7, 7, 7, 7, 7, 7, 7)));
-    return x;
-}
-#endif // #if CPU_ARCH_X64
-#if CPU_ARCH_ARM64
-// straight-up port to NEON of the above; no idea if this is efficient at all, yolo!
-static inline uint8x16_t prefix_sum_u8(uint8x16_t x)
-{
-    x = vaddq_u8(x, vshlq_u64(x, vdupq_n_u64(8)));
-    x = vaddq_u8(x, vshlq_u64(x, vdupq_n_u64(16)));
-    x = vaddq_u8(x, vshlq_u64(x, vdupq_n_u64(32)));
-    alignas(16) uint8_t tbl[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 7, 7, 7, 7, 7, 7, 7, 7};
-    x = vaddq_u8(x, vqtbl1q_u8(x, vld1q_u8(tbl)));
-    return x;
-}
-#endif // #if CPU_ARCH_ARM64
 
 template<typename T>
 static void EncodeDeltaXor(T* data, size_t dataElems)
@@ -184,70 +150,35 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
         const uint8_t* srcPtr = src + ich;
         size_t ip = 0;
 
-#	    if CPU_ARCH_X64
-        // SSE simd loop, 16 bytes at a time
-        __m128i prev16 = _mm_set1_epi8(prev);
+        // SIMD loop, 16 bytes at a time
+        Bytes16 prev16 = SimdSet1(prev);
         for (; ip < planeElems / 16; ++ip)
         {
             // gather 16 bytes from source data
-            __m128i v = _mm_set1_epi8(0);
-            v = _mm_insert_epi8(v, *srcPtr, 0); srcPtr += channels; // sse4.1
-            v = _mm_insert_epi8(v, *srcPtr, 1); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 2); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 3); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 4); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 5); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 6); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 7); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 8); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 9); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 10); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 11); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 12); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 13); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 14); srcPtr += channels;
-            v = _mm_insert_epi8(v, *srcPtr, 15); srcPtr += channels;
+            Bytes16 v = SimdZero();
+            v = SimdSetLane<0>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<1>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<2>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<3>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<4>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<5>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<6>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<7>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<8>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<9>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<10>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<11>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<12>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<13>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<14>(v, *srcPtr); srcPtr += channels;
+            v = SimdSetLane<15>(v, *srcPtr); srcPtr += channels;
             // delta from previous
-            __m128i delta = _mm_sub_epi8(v, _mm_alignr_epi8(v, prev16, 15)); // sse3
-            _mm_storeu_si128((__m128i*)dst, delta);
+            Bytes16 delta = v - SimdConcat<15>(v, prev16);
+            SimdStore(dst, delta);
             prev16 = v;
             dst += 16;
         }
-        prev = _mm_extract_epi8(prev16, 15); // sse4.1
-#       endif // if CPU_ARCH_X64
-
-#       if CPU_ARCH_ARM64
-        // NEON simd loop, 16 bytes at a time
-        uint8x16_t prev16 = vdupq_n_u8(prev);
-        for (; ip < planeElems / 16; ++ip)
-        {
-            // gather 16 bytes from source data
-            uint8x16_t v = vdupq_n_u8(0);
-            v = vsetq_lane_u8(*srcPtr, v, 0); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 1); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 2); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 3); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 4); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 5); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 6); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 7); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 8); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 9); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 10); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 11); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 12); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 13); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 14); srcPtr += channels;
-            v = vsetq_lane_u8(*srcPtr, v, 15); srcPtr += channels;
-
-            // delta from previous
-            uint8x16_t delta = vsubq_u8(v, vextq_u8(prev16, v, 15));
-            vst1q_u8(dst, delta);
-            prev16 = v;
-            dst += 16;
-        }
-        prev = vgetq_lane_u8(prev16, 15);
-#       endif // if CPU_ARCH_ARM64
+        prev = SimdGetLane<15>(prev16);
 
         // any trailing leftover
         for (ip = ip * 16; ip < planeElems; ++ip)
@@ -264,70 +195,6 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
 
 static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t planeElems)
 {
-#if 0
-    // "e" case: two pass: delta with SIMD prefix sum, followed by sequential unsplit into destination
-    // first pass: decode delta
-    const size_t dataSize = planeElems * channels;
-    uint8_t* ptr = src;
-    size_t ip = 0;
-    uint8_t prev = 0;
-#	if CPU_ARCH_X64
-    // SSE simd loop, 16 bytes at a time
-    __m128i prev16 = _mm_set1_epi8(0);
-    __m128i hibyte = _mm_set1_epi8(15);
-    for (; ip < dataSize / 16; ++ip)
-    {
-        __m128i v = _mm_loadu_si128((const __m128i*)ptr);
-        // un-delta via prefix sum
-        prev16 = _mm_add_epi8(prefix_sum_u8(v), _mm_shuffle_epi8(prev16, hibyte));
-        _mm_storeu_si128((__m128i*)ptr, prev16);
-        ptr += 16;
-    }
-    prev = _mm_extract_epi8(prev16, 15); // sse4.1
-#   endif // if CPU_ARCH_X64
-    
-#   if CPU_ARCH_ARM64
-    // NEON simd loop, 16 bytes at a time
-    uint8x16_t prev16 = vdupq_n_u8(prev);
-    uint8x16_t hibyte = vdupq_n_u8(15);
-    //alignas(16) uint8_t scatter[16];
-    for (; ip < dataSize / 16; ++ip)
-    {
-        // load 16 bytes of filtered data
-        uint8x16_t v = vld1q_u8(ptr);
-        // un-delta via prefix sum
-        prev16 = vaddq_u8(prefix_sum_u8(v), vqtbl1q_u8(prev16, hibyte));
-        vst1q_u8(ptr, prev16);
-        ptr += 16;
-    }
-    prev = vgetq_lane_u8(prev16, 15);
-#   endif // if CPU_ARCH_ARM64
-
-    // any trailing leftover
-    for (ip = ip * 16; ip < dataSize; ++ip)
-    {
-        uint8_t v = *ptr + prev;
-        prev = v;
-        *ptr = v;
-        ptr += 1;
-    }
-
-    // second pass: un-split; sequential write into destination
-    uint8_t* dstPtr = dst;
-    for (int ip = 0; ip < planeElems; ++ip)
-    {
-        const uint8_t* srcPtr = src + ip;
-        for (int ich = 0; ich < channels; ++ich)
-        {
-            uint8_t v = *srcPtr;
-            *dstPtr = v;
-            srcPtr += planeElems;
-            dstPtr += 1;
-        }
-    }
-#endif
-
-#if 1
     // "d" case: combined delta+unsplit; SIMD prefix sum delta, unrolled scattered writes into destination
     uint8_t prev = 0;
     for (int ich = 0; ich < channels; ++ich)
@@ -335,83 +202,35 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
         uint8_t* dstPtr = dst + ich;
         size_t ip = 0;
 
-#	    if CPU_ARCH_X64
-        // SSE simd loop, 16 bytes at a time
-        __m128i prev16 = _mm_set1_epi8(prev);
-        __m128i hibyte = _mm_set1_epi8(15);
-        //alignas(16) uint8_t scatter[16];
+        // SIMD loop, 16 bytes at a time
+        Bytes16 prev16 = SimdSet1(prev);
+        Bytes16 hibyte = SimdSet1(15);
         for (; ip < planeElems / 16; ++ip)
         {
             // load 16 bytes of filtered data
-            __m128i v = _mm_loadu_si128((const __m128i*)src);
+            Bytes16 v = SimdLoad(src);
             // un-delta via prefix sum
-            prev16 = _mm_add_epi8(prefix_sum_u8(v), _mm_shuffle_epi8(prev16, hibyte));
+            prev16 = SimdPrefixSum(v) + SimdShuffle(prev16, hibyte);
             // scattered write into destination
-            //_mm_store_si128((__m128i*)scatter, prev16);
-            //for (int lane = 0; lane < 16; ++lane)
-            //{
-            //    *dstPtr = scatter[lane];
-            //    dstPtr += channels;
-            //}
-            *dstPtr = _mm_extract_epi8(prev16, 0); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 1); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 2); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 3); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 4); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 5); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 6); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 7); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 8); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 9); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 10); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 11); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 12); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 13); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 14); dstPtr += channels;
-            *dstPtr = _mm_extract_epi8(prev16, 15); dstPtr += channels;
+            *dstPtr = SimdGetLane<0>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<1>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<2>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<3>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<4>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<5>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<6>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<7>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<8>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<9>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<10>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<11>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<12>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<13>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<14>(prev16); dstPtr += channels;
+            *dstPtr = SimdGetLane<15>(prev16); dstPtr += channels;
             src += 16;
         }
-        prev = _mm_extract_epi8(prev16, 15); // sse4.1
-#       endif // if CPU_ARCH_X64
-
-#       if CPU_ARCH_ARM64
-        // NEON simd loop, 16 bytes at a time
-        uint8x16_t prev16 = vdupq_n_u8(prev);
-        uint8x16_t hibyte = vdupq_n_u8(15);
-        //alignas(16) uint8_t scatter[16];
-        for (; ip < planeElems / 16; ++ip)
-        {
-            // load 16 bytes of filtered data
-            uint8x16_t v = vld1q_u8(src);
-            // un-delta via prefix sum
-            prev16 = vaddq_u8(prefix_sum_u8(v), vqtbl1q_u8(prev16, hibyte));
-            // scattered write into destination
-            //vst1q_u8(scatter, prev16);
-            //for (int lane = 0; lane < 16; ++lane)
-            //{
-            //    *dstPtr = scatter[lane];
-            //    dstPtr += channels;
-            //}
-            *dstPtr = vgetq_lane_u8(prev16, 0); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 1); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 2); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 3); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 4); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 5); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 6); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 7); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 8); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 9); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 10); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 11); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 12); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 13); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 14); dstPtr += channels;
-            *dstPtr = vgetq_lane_u8(prev16, 15); dstPtr += channels;
-            src += 16;
-        }
-        prev = vgetq_lane_u8(prev16, 15);
-#       endif // if CPU_ARCH_ARM64
+        prev = SimdGetLane<15>(prev16);
 
         // any trailing leftover
         for (ip = ip * 16; ip < planeElems; ++ip)
@@ -423,7 +242,6 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
             dstPtr += channels;
         }
     }
-#endif
 }
 
 // memcpy: 3.6ms
@@ -492,7 +310,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
     if (channels == 16)
     {
         uint8_t* dstPtr = dst;
-        __m128i prev = _mm_setzero_si128();
+        Bytes16 prev = SimdZero();
         for (size_t ip = 0; ip < dataElems; ip++)
         {
             // read from each of 16 channels
@@ -504,8 +322,8 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
                 srcPtr += dataElems;
             }
             // accumulate sum and write into destination
-            prev = _mm_add_epi8(prev, _mm_load_si128((const __m128i*)chdata));
-            _mm_storeu_si128((__m128i*)dstPtr, prev);
+            prev = prev + SimdLoadA(chdata);
+            SimdStore(dstPtr, prev);
             dstPtr += 16;
         }
     }
