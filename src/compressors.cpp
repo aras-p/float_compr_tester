@@ -467,50 +467,57 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
         size_t ip = 0;
         Bytes16 prev = SimdZero();
         // I(256): winvs 7.2 mac 5.2
-        // win chunk 16: 6.2
+        // win chunk 16: 6.2  32: 6.4  64: 6.6  128: 6.8  256: 6.5  512: 6.3  1024: 6.4  2048: 6.4  4096: 6.3
         // mac chunk 16: 4.2
         const int kChunkBytes = 16;
-        //const int kChunkSimdSize = kChunkBytes / 16;
+        const int kChunkSimdSize = kChunkBytes / 16;
         for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
         {
             // read chunk of bytes from each channel
-            Bytes16 chdata[k16Channels]; //[kChunkSimdSize];
+            Bytes16 chdata[k16Channels][kChunkSimdSize];
             const uint8_t* srcPtr = src + ip;
             // fetch data for groups of 4 channels, interleave
             // so that first in chdata is (a0b0c0d0 a1b1c1d1 a2b2c2d2 a3b3c3d3) etc.
-            for (int ichgrp = 0; ichgrp < 4; ++ichgrp)
+            for (int ich = 0; ich < k16Channels; ich += 4)
             {
-                Bytes16 d0 = SimdLoad(srcPtr); srcPtr += dataElems;
-                Bytes16 d1 = SimdLoad(srcPtr); srcPtr += dataElems;
-                Bytes16 d2 = SimdLoad(srcPtr); srcPtr += dataElems;
-                Bytes16 d3 = SimdLoad(srcPtr); srcPtr += dataElems;
-                // interleaves like from https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
-                Bytes16 e0 = SimdInterleaveL(d0, d2); Bytes16 e1 = SimdInterleaveR(d0, d2);
-                Bytes16 e2 = SimdInterleaveL(d1, d3); Bytes16 e3 = SimdInterleaveR(d1, d3);
-                Bytes16 f0 = SimdInterleaveL(e0, e2); Bytes16 f1 = SimdInterleaveR(e0, e2);
-                Bytes16 f2 = SimdInterleaveL(e1, e3); Bytes16 f3 = SimdInterleaveR(e1, e3);
-                chdata[ichgrp*4+0] = f0;
-                chdata[ichgrp*4+1] = f1;
-                chdata[ichgrp*4+2] = f2;
-                chdata[ichgrp*4+3] = f3;
+                for (int item = 0; item < kChunkSimdSize; ++item)
+                {
+                    Bytes16 d0 = SimdLoad(((const Bytes16*)(srcPtr)) + item);
+                    Bytes16 d1 = SimdLoad(((const Bytes16*)(srcPtr + dataElems)) + item);
+                    Bytes16 d2 = SimdLoad(((const Bytes16*)(srcPtr + dataElems*2)) + item);
+                    Bytes16 d3 = SimdLoad(((const Bytes16*)(srcPtr + dataElems*3)) + item);
+                    // interleaves like from https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
+                    Bytes16 e0 = SimdInterleaveL(d0, d2); Bytes16 e1 = SimdInterleaveR(d0, d2);
+                    Bytes16 e2 = SimdInterleaveL(d1, d3); Bytes16 e3 = SimdInterleaveR(d1, d3);
+                    Bytes16 f0 = SimdInterleaveL(e0, e2); Bytes16 f1 = SimdInterleaveR(e0, e2);
+                    Bytes16 f2 = SimdInterleaveL(e1, e3); Bytes16 f3 = SimdInterleaveR(e1, e3);
+                    chdata[ich + 0][item] = f0;
+                    chdata[ich + 1][item] = f1;
+                    chdata[ich + 2][item] = f2;
+                    chdata[ich + 3][item] = f3;
+                }
+                srcPtr += 4 * dataElems;
             }
             // read groups of data from stack, interleave, accumulate sum, store
-            for (int ichgrp = 0; ichgrp < 4; ++ichgrp)
+            for (int item = 0; item < kChunkSimdSize; ++item)
             {
-                Bytes16 a0 = chdata[ichgrp];
-                Bytes16 a1 = chdata[ichgrp + 4];
-                Bytes16 a2 = chdata[ichgrp + 8];
-                Bytes16 a3 = chdata[ichgrp + 12];
-                // now we want a 4x4 as-uint matrix transpose
-                Bytes16 b0 = SimdInterleave4L(a0, a2); Bytes16 b1 = SimdInterleave4R(a0, a2);
-                Bytes16 b2 = SimdInterleave4L(a1, a3); Bytes16 b3 = SimdInterleave4R(a1, a3);
-                Bytes16 c0 = SimdInterleave4L(b0, b2); Bytes16 c1 = SimdInterleave4R(b0, b2);
-                Bytes16 c2 = SimdInterleave4L(b1, b3); Bytes16 c3 = SimdInterleave4R(b1, b3);
-                // c0..c3 is what we should do accumulate sum on, and store
-                prev = prev + c0; SimdStore(dstPtr, prev); dstPtr += 16;
-                prev = prev + c1; SimdStore(dstPtr, prev); dstPtr += 16;
-                prev = prev + c2; SimdStore(dstPtr, prev); dstPtr += 16;
-                prev = prev + c3; SimdStore(dstPtr, prev); dstPtr += 16;
+                for (int chgrp = 0; chgrp < 4; ++chgrp)
+                {
+                    Bytes16 a0 = chdata[chgrp][item];
+                    Bytes16 a1 = chdata[chgrp + 4][item];
+                    Bytes16 a2 = chdata[chgrp + 8][item];
+                    Bytes16 a3 = chdata[chgrp + 12][item];
+                    // now we want a 4x4 as-uint matrix transpose
+                    Bytes16 b0 = SimdInterleave4L(a0, a2); Bytes16 b1 = SimdInterleave4R(a0, a2);
+                    Bytes16 b2 = SimdInterleave4L(a1, a3); Bytes16 b3 = SimdInterleave4R(a1, a3);
+                    Bytes16 c0 = SimdInterleave4L(b0, b2); Bytes16 c1 = SimdInterleave4R(b0, b2);
+                    Bytes16 c2 = SimdInterleave4L(b1, b3); Bytes16 c3 = SimdInterleave4R(b1, b3);
+                    // c0..c3 is what we should do accumulate sum on, and store
+                    prev = prev + c0; SimdStore(dstPtr, prev); dstPtr += 16;
+                    prev = prev + c1; SimdStore(dstPtr, prev); dstPtr += 16;
+                    prev = prev + c2; SimdStore(dstPtr, prev); dstPtr += 16;
+                    prev = prev + c3; SimdStore(dstPtr, prev); dstPtr += 16;
+                }
             }
         }
         // scalar loop for any non-multiple-of-16 remainder
