@@ -247,7 +247,7 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
 // memcpy: 3.6ms
 // part 6 B: 20.1ms ratio 3.945x
 // split 2M, part 6 B: 13.2ms ratio 3.939x
-static void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     for (int ich = 0; ich < channels; ++ich)
     {
@@ -316,7 +316,7 @@ static void Transpose(const uint8_t* a, uint8_t* b)
 //    seq write, ch=16 path, read  16b from streams: winvs  8.6
 //    seq write, ch=16 path, read  16b from streams, simd transpose: winvs 7.2
 // I: seq write, ch=16 path, read 256b from streams, simd transpose: winvs 7.2 mac 5.2
-static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     if ((channels % 4) != 0) // should never happen; our data is floats so channels will always be multiple of 4
     {
@@ -546,6 +546,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
     {
         // not necessarily 16 channels case (but still always multiple of 4)
         // winvs 16: 7.2
+        // full test winvs 16: 422.2
         const int kMaxChannels = 64;
         uint8_t* dstPtr = dst;
         size_t ip = 0;
@@ -582,7 +583,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
                 uint8_t* curPtr = cur + ib * kMaxChannels;
                 for (int ich = 0; ich < channels; ich += 4)
                 {
-                    memcpy(curPtr, ((const uint8_t*)chdata) + ich * kChunkBytes + ib * 4, 4);
+                    *(uint32_t*)curPtr = *(const uint32_t*)(((const uint8_t*)chdata) + ich * kChunkBytes + ib * 4);
                     curPtr += 4;
                 }
             }
@@ -591,6 +592,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
             {
                 uint8_t* curPtr = cur + ib * kMaxChannels;
                 uint8_t* curPtrStart = curPtr;
+                // accumulate sum w/ SIMD
                 for (int ich = 0; ich < channels; ich += 16)
                 {
                     Bytes16 v = SimdLoadA(&prev[ich]) + SimdLoad(curPtr);
@@ -598,8 +600,13 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
                     SimdStore(curPtr, v);
                     curPtr += 16;
                 }
-                memcpy(dstPtr, curPtrStart, channels);
-                dstPtr += channels;
+                // store as multiple of 4 bytes
+                for (int ich = 0; ich < channels; ich += 4)
+                {
+                    *(uint32_t*)dstPtr = *(const uint32_t*)curPtrStart;
+                    dstPtr += 4;
+                    curPtrStart += 4;
+                }
             }
         }
         // scalar loop for any non-multiple-of-chunk remainder

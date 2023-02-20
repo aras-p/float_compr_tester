@@ -533,10 +533,53 @@ static void DumpInputVisualizations(int width, int height, const float* data)
 	}
 }
 
+static void TestFiltering()
+{
+	void TestFilter(const uint8_t * src, uint8_t * dst, int channels, size_t dataElems);
+	void TestUnFilter(const uint8_t * src, uint8_t * dst, int channels, size_t dataElems);
+
+	printf("Testing filtering:\n");
+	const size_t kFloatCount = 16 * 1024 * 1024 + 97;
+	float* srcData = new float[kFloatCount];
+	for (size_t i = 0; i < kFloatCount; ++i)
+		srcData[i] = -1000.0f + i * 0.1f;
+	float* encData = new float[kFloatCount];
+	float* gotData = new float[kFloatCount];
+	int kMinStride = 4;
+	int kMaxStride = 64;
+	uint64_t timeFilter = 0;
+	uint64_t timeUnfilter = 0;
+	size_t totalSize = 0;
+	for (int stride = kMinStride; stride <= kMaxStride; stride += 4)
+	{
+		size_t elemCount = kFloatCount * 4 / stride;
+		uint64_t t0 = stm_now();
+		TestFilter((const uint8_t*)srcData, (uint8_t*)encData, stride, elemCount);
+		uint64_t t1 = stm_now();
+		TestUnFilter((const uint8_t*)encData, (uint8_t*)gotData, stride, elemCount);
+		uint64_t t2 = stm_now();
+		timeFilter += t1 - t0;
+		timeUnfilter += t2 - t1;
+
+		if (memcmp(srcData, gotData, stride * elemCount) != 0)
+		{
+			printf("ERROR filter did not decode properly for stride=%i elemCount=%zi\n", stride, elemCount);
+			exit(1);
+		}
+		totalSize += stride * elemCount;
+	}
+	delete[] srcData;
+	delete[] encData;
+	delete[] gotData;
+	printf("- Filter test ok! Strides %i to %i, total size %.1fMB time cmp %.1fms dec %.1fms\n", kMinStride, kMaxStride, totalSize/1024.0/1024.0, stm_ms(timeFilter), stm_ms(timeUnfilter));
+	exit(0);
+}
+
 int main()
 {
 	stm_setup();
 	printf("CPU: '%s' Compiler: '%s'\n", SysInfoGetCpuName().c_str(), SysInfoGetCompilerName().c_str());
+	TestFiltering();
 
 	TestFile testFiles[] = {
 		{"../../../data/2048_sq_float4.bin", 2048, 2048, 4}, // water sim: X height, Y&Z velocity, W pollution
