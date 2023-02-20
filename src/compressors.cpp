@@ -311,13 +311,18 @@ static void Transpose(const uint8_t* a, uint8_t* b)
 // part 6 B: winvs 21.5 (ratio 3.945x)
 // part 6 D: winvs 18.8
 // part 6 B + split 2M: winvs 9.1 (ratio 3.939x)
-// G: seq write, scalar: winvs 33.6 mac 25.2
+// G: seq write, scalar: winvs 32.1 mac 25.2
 // H: seq write, ch=16 path, read   1b from streams: winvs 15.7
 //    seq write, ch=16 path, read  16b from streams: winvs  8.6
 //    seq write, ch=16 path, read  16b from streams, simd transpose: winvs 7.2
 // I: seq write, ch=16 path, read 256b from streams, simd transpose: winvs 7.2 mac 5.2
 static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
+    if ((channels % 4) != 0) // should never happen; our data is floats so channels will always be multiple of 4
+    {
+        assert(false);
+        return;
+    }
     // two pass, seq dst write: 31.6ms
     // two pass, seq src read: 15.8ms
     // one pass, seq src read (Part 6 B), Split 2M: 8.8ms 
@@ -461,7 +466,7 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
 #if 1
     // J: fetch+interleave groups of 4 channels to stack; then interleave+sum+store groups of 4 channels.
     const int k16Channels = 16;
-    if (channels == k16Channels)
+    if (channels == k16Channels && false) // special case path not used yet
     {
         uint8_t* dstPtr = dst;
         size_t ip = 0;
@@ -539,11 +544,55 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
     }
     else
     {
-        // temp: generic fallback
-        const size_t kMaxChannels = 64;
-        uint8_t prev[kMaxChannels] = {};
+        // not necessarily 16 channels case (but still always multiple of 4)
+        // winvs 16: 24.7
+        const int kMaxChannels = 64;
         uint8_t* dstPtr = dst;
-        for (size_t ip = 0; ip < dataElems; ++ip)
+        size_t ip = 0;
+        uint8_t prev[kMaxChannels] = {};
+        const int kChunkBytes = 16;
+        const int kChunkSimdSize = kChunkBytes / 16;
+        for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
+        {
+            // read chunk of bytes from each channel
+            Bytes16 chdata[kMaxChannels];
+            const uint8_t* srcPtr = src + ip;
+            // fetch data for groups of 4 channels, interleave
+            // so that first in chdata is (a0b0c0d0 a1b1c1d1 a2b2c2d2 a3b3c3d3) etc.
+            for (int ich = 0; ich < channels; ich += 4)
+            {
+                Bytes16 d0 = SimdLoad(srcPtr); srcPtr += dataElems;
+                Bytes16 d1 = SimdLoad(srcPtr); srcPtr += dataElems;
+                Bytes16 d2 = SimdLoad(srcPtr); srcPtr += dataElems;
+                Bytes16 d3 = SimdLoad(srcPtr); srcPtr += dataElems;
+                // interleaves like from https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
+                Bytes16 e0 = SimdInterleaveL(d0, d2); Bytes16 e1 = SimdInterleaveR(d0, d2);
+                Bytes16 e2 = SimdInterleaveL(d1, d3); Bytes16 e3 = SimdInterleaveR(d1, d3);
+                Bytes16 f0 = SimdInterleaveL(e0, e2); Bytes16 f1 = SimdInterleaveR(e0, e2);
+                Bytes16 f2 = SimdInterleaveL(e1, e3); Bytes16 f3 = SimdInterleaveR(e1, e3);
+                chdata[ich + 0] = f0;
+                chdata[ich + 1] = f1;
+                chdata[ich + 2] = f2;
+                chdata[ich + 3] = f3;
+            }
+            // read groups of data from stack, interleave, accumulate sum, store
+            for (int ib = 0; ib < 16; ++ib)
+            {
+                uint8_t cur[kMaxChannels];
+                for (int ich = 0; ich < channels; ich += 4)
+                {
+                    memcpy(cur + ich, (const uint32_t*)(&chdata[ich]) + ib, 4);
+                }
+                for (int ich = 0; ich < channels; ++ich)
+                {
+                    uint8_t v = prev[ich] + cur[ich];
+                    prev[ich] = v;
+                    *dstPtr++ = v;
+                }
+            }
+        }
+        // scalar loop for any non-multiple-of-chunk remainder
+        for (; ip < dataElems; ip++)
         {
             const uint8_t* srcPtr = src + ip;
             for (int ich = 0; ich < channels; ++ich)
