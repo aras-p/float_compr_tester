@@ -316,6 +316,7 @@ static void Transpose(const uint8_t* a, uint8_t* b)
 //    seq write, ch=16 path, read  16b from streams: winvs  8.6
 //    seq write, ch=16 path, read  16b from streams, simd transpose: winvs 7.2
 // I: seq write, ch=16 path, read 256b from streams, simd transpose: winvs 7.2 mac 5.2
+// J: fetch+interleave groups of 4 channels to stack; then interleave+sum+store groups of 4 ch. winvs 6.8 mac 3.7
 void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     if ((channels % 4) != 0) // should never happen; our data is floats so channels will always be multiple of 4
@@ -464,7 +465,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
 #endif
     
 #if 1
-    // J: fetch+interleave groups of 4 channels to stack; then interleave+sum+store groups of 4 channels.
+    // J: fetch+interleave groups of 4 channels to stack; then interleave+sum+store groups of 4 channels. winvs 6.8 mac 3.7
     const int k16Channels = 16;
     if (channels == k16Channels && false) // special case path not used yet
     {
@@ -473,7 +474,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         Bytes16 prev = SimdZero();
         // I(256): winvs 7.2 mac 5.2
         // win chunk 16: 6.2  32: 6.4  64: 6.6  128: 6.8  256: 6.5  512: 6.3  1024: 6.4  2048: 6.4  4096: 6.3
-        // mac chunk 16: 4.2  32: 3.7  64: 3.8  128: 3.6  256: 3.4  512: 3.5  1024: 3.4  2048: 3.5  4096: 3.2
+        // mac chunk 16: 4.2  32: 3.7  64: 3.8  128: 3.6  256: 3.7  512: 3.5  1024: 3.4  2048: 3.5  4096: 3.2
         const int kChunkBytes = 256;
         const int kChunkSimdSize = kChunkBytes / 16;
         for (; ip < int64_t(dataElems) - (kChunkBytes - 1); ip += kChunkBytes)
@@ -546,10 +547,11 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
     {
         // not necessarily 16 channels case (but still always multiple of 4)
         // winvs 16: 7.2
-        // mac 16: 10.5
+        // mac 16: 10.5 256: 8.9
         // full test winvs hardcoded to 16: 419.8, winclang: 397.1, mac: 389.0
         // full test winvs, arbitrary size: 16 424.2, 32 439.7, 64 439.8, 128 419.8, 256 384.9, 512 394.0, 1024 423.9
-        const int kChunkBytes = 16;
+        // full test mac, arbitrary size:   16 402.7, 32 413.2, 64 401.1, 128 395.4, 256 389.8, 512 398.2, 1024 391.8, 2048 400.1, 4096 412.0
+        const int kChunkBytes = 256;
         const int kChunkSimdSize = kChunkBytes / 16;
         const int kMaxChannels = 64;
         static_assert(kMaxChannels >= 16, "max channels can't be lower than simd width");
@@ -614,17 +616,16 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
                             curPtr += 16;
                         }
                         // store as multiple of 4 bytes
-                        //curPtr = curPtrStart;
-                        //for (int ich = 0; ich < channels; ich += 4)
-                        //{
-                        //    *(uint32_t*)dstPtr = *(const uint32_t*)curPtr;
-                        //    dstPtr += 4;
-                        //    curPtr += 4;
-                        //}
-                        // at least msvc replaces the manual loop above to a memcpy call :/
-                        memcpy(dstPtr, curPtrStart, channels);
-                        dstPtr += channels;
-
+                        // equivalent of memcpy, but we know we're multiple of 4
+                        // bytes size always. msvc replaces the loop with actual
+                        // memcpy call though :)
+                        curPtr = curPtrStart;
+                        for (int ich = 0; ich < channels; ich += 4)
+                        {
+                            *(uint32_t*)dstPtr = *(const uint32_t*)curPtr;
+                            dstPtr += 4;
+                            curPtr += 4;
+                        }
                         curPtrStart += kMaxChannels;
                     }
                 }
