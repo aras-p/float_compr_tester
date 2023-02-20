@@ -547,35 +547,42 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         // not necessarily 16 channels case (but still always multiple of 4)
         // winvs 16: 7.2
         // mac 16: 10.5
-        // full test winvs 16: 419.8, winclang 16: 397.1, mac 16: 389.0
+        // full test winvs hardcoded to 16: 419.8, winclang: 397.1, mac: 389.0
+        // full test winvs, arbitrary size: 16 424.2, 32 439.7, 64 439.8, 128 419.8, 256 384.9, 512 394.0, 1024 423.9
+        const int kChunkBytes = 16;
+        const int kChunkSimdSize = kChunkBytes / 16;
         const int kMaxChannels = 64;
+        static_assert(kMaxChannels >= 16, "max channels can't be lower than simd width");
+        static_assert((kChunkBytes % 16) == 0, "chunk bytes needs to be multiple of simd width");
         uint8_t* dstPtr = dst;
         int64_t ip = 0;
         alignas(16) uint8_t prev[kMaxChannels] = {};
-        const int kChunkBytes = 16;
-        const int kChunkSimdSize = kChunkBytes / 16;
         for (; ip < int64_t(dataElems) - (kChunkBytes - 1); ip += kChunkBytes)
         {
             // read chunk of bytes from each channel
-            Bytes16 chdata[kMaxChannels];
+            Bytes16 chdata[kMaxChannels][kChunkSimdSize];
             const uint8_t* srcPtr = src + ip;
             // fetch data for groups of 4 channels, interleave
             // so that first in chdata is (a0b0c0d0 a1b1c1d1 a2b2c2d2 a3b3c3d3) etc.
             for (int ich = 0; ich < channels; ich += 4)
             {
-                Bytes16 d0 = SimdLoad(srcPtr); srcPtr += dataElems;
-                Bytes16 d1 = SimdLoad(srcPtr); srcPtr += dataElems;
-                Bytes16 d2 = SimdLoad(srcPtr); srcPtr += dataElems;
-                Bytes16 d3 = SimdLoad(srcPtr); srcPtr += dataElems;
-                // interleaves like from https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
-                Bytes16 e0 = SimdInterleaveL(d0, d2); Bytes16 e1 = SimdInterleaveR(d0, d2);
-                Bytes16 e2 = SimdInterleaveL(d1, d3); Bytes16 e3 = SimdInterleaveR(d1, d3);
-                Bytes16 f0 = SimdInterleaveL(e0, e2); Bytes16 f1 = SimdInterleaveR(e0, e2);
-                Bytes16 f2 = SimdInterleaveL(e1, e3); Bytes16 f3 = SimdInterleaveR(e1, e3);
-                chdata[ich + 0] = f0;
-                chdata[ich + 1] = f1;
-                chdata[ich + 2] = f2;
-                chdata[ich + 3] = f3;
+                for (int item = 0; item < kChunkSimdSize; ++item)
+                {
+                    Bytes16 d0 = SimdLoad(((const Bytes16*)(srcPtr)) + item);
+                    Bytes16 d1 = SimdLoad(((const Bytes16*)(srcPtr + dataElems)) + item);
+                    Bytes16 d2 = SimdLoad(((const Bytes16*)(srcPtr + dataElems * 2)) + item);
+                    Bytes16 d3 = SimdLoad(((const Bytes16*)(srcPtr + dataElems * 3)) + item);
+                    // interleaves like from https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
+                    Bytes16 e0 = SimdInterleaveL(d0, d2); Bytes16 e1 = SimdInterleaveR(d0, d2);
+                    Bytes16 e2 = SimdInterleaveL(d1, d3); Bytes16 e3 = SimdInterleaveR(d1, d3);
+                    Bytes16 f0 = SimdInterleaveL(e0, e2); Bytes16 f1 = SimdInterleaveR(e0, e2);
+                    Bytes16 f2 = SimdInterleaveL(e1, e3); Bytes16 f3 = SimdInterleaveR(e1, e3);
+                    chdata[ich + 0][item] = f0;
+                    chdata[ich + 1][item] = f1;
+                    chdata[ich + 2][item] = f2;
+                    chdata[ich + 3][item] = f3;
+                }
+                srcPtr += 4 * dataElems;
             }
             // interleave data
             uint8_t cur[kMaxChannels * kChunkBytes];
@@ -589,24 +596,37 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
                 }
             }
             // accumulate sum and store
-            for (int ib = 0; ib < kChunkBytes; ++ib)
+            // the row address we want from "cur" is interleaved in a funky way due to 4-channels data fetch above.
+            for (int item = 0; item < kChunkSimdSize; ++item)
             {
-                uint8_t* curPtr = cur + ib * kMaxChannels;
-                uint8_t* curPtrStart = curPtr;
-                // accumulate sum w/ SIMD
-                for (int ich = 0; ich < channels; ich += 16)
+                for (int chgrp = 0; chgrp < 4; ++chgrp)
                 {
-                    Bytes16 v = SimdAdd(SimdLoadA(&prev[ich]), SimdLoad(curPtr));
-                    SimdStoreA(&prev[ich], v);
-                    SimdStore(curPtr, v);
-                    curPtr += 16;
-                }
-                // store as multiple of 4 bytes
-                for (int ich = 0; ich < channels; ich += 4)
-                {
-                    *(uint32_t*)dstPtr = *(const uint32_t*)curPtrStart;
-                    dstPtr += 4;
-                    curPtrStart += 4;
+                    uint8_t* curPtrStart = cur + (chgrp * kChunkSimdSize + item) * 4 * kMaxChannels;
+                    for (int ib = 0; ib < 4; ++ib)
+                    {
+                        uint8_t* curPtr = curPtrStart;
+                        // accumulate sum w/ SIMD
+                        for (int ich = 0; ich < channels; ich += 16)
+                        {
+                            Bytes16 v = SimdAdd(SimdLoadA(&prev[ich]), SimdLoad(curPtr));
+                            SimdStoreA(&prev[ich], v);
+                            SimdStore(curPtr, v);
+                            curPtr += 16;
+                        }
+                        // store as multiple of 4 bytes
+                        //curPtr = curPtrStart;
+                        //for (int ich = 0; ich < channels; ich += 4)
+                        //{
+                        //    *(uint32_t*)dstPtr = *(const uint32_t*)curPtr;
+                        //    dstPtr += 4;
+                        //    curPtr += 4;
+                        //}
+                        // at least msvc replaces the manual loop above to a memcpy call :/
+                        memcpy(dstPtr, curPtrStart, channels);
+                        dstPtr += channels;
+
+                        curPtrStart += kMaxChannels;
+                    }
                 }
             }
         }
