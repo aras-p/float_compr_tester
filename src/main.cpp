@@ -542,7 +542,7 @@ static void TestFiltering()
 	const size_t kFloatCount = 16 * 1024 * 1024 + 97;
 	float* srcData = new float[kFloatCount];
 	for (size_t i = 0; i < kFloatCount; ++i)
-		srcData[i] = -1000.0f + i * 0.1f;
+		srcData[i] = -1000.0f + i * (0.1f - i / 7.0f);
 	float* encData = new float[kFloatCount];
 	float* gotData = new float[kFloatCount];
 	int kMinStride = 4;

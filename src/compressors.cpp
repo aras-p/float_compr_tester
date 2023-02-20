@@ -395,7 +395,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
     if (channels == k16Channels)
     {
         uint8_t* dstPtr = dst;
-        size_t ip = 0;
+        int64_t ip = 0;
         Bytes16 prev = SimdZero();
         // SIMD loop; reading from each channel Chunk bytes at a time
         // Scalar transpose: winvs 16: 8.6, 32: 8.3, 64: 8.2, 128: 8.6, 256: 8.9, 512: 9.3, 1024: 9.7, 2048: 10.2, 4096: 16.6, 8192: 16.4
@@ -403,7 +403,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         // SIMD transpose:   mac   16: 6.1  32: 6.1  64: 5.3  128: 5.2  256: 5.2  512: 5.9  1024: 5.4  2048:  5.4  4096:  5.4  8192:  5.1  16384: 5.4
         const int kChunkBytes = 256; // I: 256
         const int kChunkSimdSize = kChunkBytes / 16;
-        for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
+        for (; ip < int64_t(dataElems) - (kChunkBytes - 1); ip += kChunkBytes)
         {
             // read chunk of bytes from each channel
             Bytes16 chdata[k16Channels][kChunkSimdSize];
@@ -469,14 +469,14 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
     if (channels == k16Channels && false) // special case path not used yet
     {
         uint8_t* dstPtr = dst;
-        size_t ip = 0;
+        int64_t ip = 0;
         Bytes16 prev = SimdZero();
         // I(256): winvs 7.2 mac 5.2
         // win chunk 16: 6.2  32: 6.4  64: 6.6  128: 6.8  256: 6.5  512: 6.3  1024: 6.4  2048: 6.4  4096: 6.3
         // mac chunk 16: 4.2  32: 3.7  64: 3.8  128: 3.6  256: 3.4  512: 3.5  1024: 3.4  2048: 3.5  4096: 3.2
         const int kChunkBytes = 256;
         const int kChunkSimdSize = kChunkBytes / 16;
-        for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
+        for (; ip < int64_t(dataElems) - (kChunkBytes - 1); ip += kChunkBytes)
         {
             // read chunk of bytes from each channel
             Bytes16 chdata[k16Channels][kChunkSimdSize];
@@ -526,7 +526,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
             }
         }
         // scalar loop for any non-multiple-of-16 remainder
-        for (; ip < dataElems; ip++)
+        for (; ip < int64_t(dataElems); ip++)
         {
             // read from each channel
             alignas(16) uint8_t chdata[k16Channels];
@@ -550,11 +550,11 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         // full test winvs 16: 419.8, winclang 16: 397.1, mac 16: 389.0
         const int kMaxChannels = 64;
         uint8_t* dstPtr = dst;
-        size_t ip = 0;
+        int64_t ip = 0;
         alignas(16) uint8_t prev[kMaxChannels] = {};
         const int kChunkBytes = 16;
         const int kChunkSimdSize = kChunkBytes / 16;
-        for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
+        for (; ip < int64_t(dataElems) - (kChunkBytes - 1); ip += kChunkBytes)
         {
             // read chunk of bytes from each channel
             Bytes16 chdata[kMaxChannels];
@@ -611,7 +611,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
             }
         }
         // scalar loop for any non-multiple-of-chunk remainder
-        for (; ip < dataElems; ip++)
+        for (; ip < int64_t(dataElems); ip++)
         {
             const uint8_t* srcPtr = src + ip;
             for (int ich = 0; ich < channels; ++ich)
