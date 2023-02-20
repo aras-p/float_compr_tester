@@ -317,6 +317,7 @@ static void Transpose(const uint8_t* a, uint8_t* b)
 //    seq write, ch=16 path, read  16b from streams, simd transpose: winvs 7.2
 // I: seq write, ch=16 path, read 256b from streams, simd transpose: winvs 7.2 mac 5.2
 // J: fetch+interleave groups of 4 channels to stack; then interleave+sum+store groups of 4 ch. winvs 6.8 mac 3.7
+// K: semi-unify 16-ch and general paths of J. winvs 4.7 mac ???
 void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     if ((channels % 4) != 0) // should never happen; our data is floats so channels will always be multiple of 4
@@ -324,45 +325,62 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         assert(false);
         return;
     }
-  
-    const int k16Channels = 16;
-    if (channels == k16Channels && false) // special case path not used yet
+    // 16-channels case timings:
+    // win chunk 16: 6.2  32: 6.4  64: 6.6  128: 6.8  256: 6.5  512: 6.3  1024: 6.4  2048: 6.4  4096: 6.3
+    // mac chunk 16: 4.2  32: 3.7  64: 3.8  128: 3.6  256: 3.7  512: 3.5  1024: 3.4  2048: 3.5  4096: 3.2
+
+    // not necessarily 16 channels case (but still always multiple of 4)
+    // winvs 16: 7.2
+    // mac 16: 10.5 256: 8.9
+    // full test winvs hardcoded to 16: 419.8, winclang: 397.1, mac: 389.0
+    // full test winvs, arbitrary size: 16 424.2, 32 439.7, 64 439.8, 128 419.8, 256 384.9, 512 394.0, 1024 423.9
+    // full test mac, arbitrary size:   16 402.7, 32 413.2, 64 401.1, 128 395.4, 256 389.8, 512 398.2, 1024 391.8, 2048 400.1, 4096 412.0
+
+    // K:
+    // winvs    16 4.6, 64 4.7, 256 4.7, 512 4.6, 1024 4.6, 2048 4.7, 4096 4.7
+    // winclang 16 4.6          256 4.5           1024 4.7
+    // full test:
+    // winvs    16 424.4, 64 423.7, 256 415.7
+
+    const int kChunkBytes = 256;
+    const int kChunkSimdSize = kChunkBytes / 16;
+    const int kMaxChannels = 64;
+    static_assert(kMaxChannels >= 16, "max channels can't be lower than simd width");
+    static_assert((kChunkBytes % 16) == 0, "chunk bytes needs to be multiple of simd width");
+    uint8_t* dstPtr = dst;
+    int64_t ip = 0;
+    alignas(16) uint8_t prev[kMaxChannels] = {};
+    Bytes16 prev16 = SimdZero();
+    for (; ip < int64_t(dataElems) - (kChunkBytes - 1); ip += kChunkBytes)
     {
-        uint8_t* dstPtr = dst;
-        int64_t ip = 0;
-        Bytes16 prev = SimdZero();
-        // I(256): winvs 7.2 mac 5.2
-        // win chunk 16: 6.2  32: 6.4  64: 6.6  128: 6.8  256: 6.5  512: 6.3  1024: 6.4  2048: 6.4  4096: 6.3
-        // mac chunk 16: 4.2  32: 3.7  64: 3.8  128: 3.6  256: 3.7  512: 3.5  1024: 3.4  2048: 3.5  4096: 3.2
-        const int kChunkBytes = 256;
-        const int kChunkSimdSize = kChunkBytes / 16;
-        for (; ip < int64_t(dataElems) - (kChunkBytes - 1); ip += kChunkBytes)
+        // read chunk of bytes from each channel
+        Bytes16 chdata[kMaxChannels][kChunkSimdSize];
+        const uint8_t* srcPtr = src + ip;
+        // fetch data for groups of 4 channels, interleave
+        // so that first in chdata is (a0b0c0d0 a1b1c1d1 a2b2c2d2 a3b3c3d3) etc.
+        for (int ich = 0; ich < channels; ich += 4)
         {
-            // read chunk of bytes from each channel
-            Bytes16 chdata[k16Channels][kChunkSimdSize];
-            const uint8_t* srcPtr = src + ip;
-            // fetch data for groups of 4 channels, interleave
-            // so that first in chdata is (a0b0c0d0 a1b1c1d1 a2b2c2d2 a3b3c3d3) etc.
-            for (int ich = 0; ich < k16Channels; ich += 4)
+            for (int item = 0; item < kChunkSimdSize; ++item)
             {
-                for (int item = 0; item < kChunkSimdSize; ++item)
-                {
-                    Bytes16 d0 = SimdLoad(((const Bytes16*)(srcPtr)) + item);
-                    Bytes16 d1 = SimdLoad(((const Bytes16*)(srcPtr + dataElems)) + item);
-                    Bytes16 d2 = SimdLoad(((const Bytes16*)(srcPtr + dataElems*2)) + item);
-                    Bytes16 d3 = SimdLoad(((const Bytes16*)(srcPtr + dataElems*3)) + item);
-                    // interleaves like from https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
-                    Bytes16 e0 = SimdInterleaveL(d0, d2); Bytes16 e1 = SimdInterleaveR(d0, d2);
-                    Bytes16 e2 = SimdInterleaveL(d1, d3); Bytes16 e3 = SimdInterleaveR(d1, d3);
-                    Bytes16 f0 = SimdInterleaveL(e0, e2); Bytes16 f1 = SimdInterleaveR(e0, e2);
-                    Bytes16 f2 = SimdInterleaveL(e1, e3); Bytes16 f3 = SimdInterleaveR(e1, e3);
-                    chdata[ich + 0][item] = f0;
-                    chdata[ich + 1][item] = f1;
-                    chdata[ich + 2][item] = f2;
-                    chdata[ich + 3][item] = f3;
-                }
-                srcPtr += 4 * dataElems;
+                Bytes16 d0 = SimdLoad(((const Bytes16*)(srcPtr)) + item);
+                Bytes16 d1 = SimdLoad(((const Bytes16*)(srcPtr + dataElems)) + item);
+                Bytes16 d2 = SimdLoad(((const Bytes16*)(srcPtr + dataElems * 2)) + item);
+                Bytes16 d3 = SimdLoad(((const Bytes16*)(srcPtr + dataElems * 3)) + item);
+                // interleaves like from https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
+                Bytes16 e0 = SimdInterleaveL(d0, d2); Bytes16 e1 = SimdInterleaveR(d0, d2);
+                Bytes16 e2 = SimdInterleaveL(d1, d3); Bytes16 e3 = SimdInterleaveR(d1, d3);
+                Bytes16 f0 = SimdInterleaveL(e0, e2); Bytes16 f1 = SimdInterleaveR(e0, e2);
+                Bytes16 f2 = SimdInterleaveL(e1, e3); Bytes16 f3 = SimdInterleaveR(e1, e3);
+                chdata[ich + 0][item] = f0;
+                chdata[ich + 1][item] = f1;
+                chdata[ich + 2][item] = f2;
+                chdata[ich + 3][item] = f3;
             }
+            srcPtr += 4 * dataElems;
+        }
+
+        if (channels == 16)
+        {
             // read groups of data from stack, interleave, accumulate sum, store
             for (int item = 0; item < kChunkSimdSize; ++item)
             {
@@ -378,73 +396,15 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
                     Bytes16 c0 = SimdInterleave4L(b0, b2); Bytes16 c1 = SimdInterleave4R(b0, b2);
                     Bytes16 c2 = SimdInterleave4L(b1, b3); Bytes16 c3 = SimdInterleave4R(b1, b3);
                     // c0..c3 is what we should do accumulate sum on, and store
-                    prev = SimdAdd(prev, c0); SimdStore(dstPtr, prev); dstPtr += 16;
-                    prev = SimdAdd(prev, c1); SimdStore(dstPtr, prev); dstPtr += 16;
-                    prev = SimdAdd(prev, c2); SimdStore(dstPtr, prev); dstPtr += 16;
-                    prev = SimdAdd(prev, c3); SimdStore(dstPtr, prev); dstPtr += 16;
+                    prev16 = SimdAdd(prev16, c0); SimdStore(dstPtr, prev16); dstPtr += 16;
+                    prev16 = SimdAdd(prev16, c1); SimdStore(dstPtr, prev16); dstPtr += 16;
+                    prev16 = SimdAdd(prev16, c2); SimdStore(dstPtr, prev16); dstPtr += 16;
+                    prev16 = SimdAdd(prev16, c3); SimdStore(dstPtr, prev16); dstPtr += 16;
                 }
             }
         }
-        // scalar loop for any non-multiple-of-16 remainder
-        for (; ip < int64_t(dataElems); ip++)
+        else
         {
-            // read from each channel
-            alignas(16) uint8_t chdata[k16Channels];
-            const uint8_t* srcPtr = src + ip;
-            for (int ich = 0; ich < k16Channels; ++ich)
-            {
-                chdata[ich] = *srcPtr;
-                srcPtr += dataElems;
-            }
-            // accumulate sum and write into destination
-            prev = SimdAdd(prev, SimdLoadA(chdata));
-            SimdStore(dstPtr, prev);
-            dstPtr += 16;
-        }
-    }
-    else
-    {
-        // not necessarily 16 channels case (but still always multiple of 4)
-        // winvs 16: 7.2
-        // mac 16: 10.5 256: 8.9
-        // full test winvs hardcoded to 16: 419.8, winclang: 397.1, mac: 389.0
-        // full test winvs, arbitrary size: 16 424.2, 32 439.7, 64 439.8, 128 419.8, 256 384.9, 512 394.0, 1024 423.9
-        // full test mac, arbitrary size:   16 402.7, 32 413.2, 64 401.1, 128 395.4, 256 389.8, 512 398.2, 1024 391.8, 2048 400.1, 4096 412.0
-        const int kChunkBytes = 256;
-        const int kChunkSimdSize = kChunkBytes / 16;
-        const int kMaxChannels = 64;
-        static_assert(kMaxChannels >= 16, "max channels can't be lower than simd width");
-        static_assert((kChunkBytes % 16) == 0, "chunk bytes needs to be multiple of simd width");
-        uint8_t* dstPtr = dst;
-        int64_t ip = 0;
-        alignas(16) uint8_t prev[kMaxChannels] = {};
-        for (; ip < int64_t(dataElems) - (kChunkBytes - 1); ip += kChunkBytes)
-        {
-            // read chunk of bytes from each channel
-            Bytes16 chdata[kMaxChannels][kChunkSimdSize];
-            const uint8_t* srcPtr = src + ip;
-            // fetch data for groups of 4 channels, interleave
-            // so that first in chdata is (a0b0c0d0 a1b1c1d1 a2b2c2d2 a3b3c3d3) etc.
-            for (int ich = 0; ich < channels; ich += 4)
-            {
-                for (int item = 0; item < kChunkSimdSize; ++item)
-                {
-                    Bytes16 d0 = SimdLoad(((const Bytes16*)(srcPtr)) + item);
-                    Bytes16 d1 = SimdLoad(((const Bytes16*)(srcPtr + dataElems)) + item);
-                    Bytes16 d2 = SimdLoad(((const Bytes16*)(srcPtr + dataElems * 2)) + item);
-                    Bytes16 d3 = SimdLoad(((const Bytes16*)(srcPtr + dataElems * 3)) + item);
-                    // interleaves like from https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
-                    Bytes16 e0 = SimdInterleaveL(d0, d2); Bytes16 e1 = SimdInterleaveR(d0, d2);
-                    Bytes16 e2 = SimdInterleaveL(d1, d3); Bytes16 e3 = SimdInterleaveR(d1, d3);
-                    Bytes16 f0 = SimdInterleaveL(e0, e2); Bytes16 f1 = SimdInterleaveR(e0, e2);
-                    Bytes16 f2 = SimdInterleaveL(e1, e3); Bytes16 f3 = SimdInterleaveR(e1, e3);
-                    chdata[ich + 0][item] = f0;
-                    chdata[ich + 1][item] = f1;
-                    chdata[ich + 2][item] = f2;
-                    chdata[ich + 3][item] = f3;
-                }
-                srcPtr += 4 * dataElems;
-            }
             // interleave data
             uint8_t cur[kMaxChannels * kChunkBytes];
             for (int ib = 0; ib < kChunkBytes; ++ib)
@@ -490,7 +450,29 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
                 }
             }
         }
-        // scalar loop for any non-multiple-of-chunk remainder
+    }
+
+    // scalar loop for any non-multiple-of-16 remainder
+    if (channels == 16)
+    {
+        for (; ip < int64_t(dataElems); ip++)
+        {
+            // read from each channel
+            alignas(16) uint8_t chdata[16];
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < 16; ++ich)
+            {
+                chdata[ich] = *srcPtr;
+                srcPtr += dataElems;
+            }
+            // accumulate sum and write into destination
+            prev16 = SimdAdd(prev16, SimdLoadA(chdata));
+            SimdStore(dstPtr, prev16);
+            dstPtr += 16;
+        }
+    }
+    else
+    {
         for (; ip < int64_t(dataElems); ip++)
         {
             const uint8_t* srcPtr = src + ip;
