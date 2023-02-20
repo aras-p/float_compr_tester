@@ -173,7 +173,7 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
             v = SimdSetLane<14>(v, *srcPtr); srcPtr += channels;
             v = SimdSetLane<15>(v, *srcPtr); srcPtr += channels;
             // delta from previous
-            Bytes16 delta = v - SimdConcat<15>(v, prev16);
+            Bytes16 delta = SimdSub(v, SimdConcat<15>(v, prev16));
             SimdStore(dst, delta);
             prev16 = v;
             dst += 16;
@@ -210,7 +210,7 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
             // load 16 bytes of filtered data
             Bytes16 v = SimdLoad(src);
             // un-delta via prefix sum
-            prev16 = SimdPrefixSum(v) + SimdShuffle(prev16, hibyte);
+            prev16 = SimdAdd(SimdPrefixSum(v), SimdShuffle(prev16, hibyte));
             // scattered write into destination
             *dstPtr = SimdGetLane<0>(prev16); dstPtr += channels;
             *dstPtr = SimdGetLane<1>(prev16); dstPtr += channels;
@@ -363,7 +363,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
                 srcPtr += dataElems;
             }
             // accumulate sum and write into destination
-            prev = prev + SimdLoadA(chdata);
+            prev = SimdAdd(prev, SimdLoadA(chdata));
             SimdStore(dstPtr, prev);
             dstPtr += 16;
         }
@@ -420,7 +420,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
             // accumulate sum and write into destination
             for (int i = 0; i < sizeof(xposed)/sizeof(xposed[0]); ++i)
             {
-                prev = prev + xposed[i];
+                prev = SimdAdd(prev, xposed[i]);
                 SimdStore(dstPtr, prev);
                 dstPtr += 16;
             }
@@ -437,7 +437,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
                 srcPtr += dataElems;
             }
             // accumulate sum and write into destination
-            prev = prev + SimdLoadA(chdata);
+            prev = SimdAdd(prev, SimdLoadA(chdata));
             SimdStore(dstPtr, prev);
             dstPtr += 16;
         }
@@ -518,10 +518,10 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
                     Bytes16 c0 = SimdInterleave4L(b0, b2); Bytes16 c1 = SimdInterleave4R(b0, b2);
                     Bytes16 c2 = SimdInterleave4L(b1, b3); Bytes16 c3 = SimdInterleave4R(b1, b3);
                     // c0..c3 is what we should do accumulate sum on, and store
-                    prev = prev + c0; SimdStore(dstPtr, prev); dstPtr += 16;
-                    prev = prev + c1; SimdStore(dstPtr, prev); dstPtr += 16;
-                    prev = prev + c2; SimdStore(dstPtr, prev); dstPtr += 16;
-                    prev = prev + c3; SimdStore(dstPtr, prev); dstPtr += 16;
+                    prev = SimdAdd(prev, c0); SimdStore(dstPtr, prev); dstPtr += 16;
+                    prev = SimdAdd(prev, c1); SimdStore(dstPtr, prev); dstPtr += 16;
+                    prev = SimdAdd(prev, c2); SimdStore(dstPtr, prev); dstPtr += 16;
+                    prev = SimdAdd(prev, c3); SimdStore(dstPtr, prev); dstPtr += 16;
                 }
             }
         }
@@ -537,7 +537,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
                 srcPtr += dataElems;
             }
             // accumulate sum and write into destination
-            prev = prev + SimdLoadA(chdata);
+            prev = SimdAdd(prev, SimdLoadA(chdata));
             SimdStore(dstPtr, prev);
             dstPtr += 16;
         }
@@ -547,7 +547,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         // not necessarily 16 channels case (but still always multiple of 4)
         // winvs 16: 7.2
         // mac 16: 10.5
-        // full test winvs 16: 422.2, mac 16: 389.0
+        // full test winvs 16: 419.8, winclang 16: 397.1, mac 16: 389.0
         const int kMaxChannels = 64;
         uint8_t* dstPtr = dst;
         size_t ip = 0;
@@ -596,7 +596,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
                 // accumulate sum w/ SIMD
                 for (int ich = 0; ich < channels; ich += 16)
                 {
-                    Bytes16 v = SimdLoadA(&prev[ich]) + SimdLoad(curPtr);
+                    Bytes16 v = SimdAdd(SimdLoadA(&prev[ich]), SimdLoad(curPtr));
                     SimdStoreA(&prev[ich], v);
                     SimdStore(curPtr, v);
                     curPtr += 16;

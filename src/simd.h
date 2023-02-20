@@ -27,8 +27,8 @@ template<int lane> inline uint8_t SimdGetLane(Bytes16 x) { return _mm_extract_ep
 template<int lane> inline Bytes16 SimdSetLane(Bytes16 x, uint8_t v) { return _mm_insert_epi8(x, v, lane); }
 template<int index> inline Bytes16 SimdConcat(Bytes16 hi, Bytes16 lo) { return _mm_alignr_epi8(hi, lo, index); }
 
-inline Bytes16 operator+(Bytes16 a, Bytes16 b) { return _mm_add_epi8(a, b); }
-inline Bytes16 operator-(Bytes16 a, Bytes16 b) { return _mm_sub_epi8(a, b); }
+inline Bytes16 SimdAdd(Bytes16 a, Bytes16 b) { return _mm_add_epi8(a, b); }
+inline Bytes16 SimdSub(Bytes16 a, Bytes16 b) { return _mm_sub_epi8(a, b); }
 
 inline Bytes16 SimdShuffle(Bytes16 x, Bytes16 table) { return _mm_shuffle_epi8(x, table); }
 inline Bytes16 SimdInterleaveL(Bytes16 a, Bytes16 b) { return _mm_unpacklo_epi8(a, b); }
@@ -58,6 +58,9 @@ inline void SimdStoreA(void* ptr, Bytes16 x) { vst1q_u8((uint8_t*)ptr, x); }
 template<int lane> inline uint8_t SimdGetLane(Bytes16 x) { return vgetq_lane_u8(x, lane); }
 template<int lane> inline Bytes16 SimdSetLane(Bytes16 x, uint8_t v) { return vsetq_lane_u8(v, x, lane); }
 template<int index> inline Bytes16 SimdConcat(Bytes16 hi, Bytes16 lo) { return vextq_u8(lo, hi, index); }
+
+inline Bytes16 SimdAdd(Bytes16 a, Bytes16 b) { return vaddq_u8(a, b); }
+inline Bytes16 SimdSub(Bytes16 a, Bytes16 b) { return vsubq_u8(a, b); }
 
 inline Bytes16 SimdShuffle(Bytes16 x, Bytes16 table) { return vqtbl1q_u8(x, table); }
 inline Bytes16 SimdInterleaveL(Bytes16 a, Bytes16 b) { return vzip1q_u8(a, b); }
