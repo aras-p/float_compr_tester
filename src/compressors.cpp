@@ -244,11 +244,36 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
     }
 }
 
-// memcpy: 3.6ms
-// part 6 B: 20.1ms ratio 3.945x
-// split 2M, part 6 B: 13.2ms ratio 3.939x
+// memcpy: winvs 3.6ms
+// part 6 B: winvs 20.1ms ratio 3.945x
+// split 2M, part 6 B: winvs 13.2ms ratio 3.939x
+// K: scalar write, w/ K decoder: mac 11.7 (blog part 6 says 11.0)
+// L: special 16ch case: mac 8.4
+
+// https://fgiesen.wordpress.com/2013/07/09/simd-transposes-1/ and https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
+static void EvenOddInterleave16(const Bytes16* a, Bytes16* b)
+{
+    int bidx = 0;
+    for (int i = 0; i < 8; ++i)
+    {
+        b[bidx] = SimdInterleaveL(a[i], a[i + 8]); bidx++;
+        b[bidx] = SimdInterleaveR(a[i], a[i + 8]); bidx++;
+    }
+}
+
+static void Transpose16x16(const Bytes16* a, Bytes16* b)
+{
+    Bytes16 tmp1[16], tmp2[16];
+    EvenOddInterleave16((const Bytes16*)a, tmp1);
+    EvenOddInterleave16(tmp1, tmp2);
+    EvenOddInterleave16(tmp2, tmp1);
+    EvenOddInterleave16(tmp1, (Bytes16*)b);
+}
+
 void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
+    // K: initial seq write, scalar, w/ K decoding: full test mac 674.8
+#if 0
     for (int ich = 0; ich < channels; ++ich)
     {
         uint8_t prev = 0;
@@ -262,49 +287,69 @@ void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
             dst += 1;
         }
     }
-}
+#endif
 
-// https://fgiesen.wordpress.com/2013/07/09/simd-transposes-1/ and https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
-static void EvenOddInterleave16(const Bytes16* a, Bytes16* b, int astride)
-{
-    int bidx = 0;
-    for (int i = 0; i < 8; ++i)
+#if 1
+    // L: special case for 16ch
+    // mac 8.4, full test 661.4
+    if (channels == 16)
     {
-        b[bidx] = SimdInterleaveL(a[i * astride], a[(i + 8)*astride]); bidx++;
-        b[bidx] = SimdInterleaveR(a[i * astride], a[(i + 8)*astride]); bidx++;
-    }
-}
-
-static void Transpose16x16(const Bytes16* a, Bytes16* b, int astride)
-{
-    Bytes16 tmp1[16], tmp2[16];
-    EvenOddInterleave16((const Bytes16*)a, tmp1, astride);
-    EvenOddInterleave16(tmp1, tmp2, 1);
-    EvenOddInterleave16(tmp2, tmp1, 1);
-    EvenOddInterleave16(tmp1, (Bytes16*)b, 1);
-}
-
-template<int cols, int rows>
-static void Transpose(const uint8_t* a, uint8_t* b)
-{
-    if (rows == 16 && ((cols % 16) == 0))
-    {
-        int blocks = cols / rows;
-        for (int i = 0; i < blocks; ++i)
+        int64_t ip = 0;
+        Bytes16 chdata[16];
+        Bytes16 xposed[16];
+        Bytes16 prev16 = SimdZero();
+        uint8_t* dstPtr = dst;
+        // simd loop
+        for (; ip < int64_t(dataElems) - 15; ip += 16)
         {
-            Transpose16x16(((const Bytes16*)a) + i, ((Bytes16*)b) + i*16, blocks);
+            for (int i = 0; i < 16; ++i)
+            {
+                Bytes16 v = SimdLoad(src); src += 16;
+                chdata[i] = SimdSub(v, prev16);
+                prev16 = v;
+            }
+            Transpose16x16(chdata, xposed);
+            for (int i = 0; i < 16; ++i)
+            {
+                SimdStore(dstPtr + i * dataElems, xposed[i]);
+            }
+            dstPtr += 16;
+        }
+        // any trailing leftover
+        alignas(16) uint8_t prev[16];
+        SimdStoreA(prev, prev16);
+        for (int ich = 0; ich < 16; ++ich)
+        {
+            dstPtr = dst + ich * dataElems + ip;
+            const uint8_t* srcPtr = src + ich;
+            for (size_t ii = ip; ii < dataElems; ++ii)
+            {
+                uint8_t v = *srcPtr;
+                *dstPtr = v - prev[ich];
+                prev[ich] = v;
+                srcPtr += channels;
+                dstPtr += 1;
+            }
         }
     }
     else
     {
-        for (int j = 0; j < rows; ++j)
+        // generic scalar
+        for (int ich = 0; ich < channels; ++ich)
         {
-            for (int i = 0; i < cols; ++i)
+            uint8_t prev = 0;
+            const uint8_t* srcPtr = src + ich;
+            for (size_t ip = 0; ip < dataElems; ++ip)
             {
-                b[i * rows + j] = a[j * cols + i];
+                uint8_t v = *srcPtr;
+                *dst = v - prev;
+                prev = v;
+                srcPtr += channels;
+                dst += 1;
             }
         }
     }
+#endif
 }
 
 // memcpy: winvs 2.9ms
@@ -317,7 +362,7 @@ static void Transpose(const uint8_t* a, uint8_t* b)
 //    seq write, ch=16 path, read  16b from streams, simd transpose: winvs 7.2
 // I: seq write, ch=16 path, read 256b from streams, simd transpose: winvs 7.2 mac 5.2
 // J: fetch+interleave groups of 4 channels to stack; then interleave+sum+store groups of 4 ch. winvs 6.8 mac 3.7
-// K: semi-unify 16-ch and general paths of J. winvs 4.7 mac ???
+// K: semi-unify 16-ch and general paths of J. winvs 4.7 mac 3.7
 void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     if ((channels % 4) != 0) // should never happen; our data is floats so channels will always be multiple of 4
@@ -325,22 +370,14 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         assert(false);
         return;
     }
-    // 16-channels case timings:
-    // win chunk 16: 6.2  32: 6.4  64: 6.6  128: 6.8  256: 6.5  512: 6.3  1024: 6.4  2048: 6.4  4096: 6.3
-    // mac chunk 16: 4.2  32: 3.7  64: 3.8  128: 3.6  256: 3.7  512: 3.5  1024: 3.4  2048: 3.5  4096: 3.2
-
-    // not necessarily 16 channels case (but still always multiple of 4)
-    // winvs 16: 7.2
-    // mac 16: 10.5 256: 8.9
-    // full test winvs hardcoded to 16: 419.8, winclang: 397.1, mac: 389.0
-    // full test winvs, arbitrary size: 16 424.2, 32 439.7, 64 439.8, 128 419.8, 256 384.9, 512 394.0, 1024 423.9
-    // full test mac, arbitrary size:   16 402.7, 32 413.2, 64 401.1, 128 395.4, 256 389.8, 512 398.2, 1024 391.8, 2048 400.1, 4096 412.0
-
     // K:
     // winvs    16 4.6, 64 4.7, 256 4.7, 512 4.6, 1024 4.6, 2048 4.7, 4096 4.7
     // winclang 16 4.6          256 4.5           1024 4.7
+    // mac                      256 3.7
+    //
     // full test:
     // winvs    16 424.4, 64 423.7, 256 415.7
+    // mac                          256 375.5
 
     const int kChunkBytes = 256;
     const int kChunkSimdSize = kChunkBytes / 16;
@@ -381,6 +418,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
 
         if (channels == 16)
         {
+            // channels == 16 case is much simpler
             // read groups of data from stack, interleave, accumulate sum, store
             for (int item = 0; item < kChunkSimdSize; ++item)
             {
@@ -405,7 +443,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         }
         else
         {
-            // interleave data
+            // general case: interleave data
             uint8_t cur[kMaxChannels * kChunkBytes];
             for (int ib = 0; ib < kChunkBytes; ++ib)
             {
@@ -524,12 +562,17 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
 
 // Mac:
 // Part6D:
-// I(256):     cmp 11.6 dec 5.2 ratio 3.945
-// split  64k: cmp 11.1 dec 5.6 ratio 3.664
-// split 256k: cmp 11.5 dec 4.9 ratio 3.703
-// split   1M: cmp 11.2 dec 4.6 ratio 3.870
-// split   2M: cmp 11.2 dec 4.9 ratio 3.939 <--
-// split   4M: cmp 11.4 dec 5.7 ratio 3.943
+// I(256):       cmp 11.6 dec 5.2 ratio 3.945
+//   split  64k: cmp 11.1 dec 5.6 ratio 3.664
+//   split 256k: cmp 11.5 dec 4.9 ratio 3.703
+//   split   1M: cmp 11.2 dec 4.6 ratio 3.870
+//   split   2M: cmp 11.2 dec 4.9 ratio 3.939 <--
+//   split   4M: cmp 11.4 dec 5.7 ratio 3.943
+// K(256):
+//   split 256k: cmp 11.2 dec 3.1
+//   split   2M: cmp 11.3 dec 3.4
+// L:            cmp  8.3 dec 3.1
+//   split   2M: cmp  8.3 dec 2.9
 
 const size_t kSplitChunkSize = 128 * 1024 * 1024;
 static void TestFilterWithSplit(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
