@@ -545,11 +545,11 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
     else
     {
         // not necessarily 16 channels case (but still always multiple of 4)
-        // winvs 16: 24.7
+        // winvs 16: 7.2
         const int kMaxChannels = 64;
         uint8_t* dstPtr = dst;
         size_t ip = 0;
-        uint8_t prev[kMaxChannels] = {};
+        alignas(16) uint8_t prev[kMaxChannels] = {};
         const int kChunkBytes = 16;
         const int kChunkSimdSize = kChunkBytes / 16;
         for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
@@ -575,20 +575,31 @@ static void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t 
                 chdata[ich + 2] = f2;
                 chdata[ich + 3] = f3;
             }
-            // read groups of data from stack, interleave, accumulate sum, store
-            for (int ib = 0; ib < 16; ++ib)
+            // interleave data
+            uint8_t cur[kMaxChannels * kChunkBytes];
+            for (int ib = 0; ib < kChunkBytes; ++ib)
             {
-                uint8_t cur[kMaxChannels];
+                uint8_t* curPtr = cur + ib * kMaxChannels;
                 for (int ich = 0; ich < channels; ich += 4)
                 {
-                    memcpy(cur + ich, (const uint32_t*)(&chdata[ich]) + ib, 4);
+                    memcpy(curPtr, ((const uint8_t*)chdata) + ich * kChunkBytes + ib * 4, 4);
+                    curPtr += 4;
                 }
-                for (int ich = 0; ich < channels; ++ich)
+            }
+            // accumulate sum and store
+            for (int ib = 0; ib < kChunkBytes; ++ib)
+            {
+                uint8_t* curPtr = cur + ib * kMaxChannels;
+                uint8_t* curPtrStart = curPtr;
+                for (int ich = 0; ich < channels; ich += 16)
                 {
-                    uint8_t v = prev[ich] + cur[ich];
-                    prev[ich] = v;
-                    *dstPtr++ = v;
+                    Bytes16 v = SimdLoadA(&prev[ich]) + SimdLoad(curPtr);
+                    SimdStoreA(&prev[ich], v);
+                    SimdStore(curPtr, v);
+                    curPtr += 16;
                 }
+                memcpy(dstPtr, curPtrStart, channels);
+                dstPtr += channels;
             }
         }
         // scalar loop for any non-multiple-of-chunk remainder
