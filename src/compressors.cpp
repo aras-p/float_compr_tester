@@ -473,8 +473,8 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         Bytes16 prev = SimdZero();
         // I(256): winvs 7.2 mac 5.2
         // win chunk 16: 6.2  32: 6.4  64: 6.6  128: 6.8  256: 6.5  512: 6.3  1024: 6.4  2048: 6.4  4096: 6.3
-        // mac chunk 16: 4.2
-        const int kChunkBytes = 16;
+        // mac chunk 16: 4.2  32: 3.7  64: 3.8  128: 3.6  256: 3.4  512: 3.5  1024: 3.4  2048: 3.5  4096: 3.2
+        const int kChunkBytes = 256;
         const int kChunkSimdSize = kChunkBytes / 16;
         for (; ip < dataElems - kChunkBytes - 1; ip += kChunkBytes)
         {
@@ -546,7 +546,8 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
     {
         // not necessarily 16 channels case (but still always multiple of 4)
         // winvs 16: 7.2
-        // full test winvs 16: 422.2
+        // mac 16: 10.5
+        // full test winvs 16: 422.2, mac 16: 389.0
         const int kMaxChannels = 64;
         uint8_t* dstPtr = dst;
         size_t ip = 0;
