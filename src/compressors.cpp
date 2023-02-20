@@ -247,8 +247,8 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
 // memcpy: winvs 3.6ms
 // part 6 B: winvs 20.1ms ratio 3.945x
 // split 2M, part 6 B: winvs 13.2ms ratio 3.939x
-// K: scalar write, w/ K decoder: mac 11.7 (blog part 6 says 11.0)
-// L: special 16ch case: mac 8.4
+// K: scalar write (Part 6B), w/ K decoder: mac 11.4
+// L: special 16ch case: winvs 7.4 mac 8.4
 
 // https://fgiesen.wordpress.com/2013/07/09/simd-transposes-1/ and https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
 static void EvenOddInterleave16(const Bytes16* a, Bytes16* b)
@@ -272,7 +272,7 @@ static void Transpose16x16(const Bytes16* a, Bytes16* b)
 
 void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
-    // K: initial seq write, scalar, w/ K decoding: full test mac 674.8
+    // K: initial seq write (B from Part6), scalar, w/ K decoding: full test winvs 1451.1 mac 674.8
 #if 0
     for (int ich = 0; ich < channels; ++ich)
     {
@@ -291,7 +291,8 @@ void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
 
 #if 1
     // L: special case for 16ch
-    // mac 8.4, full test 661.4
+    // winvs 7.4, full test 1395.2
+    // mac   8.4, full test  661.4
     if (channels == 16)
     {
         int64_t ip = 0;

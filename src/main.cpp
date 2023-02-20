@@ -28,14 +28,23 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 #	endif
 
 	constexpr bool kWriteResultsCache = false;
-	const int kRuns = 1;
+	const int kRuns = 3;
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterTest));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterTest));
+#	if BUILD_WITH_OODLE
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterTest));
+#	endif
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8Delta));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8Delta));
 #	if BUILD_WITH_OODLE
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8Delta));
+#	endif
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8 | kFilterDeltaDiff));
+#	if BUILD_WITH_OODLE
+	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8 | kFilterDeltaDiff));
 #	endif
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
@@ -579,7 +588,7 @@ int main()
 {
 	stm_setup();
 	printf("CPU: '%s' Compiler: '%s'\n", SysInfoGetCpuName().c_str(), SysInfoGetCompilerName().c_str());
-	TestFiltering();
+	//TestFiltering();
 
 	TestFile testFiles[] = {
 		{"../../../data/2048_sq_float4.bin", 2048, 2048, 4}, // water sim: X height, Y&Z velocity, W pollution
