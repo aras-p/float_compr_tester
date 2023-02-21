@@ -4,3 +4,5 @@
 
 std::string SysInfoGetCpuName();
 std::string SysInfoGetCompilerName();
+
+void SysInfoFlushCaches();
