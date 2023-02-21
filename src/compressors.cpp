@@ -144,6 +144,22 @@ static void UnSplit(const T* src, T* dst, int channels, int planeElems)
 
 static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t planeElems)
 {
+#if 1 // B case
+    uint8_t prev = 0;
+    for (int ich = 0; ich < channels; ++ich)
+    {
+        const uint8_t* srcPtr = src + ich;
+        for (size_t ip = 0; ip < planeElems; ++ip)
+        {
+            uint8_t v = *srcPtr;
+            *dst = v - prev;
+            prev = v;
+            srcPtr += channels;
+            dst += 1;
+        }
+    }
+#endif
+#if 0 // D case
     uint8_t prev = 0;
     for (int ich = 0; ich < channels; ++ich)
     {
@@ -191,10 +207,28 @@ static void Split8Delta(const uint8_t* src, uint8_t* dst, int channels, size_t p
             dst += 1;
         }
     }
+#endif
 }
 
 static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t planeElems)
 {
+#if 1
+    // B case
+    uint8_t prev = 0;
+    for (int ich = 0; ich < channels; ++ich)
+    {
+        uint8_t* dstPtr = dst + ich;
+        for (size_t ip = 0; ip < planeElems; ++ip)
+        {
+            uint8_t v = *src + prev;
+            prev = v;
+            *dstPtr = v;
+            src += 1;
+            dstPtr += channels;
+        }
+    }
+#endif
+#if 0
     // "d" case: combined delta+unsplit; SIMD prefix sum delta, unrolled scattered writes into destination
     uint8_t prev = 0;
     for (int ich = 0; ich < channels; ++ich)
@@ -242,6 +276,7 @@ static void UnSplit8Delta(uint8_t* src, uint8_t* dst, int channels, size_t plane
             dstPtr += channels;
         }
     }
+#endif
 }
 
 // memcpy: winvs 3.6ms
@@ -272,8 +307,12 @@ static void Transpose16x16(const Bytes16* a, Bytes16* b)
 
 void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
-    // K: initial seq write (B from Part6), scalar, w/ K decoding: full test winvs 1451.1 mac 674.8
 #if 0
+    Split8Delta(src, dst, channels, dataElems);
+#endif
+
+#if 1
+    // K: initial seq write (B from Part6), scalar, w/ K decoding: full test winvs 1451.1 mac 674.8
     for (int ich = 0; ich < channels; ++ich)
     {
         uint8_t prev = 0;
@@ -289,7 +328,7 @@ void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
     }
 #endif
 
-#if 1
+#if 0
     // L: special case for 16ch
     // winvs 7.4, full test 1395.2
     // mac   8.4, full test  661.4
@@ -371,6 +410,31 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         assert(false);
         return;
     }
+
+#if 0
+    UnSplit8Delta((uint8_t*)src, dst, channels, dataElems);
+#endif
+
+#if 0
+    // G: sequential write into dst; scattered read from all streams (no 2M split): winvs 33.6 mac 25.2
+    const size_t kMaxChannels = 64;
+    uint8_t prev[kMaxChannels] = {};
+    uint8_t* dstPtr = dst;
+    for (size_t ip = 0; ip < dataElems; ++ip)
+    {
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            uint8_t v = *srcPtr + prev[ich];
+            prev[ich] = v;
+            *dstPtr = v;
+            srcPtr += dataElems;
+            dstPtr += 1;
+        }
+    }
+#endif
+
+#if 1
     // K:
     // winvs    16 4.6, 64 4.7, 256 4.7, 512 4.6, 1024 4.6, 2048 4.7, 4096 4.7
     // winclang 16 4.6          256 4.5           1024 4.7
@@ -417,7 +481,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
             srcPtr += 4 * dataElems;
         }
 
-        if (channels == 16)
+        if (channels == 16 && false)
         {
             // channels == 16 case is much simpler
             // read groups of data from stack, interleave, accumulate sum, store
@@ -492,7 +556,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
     }
 
     // scalar loop for any non-multiple-of-16 remainder
-    if (channels == 16)
+    if (channels == 16 && false)
     {
         for (; ip < int64_t(dataElems); ip++)
         {
@@ -525,6 +589,7 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
             }
         }
     }
+#endif
 }
 
 // WinVS
