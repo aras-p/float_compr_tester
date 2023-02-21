@@ -2,12 +2,17 @@
 #include <vector>
 #include <algorithm>
 #include "compressors.h"
+#include "compression_helpers.h"
+#include "filters.h"
 #include "systeminfo.h"
 #include "resultcache.h"
 #include <set>
 
 #define SOKOL_TIME_IMPL
 #include "../libs/sokol_time.h"
+
+constexpr bool kWriteResultsCache = true;
+const int kRuns = 5;
 
 struct TestFile
 {
@@ -27,8 +32,6 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	oodle_init();
 #	endif
 
-	constexpr bool kWriteResultsCache = false;
-	const int kRuns = 3;
 
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterTest));
 	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterTest));
@@ -539,57 +542,176 @@ static void DumpInputVisualizations(int width, int height, const float* data)
 	}
 }
 
-void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
-void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
 
-static void FullTestFiltering()
+struct FilterDesc
 {
+	const char* name;
+	void (*filterFunc)(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
+	void (*unfilterFunc)(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
+};
+static FilterDesc g_Filters[] =
+{
+	{ "0-memcpy", Filter_Null, UnFilter_Null },
+	{ "A-simple", Filter_A, UnFilter_A },
+	{ "B-part6", Filter_B, UnFilter_B },
+	{ "D-part6", Filter_D, UnFilter_D },
+	{ "F-sep", Filter_F, UnFilter_F },
+	{ "G-sep", Filter_F, UnFilter_G },
+};
+constexpr int kFilterCount = sizeof(g_Filters) / sizeof(g_Filters[0]);
 
-	printf("Full test filtering:\n");
-	const size_t kFloatCount = 16 * 1024 * 1024 + 97;
+
+static void TestFiltersOnSyntheticData()
+{
+	printf("Testing filters on synthetic data:\n");
+	// generate data and allocate buffers
+	const size_t kFloatCount = 8 * 1024 * 1024;
 	float* srcData = new float[kFloatCount];
 	for (size_t i = 0; i < kFloatCount; ++i)
-		srcData[i] = -1000.0f + i * (0.1f - i / 7.0f);
+		srcData[i] = -1000.0f + i * 0.01f - cosf(i * i * 0.001f);
+	float* srcDataOrig = new float[kFloatCount];
+	memcpy(srcDataOrig, srcData, kFloatCount * 4);
 	float* encData = new float[kFloatCount];
 	float* gotData = new float[kFloatCount];
-	int kMinStride = 4;
-	int kMaxStride = 64;
-	uint64_t timeFilter = 0;
-	uint64_t timeUnfilter = 0;
-	size_t totalSize = 0;
-	for (int stride = kMinStride; stride <= kMaxStride; stride += 4)
+	size_t cmpBound = compress_calc_bound(kFloatCount * 4, kCompressionZstd);
+	uint8_t* cmpBuffer = new uint8_t[cmpBound];
+
+	bool wasCached[kFilterCount] = {};
+	size_t cmpSizeFilter[kFilterCount] = {};
+	uint64_t timeFilter[kFilterCount] = {};
+	uint64_t timeUnfilter[kFilterCount] = {};
+	double timeMinFilter[kFilterCount] = {};
+	double timeMinUnfilter[kFilterCount] = {};
+
+	// check which ones we already have cached
+	for (int fi = 0; fi < kFilterCount; ++fi)
 	{
-		size_t elemCount = kFloatCount * 4 / stride;
-		SysInfoFlushCaches();
-		uint64_t t0 = stm_now();
-		TestFilter((const uint8_t*)srcData, (uint8_t*)encData, stride, elemCount);
-		uint64_t t1 = stm_now();
-		timeFilter += t1 - t0;
-
-		SysInfoFlushCaches();
-		t0 = stm_now();
-		TestUnFilter((const uint8_t*)encData, (uint8_t*)gotData, stride, elemCount);
-		t1 = stm_now();
-		timeUnfilter += t1 - t0;
-
-		if (memcmp(srcData, gotData, stride * elemCount) != 0)
+		size_t cachedSize;
+		double cachedCmpTime, cachedDecTime;
+		char namebuf[1024];
+		snprintf(namebuf, sizeof(namebuf), "filter_syn_%s", g_Filters[fi].name);
+		if (ResCacheGet(namebuf, 0, &cachedSize, &cachedCmpTime, &cachedDecTime))
 		{
-			printf("ERROR filter did not decode properly for stride=%i elemCount=%zi\n", stride, elemCount);
-			exit(1);
+			wasCached[fi] = true;
+			cmpSizeFilter[fi] = cachedSize;
+			timeMinFilter[fi] = cachedCmpTime;
+			timeMinUnfilter[fi] = cachedDecTime;
 		}
-		totalSize += stride * elemCount;
+	}
+
+	size_t totalSize = 0;
+
+	const int kStridesToTest[] = { 4, 8, 12, 12, 16, 16, 16, 16, 16, 20, 32, 32, 44, 48, 64 };
+	const size_t kElemsToTest[] = { 1, 5, 16, 33, 131, 1024, 4229, 16*1024, 57041, 256*1024, 0 };
+
+	uint64_t t0, t1;
+
+	// several runs
+	for (int run = 0; run < kRuns; ++run)
+	{
+		printf(" run %i: strides ", run);
+		memset(timeFilter, 0, sizeof(timeFilter));
+		memset(timeUnfilter, 0, sizeof(timeUnfilter));
+
+		// varying strides
+		for (int stride : kStridesToTest)
+		{
+			printf("%i ", stride); fflush(stdout);
+			size_t maxElemsThisStride = kFloatCount * 4 / stride;
+
+			// varying data sizes
+			for (size_t elemCount : kElemsToTest)
+			{
+				if (elemCount > maxElemsThisStride) continue;
+				if (elemCount == 0) elemCount = maxElemsThisStride;
+				if (run == 0)
+					totalSize += stride * elemCount;
+
+				// test the filters
+				for (int fi = 0; fi < kFilterCount; ++fi)
+				{
+					if (wasCached[fi])
+						continue; // already have a cached result
+
+					memset(encData, 0, stride * elemCount);
+					memset(gotData, 0, stride * elemCount);
+
+					// compression filter
+					SysInfoFlushCaches();
+					t0 = stm_now();
+					g_Filters[fi].filterFunc((const uint8_t*)srcData, (uint8_t*)encData, stride, elemCount);
+					t1 = stm_now();
+					timeFilter[fi] += t1 - t0;
+
+					// test what is zstd1 size with this filter
+					if (elemCount == maxElemsThisStride && stride == 16 && cmpSizeFilter[fi] == 0)
+					{
+						cmpSizeFilter[fi] = compress_data(encData, stride * elemCount, cmpBuffer, cmpBound, kCompressionZstd, 1);
+					}
+
+					// decompression filter
+					SysInfoFlushCaches();
+					t0 = stm_now();
+					g_Filters[fi].unfilterFunc((const uint8_t*)encData, (uint8_t*)gotData, stride, elemCount);
+					t1 = stm_now();
+					timeUnfilter[fi] += t1 - t0;
+
+					if (memcmp(srcData, gotData, stride * elemCount) != 0)
+					{
+						printf("ERROR filter '%s' did not decode properly for stride=%i elemCount=%zi\n", g_Filters[fi].name, stride, elemCount);
+						exit(1);
+					}
+					if (memcmp(srcData, srcDataOrig, stride * elemCount) != 0)
+					{
+						printf("ERROR filter '%s' modified source data! stride=%i elemCount=%zi\n", g_Filters[fi].name, stride, elemCount);
+						exit(1);
+					}
+				}
+			}
+		}
+		printf("\n");
+
+		// take result of the fastest run
+		for (int fi = 0; fi < kFilterCount; ++fi)
+		{
+			if (wasCached[fi])
+				continue;
+			double timeF = stm_ms(timeFilter[fi]);
+			double timeUf = stm_ms(timeUnfilter[fi]);
+			if (timeMinFilter[fi] == 0) timeMinFilter[fi] = timeF;
+			if (timeMinUnfilter[fi] == 0) timeMinUnfilter[fi] = timeUf;
+			timeMinFilter[fi] = std::min(timeMinFilter[fi], timeF);
+			timeMinUnfilter[fi] = std::min(timeMinUnfilter[fi], timeUf);
+		}
 	}
 	delete[] srcData;
+	delete[] srcDataOrig;
 	delete[] encData;
 	delete[] gotData;
-	printf("- Filter test ok! Strides %i to %i, total size %.1fMB time cmp %.1fms dec %.1fms\n", kMinStride, kMaxStride, totalSize/1024.0/1024.0, stm_ms(timeFilter), stm_ms(timeUnfilter));
+	delete[] cmpBuffer;
+
+	// write new results into cache
+	for (int fi = 0; fi < kFilterCount; ++fi)
+	{
+		if (kWriteResultsCache && !wasCached[fi])
+		{
+			char namebuf[1024];
+			snprintf(namebuf, sizeof(namebuf), "filter_syn_%s", g_Filters[fi].name);
+			ResCacheSet(namebuf, 0, cmpSizeFilter[fi], timeMinFilter[fi], timeMinUnfilter[fi]);
+		}
+	}
+
+	printf("Filter test ok! Total size %.1fMB\n", totalSize/1024.0/1024.0);
+	printf("%-15s %6s  %6s  %6s\n", "Filter", "Cmp", "Dec", "Ratio");
+	for (int fi = 0; fi < kFilterCount; ++fi)
+	{
+		printf("%-15s %6.1f  %6.1f  %6.3f\n", g_Filters[fi].name, timeMinFilter[fi], timeMinUnfilter[fi], kFloatCount * 4.0 / cmpSizeFilter[fi]);
+	}
 }
 
-static void TestFiltering(size_t testFileCount, TestFile* testFiles)
+static void TestFiltersOnFiles(size_t testFileCount, TestFile* testFiles)
 {
-	//FullTestFiltering();
-
-	printf("Testing just data filters:\n");
+	printf("Testing filters on data files: ");
 
 	std::vector<size_t> startIndex(testFileCount);
 	size_t totalFloats = 0;
@@ -600,39 +722,103 @@ static void TestFiltering(size_t testFileCount, TestFile* testFiles)
 	}
 	std::vector<float> filtered(totalFloats);
 	std::vector<float> unfiltered(totalFloats);
+	size_t cmpBound = compress_calc_bound(totalFloats * 4, kCompressionZstd);
+	std::vector<uint8_t> cmpBuffer(cmpBound);
 
-	uint64_t min_time_filter = ~0ull, min_time_unfilter = ~0ull;
-	const int kRunCount = 10;
-	for (int i = 0; i < kRunCount; ++i)
+	bool wasCached[kFilterCount] = {};
+	size_t cmpSizeFilter[kFilterCount] = {};
+	double timeMinFilter[kFilterCount] = {};
+	double timeMinUnfilter[kFilterCount] = {};
+
+	// check which ones we already have cached
+	for (int fi = 0; fi < kFilterCount; ++fi)
 	{
-		uint64_t time_filter = 0, time_unfilter = 0;
-		for (size_t tfi = 0; tfi < testFileCount; ++tfi)
+		size_t cachedSize;
+		double cachedCmpTime, cachedDecTime;
+		char namebuf[1024];
+		snprintf(namebuf, sizeof(namebuf), "filter_%s", g_Filters[fi].name);
+		if (ResCacheGet(namebuf, 0, &cachedSize, &cachedCmpTime, &cachedDecTime))
 		{
-			const TestFile& tf = testFiles[tfi];
-
-			SysInfoFlushCaches();
-			uint64_t t0 = stm_now();
-			TestFilter((const uint8_t*)tf.fileData.data(), (uint8_t*)&filtered[startIndex[tfi]], tf.channels * 4, tf.width * tf.height);
-			uint64_t t1 = stm_now();
-			time_filter += t1 - t0;
-
-			SysInfoFlushCaches();
-			t0 = stm_now();
-			TestUnFilter((const uint8_t*)&filtered[startIndex[tfi]], (uint8_t*)&unfiltered[startIndex[tfi]], tf.channels * 4, tf.width * tf.height);
-			t1 = stm_now();
-			time_unfilter += t1 - t0;
-
-			if (memcmp(tf.fileData.data(), &unfiltered[startIndex[tfi]], tf.fileData.size() * 4) != 0)
-			{
-				printf("ERROR filter did not decode properly for %s %ix%i ch=%i\n", tf.path, tf.width, tf.height, tf.channels);
-				exit(1);
-			}
+			wasCached[fi] = true;
+			cmpSizeFilter[fi] = cachedSize;
+			timeMinFilter[fi] = cachedCmpTime;
+			timeMinUnfilter[fi] = cachedDecTime;
 		}
-		min_time_filter = std::min(min_time_filter, time_filter);
-		min_time_unfilter = std::min(min_time_unfilter, time_unfilter);
 	}
-	printf("Filter times: enc %.2f dec %.2f ms for %.1fMB\n", stm_ms(min_time_filter), stm_ms(min_time_unfilter), totalFloats * 4 / 1024.0 / 1024.0);
-	exit(0);
+
+	uint64_t t0;
+
+	for (int i = 0; i < kRuns; ++i)
+	{
+		printf("."); fflush(stdout);
+
+		// test the filters
+		for (int fi = 0; fi < kFilterCount; ++fi)
+		{
+			if (wasCached[fi])
+				continue; // already have a cached result
+
+			// go over the files
+			uint64_t timeFilter = 0, timeUnfilter = 0;
+			size_t cmpSizeSum = 0;
+			for (size_t tfi = 0; tfi < testFileCount; ++tfi)
+			{
+				const TestFile& tf = testFiles[tfi];
+
+				// compression filter
+				SysInfoFlushCaches();
+				t0 = stm_now();
+				g_Filters[fi].filterFunc((const uint8_t*)tf.fileData.data(), (uint8_t*)&filtered[startIndex[tfi]], tf.channels * 4, tf.width * tf.height);
+				timeFilter += stm_since(t0);
+
+				// test what is zstd1 size with this filter
+				if (cmpSizeFilter[fi] == 0)
+					cmpSizeSum += compress_data(&filtered[startIndex[tfi]], tf.channels * 4 * tf.width * tf.height, cmpBuffer.data(), cmpBound, kCompressionZstd, 1);
+
+				// decompression filter
+				SysInfoFlushCaches();
+				t0 = stm_now();
+				g_Filters[fi].unfilterFunc((const uint8_t*)&filtered[startIndex[tfi]], (uint8_t*)&unfiltered[startIndex[tfi]], tf.channels * 4, tf.width * tf.height);
+				timeUnfilter += stm_since(t0);
+
+				if (memcmp(tf.fileData.data(), &unfiltered[startIndex[tfi]], tf.fileData.size() * 4) != 0)
+				{
+					printf("ERROR filter '%s' did not decode properly for %s %ix%i ch=%i\n", g_Filters[fi].name, tf.path, tf.width, tf.height, tf.channels);
+					exit(1);
+				}
+			}
+
+			if (cmpSizeFilter[fi] == 0)
+				cmpSizeFilter[fi] = cmpSizeSum;
+
+			// take result of the fastest run
+			double timeF = stm_ms(timeFilter);
+			double timeUf = stm_ms(timeUnfilter);
+			if (timeMinFilter[fi] == 0) timeMinFilter[fi] = timeF;
+			if (timeMinUnfilter[fi] == 0) timeMinUnfilter[fi] = timeUf;
+			timeMinFilter[fi] = std::min(timeMinFilter[fi], timeF);
+			timeMinUnfilter[fi] = std::min(timeMinUnfilter[fi], timeUf);
+		}
+	}
+	printf("\n");
+
+	// write new results into cache
+	for (int fi = 0; fi < kFilterCount; ++fi)
+	{
+		if (kWriteResultsCache && !wasCached[fi])
+		{
+			char namebuf[1024];
+			snprintf(namebuf, sizeof(namebuf), "filter_%s", g_Filters[fi].name);
+			ResCacheSet(namebuf, 0, cmpSizeFilter[fi], timeMinFilter[fi], timeMinUnfilter[fi]);
+		}
+	}
+
+	printf("Data filter times on %.1fMB\n", totalFloats * 4 / 1024.0 / 1024.0);
+	printf("%-15s %6s  %6s  %6s\n", "Filter", "Cmp", "Dec", "Ratio");
+	for (int fi = 0; fi < kFilterCount; ++fi)
+	{
+		printf("%-15s %6.1f  %6.1f  %6.3f\n", g_Filters[fi].name, timeMinFilter[fi], timeMinUnfilter[fi], totalFloats * 4.0 / cmpSizeFilter[fi]);
+	}
 }
 
 
@@ -666,10 +852,13 @@ int main()
 
 		//DumpInputVisualizations(tf.width, tf.height, tf.fileData.data());
 	}
-	TestFiltering(std::size(testFiles), testFiles);
-
 	ResCacheInit();
-	TestCompressors(std::size(testFiles), testFiles);
+
+	TestFiltersOnSyntheticData();
+	TestFiltersOnFiles(std::size(testFiles), testFiles);
+
+	//TestCompressors(std::size(testFiles), testFiles);
+
 	ResCacheClose();
 	return 0;
 }
