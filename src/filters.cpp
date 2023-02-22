@@ -3,6 +3,9 @@
 #include <assert.h>
 #include <string.h>
 
+const size_t kMaxChannels = 64;
+static_assert(kMaxChannels >= 16, "max channels can't be lower than simd width");
+
 
 // no-op filter: just a memcpy
 void Filter_Null(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
@@ -251,7 +254,6 @@ void UnFilter_F(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
 // Scalar, fetch from N streams, write sequential
 void UnFilter_G(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
-    const size_t kMaxChannels = 64;
     uint8_t prev[kMaxChannels] = {};
     uint8_t* dstPtr = dst;
     for (size_t ip = 0; ip < dataElems; ++ip)
@@ -267,6 +269,103 @@ void UnFilter_G(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
         }
     }
 }
+
+
+// Transpose NxM byte matrix, with faster code paths for rows=16, cols=multiple-of-16 case.
+// Largely based on https://fgiesen.wordpress.com/2013/07/09/simd-transposes-1/ and
+// https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
+static void EvenOddInterleave16(const Bytes16* a, Bytes16* b, int astride = 1)
+{
+    int bidx = 0;
+    for (int i = 0; i < 8; ++i)
+    {
+        b[bidx] = SimdInterleaveL(a[i * astride], a[(i + 8) * astride]); bidx++;
+        b[bidx] = SimdInterleaveR(a[i * astride], a[(i + 8) * astride]); bidx++;
+    }
+}
+static void Transpose16x16(const Bytes16* a, Bytes16* b, int astride = 1)
+{
+    Bytes16 tmp1[16], tmp2[16];
+    EvenOddInterleave16((const Bytes16*)a, tmp1, astride);
+    EvenOddInterleave16(tmp1, tmp2);
+    EvenOddInterleave16(tmp2, tmp1);
+    EvenOddInterleave16(tmp1, (Bytes16*)b);
+}
+static void Transpose(const uint8_t* a, uint8_t* b, int cols, int rows)
+{
+    if (rows == 16 && ((cols % 16) == 0))
+    {
+        int blocks = cols / rows;
+        for (int i = 0; i < blocks; ++i)
+        {
+            Transpose16x16(((const Bytes16*)a) + i, ((Bytes16*)b) + i * 16, blocks);
+        }
+    }
+    else
+    {
+        for (int j = 0; j < rows; ++j)
+        {
+            for (int i = 0; i < cols; ++i)
+            {
+                b[i * rows + j] = a[j * cols + i];
+            }
+        }
+    }
+}
+
+
+// Fetch 1x simd from N streams, write sequential. SIMD prefix sum delta on each stream.
+// This is similar to "D" case except there's no scattered destination write.
+void UnFilter_H(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+{
+    uint8_t* dstPtr = dst;
+    int64_t ip = 0;
+
+    // simd loop: fetch 16 bytes from each stream
+    Bytes16 curr[kMaxChannels] = {};
+    const Bytes16 hibyte = SimdSet1(15);
+    for (; ip < int64_t(dataElems) - 15; ip += 16)
+    {
+        // fetch 16 bytes from each channel, prefix-sum un-delta
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            Bytes16 v = SimdLoad(srcPtr);
+            // un-delta via prefix sum
+            curr[ich] = SimdAdd(SimdPrefixSum(v), SimdShuffle(curr[ich], hibyte));
+            srcPtr += dataElems;
+        }
+
+        // now transpose 16xChannels matrix
+        uint8_t currT[kMaxChannels * 16];
+        Transpose((const uint8_t*)curr, currT, 16, channels);
+
+        // and store into destination
+        memcpy(dstPtr, currT, 16 * channels);
+        dstPtr += 16 * channels;
+    }
+
+    // any remaining leftover
+    if (ip < int64_t(dataElems))
+    {
+        uint8_t curr1[kMaxChannels];
+        for (int ich = 0; ich < channels; ++ich)
+            curr1[ich] = SimdGetLane<15>(curr[ich]);
+        for (; ip < int64_t(dataElems); ip++)
+        {
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < channels; ++ich)
+            {
+                uint8_t v = *srcPtr + curr1[ich];
+                curr1[ich] = v;
+                *dstPtr = v;
+                srcPtr += dataElems;
+                dstPtr += 1;
+            }
+        }
+    }
+}
+
 
 #if 0
 
@@ -299,27 +398,6 @@ static void Transpose16x16(const Bytes16* a, Bytes16* b)
 
 void TestFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
-#if 0
-    Split8Delta(src, dst, channels, dataElems);
-#endif
-
-#if 1
-    // K: initial seq write (B from Part6), scalar, w/ K decoding: full test winvs 1451.1 mac 674.8
-    for (int ich = 0; ich < channels; ++ich)
-    {
-        uint8_t prev = 0;
-        const uint8_t* srcPtr = src + ich;
-        for (size_t ip = 0; ip < dataElems; ++ip)
-        {
-            uint8_t v = *srcPtr;
-            *dst = v - prev;
-            prev = v;
-            srcPtr += channels;
-            dst += 1;
-        }
-    }
-#endif
-
 #if 0
     // L: special case for 16ch
     // winvs 7.4, full test 1395.2
@@ -403,29 +481,6 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
         return;
     }
 
-#if 0
-    UnSplit8Delta((uint8_t*)src, dst, channels, dataElems);
-#endif
-
-#if 0
-    // G: sequential write into dst; scattered read from all streams (no 2M split): winvs 33.6 mac 25.2
-    const size_t kMaxChannels = 64;
-    uint8_t prev[kMaxChannels] = {};
-    uint8_t* dstPtr = dst;
-    for (size_t ip = 0; ip < dataElems; ++ip)
-    {
-        const uint8_t* srcPtr = src + ip;
-        for (int ich = 0; ich < channels; ++ich)
-        {
-            uint8_t v = *srcPtr + prev[ich];
-            prev[ich] = v;
-            *dstPtr = v;
-            srcPtr += dataElems;
-            dstPtr += 1;
-        }
-    }
-#endif
-
 #if 1
     // K:
     // winvs    16 4.6, 64 4.7, 256 4.7, 512 4.6, 1024 4.6, 2048 4.7, 4096 4.7
@@ -438,8 +493,6 @@ void TestUnFilter(const uint8_t* src, uint8_t* dst, int channels, size_t dataEle
 
     const int kChunkBytes = 256;
     const int kChunkSimdSize = kChunkBytes / 16;
-    const int kMaxChannels = 64;
-    static_assert(kMaxChannels >= 16, "max channels can't be lower than simd width");
     static_assert((kChunkBytes % 16) == 0, "chunk bytes needs to be multiple of simd width");
     uint8_t* dstPtr = dst;
     int64_t ip = 0;
