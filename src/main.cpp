@@ -7,6 +7,7 @@
 #include "systeminfo.h"
 #include "resultcache.h"
 #include <set>
+#include <math.h>
 
 #define SOKOL_TIME_IMPL
 #include "../libs/sokol_time.h"
