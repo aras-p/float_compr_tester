@@ -23,5 +23,7 @@ void UnFilter_F(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
 
 // Scalar, fetch 1b from N streams, write sequential
 void UnFilter_G(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
-// Fetch 1x simd from N streams, write sequential
+
+// Fetch process 16xN bytes at once
+void Filter_H(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
 void UnFilter_H(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);

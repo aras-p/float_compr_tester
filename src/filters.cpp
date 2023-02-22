@@ -313,9 +313,55 @@ static void Transpose(const uint8_t* a, uint8_t* b, int cols, int rows)
     }
 }
 
+// Fetch 16 N-sized items, transpose, SIMD delta, write N separate 16-sized items
+void Filter_H(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+{
+    uint8_t* dstPtr = dst;
+    int64_t ip = 0;
+    
+    const uint8_t* srcPtr = src;
+    // simd loop
+    Bytes16 prev[kMaxChannels] = {};
+    for (; ip < int64_t(dataElems) - 15; ip += 16)
+    {
+        // fetch 16 data items
+        uint8_t curr[kMaxChannels * 16];
+        memcpy(curr, srcPtr, channels * 16);
+        srcPtr += channels * 16;
+        // transpose so we have 16 bytes for each channel
+        Bytes16 currT[kMaxChannels];
+        Transpose(curr, (uint8_t*)currT, channels, 16);
+        // delta within each channel, store
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            Bytes16 v = currT[ich];
+            Bytes16 delta = SimdSub(v, SimdConcat<15>(v, prev[ich]));
+            SimdStore(dstPtr + dataElems * ich, delta);
+            prev[ich] = v;
+        }
+        dstPtr += 16;
+    }
+    // any remaining leftover
+    if (ip < int64_t(dataElems))
+    {
+        uint8_t prev1[kMaxChannels];
+        for (int ich = 0; ich < channels; ++ich)
+            prev1[ich] = SimdGetLane<15>(prev[ich]);
+        for (; ip < int64_t(dataElems); ip++)
+        {
+            for (int ich = 0; ich < channels; ++ich)
+            {
+                uint8_t v = *srcPtr;
+                srcPtr++;
+                dstPtr[dataElems * ich] = v - prev1[ich];
+                prev1[ich] = v;
+            }
+            dstPtr++;
+        }
+    }
+}
 
-// Fetch 1x simd from N streams, write sequential. SIMD prefix sum delta on each stream.
-// This is similar to "D" case except there's no scattered destination write.
+// Fetch 16b from N streams, prefix sum SIMD undelta, transpose, sequential write 16xN chunk.
 void UnFilter_H(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     uint8_t* dstPtr = dst;
