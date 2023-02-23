@@ -36,9 +36,9 @@ inline Bytes16 SimdInterleaveR(Bytes16 a, Bytes16 b) { return _mm_unpackhi_epi8(
 inline Bytes16 SimdInterleave4L(Bytes16 a, Bytes16 b) { return _mm_unpacklo_epi32(a, b); }
 inline Bytes16 SimdInterleave4R(Bytes16 a, Bytes16 b) { return _mm_unpackhi_epi32(a, b); }
 
-// https://gist.github.com/rygorous/4212be0cd009584e4184e641ca210528
 inline Bytes16 SimdPrefixSum(Bytes16 x)
 {
+    // Sklansky-style sum from https://gist.github.com/rygorous/4212be0cd009584e4184e641ca210528
     x = _mm_add_epi8(x, _mm_slli_epi64(x, 8));
     x = _mm_add_epi8(x, _mm_slli_epi64(x, 16));
     x = _mm_add_epi8(x, _mm_slli_epi64(x, 32));
@@ -71,11 +71,12 @@ inline Bytes16 SimdInterleave4R(Bytes16 a, Bytes16 b) { return vreinterpretq_u8_
 
 inline Bytes16 SimdPrefixSum(Bytes16 x)
 {
-    x = vaddq_u8(x, vshlq_u64(x, vdupq_n_u64(8)));
-    x = vaddq_u8(x, vshlq_u64(x, vdupq_n_u64(16)));
-    x = vaddq_u8(x, vshlq_u64(x, vdupq_n_u64(32)));
-    alignas(16) uint8_t tbl[16] = { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF, 7,7,7,7,7,7,7,7 };
-    x = vaddq_u8(x, vqtbl1q_u8(x, vld1q_u8(tbl)));
+    // Kogge-Stone-style like commented out part of https://gist.github.com/rygorous/4212be0cd009584e4184e641ca210528
+    Bytes16 zero = vdupq_n_u8(0);
+    x = vaddq_u8(x, vextq_u8(zero, x, 16 - 1));
+    x = vaddq_u8(x, vextq_u8(zero, x, 16 - 2));
+    x = vaddq_u8(x, vextq_u8(zero, x, 16 - 4));
+    x = vaddq_u8(x, vextq_u8(zero, x, 16 - 8));
     return x;
 }
 
