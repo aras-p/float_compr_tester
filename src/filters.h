@@ -37,3 +37,7 @@ void UnFilter_I(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
 
 // Like H, but fetch more than 16 bytes from each channel
 void UnFilter_J(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
+
+// Fetch from groups of 4 channels, interleave and store to stack. Then interleave these groups, undelta and store.
+void UnFilter_K(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
+

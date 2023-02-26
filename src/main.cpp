@@ -553,6 +553,7 @@ struct FilterDesc
 static FilterDesc g_Filters[] =
 {
 	{ "0-memcpy", Filter_Null, UnFilter_Null },
+	//{ "1-Shuffle", Filter_Shuffle, UnFilter_Shuffle },
 	{ "A-simple", Filter_A, UnFilter_A },
 	{ "B-part6", Filter_B, UnFilter_B },
 	{ "D-part6", Filter_D, UnFilter_D },
@@ -561,6 +562,7 @@ static FilterDesc g_Filters[] =
 	{ "H-16xCh", Filter_H, UnFilter_H },
 	{ "I-16x16", Filter_H, UnFilter_I },
 	{ "J-256xCh", Filter_H, UnFilter_J },
+	{ "K-384xCh-4x", Filter_H, UnFilter_K },
 };
 constexpr int kFilterCount = sizeof(g_Filters) / sizeof(g_Filters[0]);
 
