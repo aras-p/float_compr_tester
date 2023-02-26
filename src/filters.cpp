@@ -472,6 +472,272 @@ void UnFilter_I(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
     }
 }
 
+
+void Filter_Shuffle(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+{
+    Split<uint8_t>(src, dst, channels, dataElems);
+}
+
+void UnFilter_Shuffle(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+{
+#if 0
+    // A without delta
+    // memcpy:      49.6    7.4
+    // A-UnSplit    509     77
+    UnSplit<uint8_t>(src, dst, channels, dataElems);
+#endif
+
+#if 0
+    // G without delta
+    // G w/o delta  654     95
+    uint8_t* dstPtr = dst;
+    for (size_t ip = 0; ip < dataElems; ++ip)
+    {
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            uint8_t v = *srcPtr;
+            *dstPtr = v;
+            srcPtr += dataElems;
+            dstPtr += 1;
+        }
+    }
+#endif
+
+#if 0
+    // H without delta
+    // H w/o delta  210 19.0
+    uint8_t* dstPtr = dst;
+    int64_t ip = 0;
+
+    Bytes16 curr[kMaxChannels] = {};
+    for (; ip < int64_t(dataElems) - 15; ip += 16)
+    {
+        // fetch 16 bytes from each channel
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            Bytes16 v = SimdLoad(srcPtr);
+            curr[ich] = v;
+            srcPtr += dataElems;
+        }
+
+        // now transpose 16xChannels matrix
+        uint8_t currT[kMaxChannels * 16];
+        Transpose((const uint8_t*)curr, currT, 16, channels);
+
+        // and store into destination
+        memcpy(dstPtr, currT, 16 * channels);
+        dstPtr += 16 * channels;
+    }
+
+    // any remaining leftover
+    for (; ip < int64_t(dataElems); ip++)
+    {
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            uint8_t v = *srcPtr;
+            *dstPtr = v;
+            srcPtr += dataElems;
+            dstPtr += 1;
+        }
+    }
+#endif
+
+#if 0
+    // ^ H w/o delta  210 19.0
+    // 
+    // Similar to H, but fetch more than 16 bytes from each channel at once
+    // 16: 212 17.7
+    // 32: 243 20.7
+    // 64: 288 22.1
+    // 128: 284 23.0
+    // 256: 188 18.0
+    // 384: 184 17.9
+    // 512: 187 18.6
+    // 768: 207 19.3
+    // 1024: 215 20.4
+    // 2048: 224 21.4
+    // 4096: 234 24.6
+    const int kChunkBytes = 256;
+    uint8_t* dstPtr = dst;
+    int64_t ip = 0;
+
+    uint8_t curr[kMaxChannels][kChunkBytes] = {};
+    for (; ip < int64_t(dataElems) - (kChunkBytes-1); ip += kChunkBytes)
+    {
+        // fetch N bytes from each channel
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            memcpy(curr[ich], srcPtr, kChunkBytes);
+            srcPtr += dataElems;
+        }
+
+        // now transpose NxChannels matrix
+        uint8_t currT[kMaxChannels * kChunkBytes];
+        Transpose(curr[0], currT, kChunkBytes, channels);
+
+        // and store into destination
+        memcpy(dstPtr, currT, kChunkBytes * channels);
+        dstPtr += kChunkBytes * channels;
+    }
+
+    // any remaining leftover
+    for (; ip < int64_t(dataElems); ip++)
+    {
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            uint8_t v = *srcPtr;
+            *dstPtr = v;
+            srcPtr += dataElems;
+            dstPtr += 1;
+        }
+    }
+#endif
+
+#if 1
+    // ^256: 188 18.0
+    // 
+    // Fetch from groups of 4 channels at once, interleave, store to stack. Then final interleave and store to dest from there.
+    // WinVS:
+    //                      +16
+    // 16:      132 18.3    122 14.5
+    // 32:      135 17.7    132 14.0
+    // 64:      134 19.2    134 15.0
+    // 128:     158 19.8    137 13.7
+    // 256:     144 20.4    122 14.4
+    // 384:     127 18.0    118 13.4
+    // 512:     149 21.4    123 14.1
+    // 768:     130 19.5    117 13.5
+    // 1024:    166 23.6    133 14.0
+    // 2048:    162 23.6    131 14.5
+    // 4096:    161 23.1    129 13.9
+
+    const int kChunkBytes = 384;
+    constexpr bool k16Ch = true;
+    const int kChunkSimdSize = kChunkBytes / 16;
+    static_assert((kChunkBytes % 16) == 0, "chunk bytes needs to be multiple of simd width");
+    uint8_t* dstPtr = dst;
+    int64_t ip = 0;
+    for (; ip < int64_t(dataElems) - (kChunkBytes - 1); ip += kChunkBytes)
+    {
+        // read chunk of bytes from each channel
+        Bytes16 chdata[kMaxChannels][kChunkSimdSize];
+        const uint8_t* srcPtr = src + ip;
+        // fetch data for groups of 4 channels, interleave
+        // so that first in chdata is (a0b0c0d0 a1b1c1d1 a2b2c2d2 a3b3c3d3) etc.
+        for (int ich = 0; ich < channels; ich += 4)
+        {
+            for (int item = 0; item < kChunkSimdSize; ++item)
+            {
+                Bytes16 d0 = SimdLoad(((const Bytes16*)(srcPtr + dataElems * 0)) + item);
+                Bytes16 d1 = SimdLoad(((const Bytes16*)(srcPtr + dataElems * 1)) + item);
+                Bytes16 d2 = SimdLoad(((const Bytes16*)(srcPtr + dataElems * 2)) + item);
+                Bytes16 d3 = SimdLoad(((const Bytes16*)(srcPtr + dataElems * 3)) + item);
+                // interleaves like from https://fgiesen.wordpress.com/2013/08/29/simd-transposes-2/
+                Bytes16 e0 = SimdInterleaveL(d0, d2); Bytes16 e1 = SimdInterleaveR(d0, d2);
+                Bytes16 e2 = SimdInterleaveL(d1, d3); Bytes16 e3 = SimdInterleaveR(d1, d3);
+                Bytes16 f0 = SimdInterleaveL(e0, e2); Bytes16 f1 = SimdInterleaveR(e0, e2);
+                Bytes16 f2 = SimdInterleaveL(e1, e3); Bytes16 f3 = SimdInterleaveR(e1, e3);
+                chdata[ich + 0][item] = f0;
+                chdata[ich + 1][item] = f1;
+                chdata[ich + 2][item] = f2;
+                chdata[ich + 3][item] = f3;
+            }
+            srcPtr += 4 * dataElems;
+        }
+
+
+        if (channels == 16 && k16Ch)
+        {
+            // channels == 16 case is much simpler
+            // read groups of data from stack, interleave, store
+            for (int item = 0; item < kChunkSimdSize; ++item)
+            {
+                for (int chgrp = 0; chgrp < 4; ++chgrp)
+                {
+                    Bytes16 a0 = chdata[chgrp +  0][item];
+                    Bytes16 a1 = chdata[chgrp +  4][item];
+                    Bytes16 a2 = chdata[chgrp +  8][item];
+                    Bytes16 a3 = chdata[chgrp + 12][item];
+                    // now we want a 4x4 as-uint matrix transpose
+                    Bytes16 b0 = SimdInterleave4L(a0, a2); Bytes16 b1 = SimdInterleave4R(a0, a2);
+                    Bytes16 b2 = SimdInterleave4L(a1, a3); Bytes16 b3 = SimdInterleave4R(a1, a3);
+                    Bytes16 c0 = SimdInterleave4L(b0, b2); Bytes16 c1 = SimdInterleave4R(b0, b2);
+                    Bytes16 c2 = SimdInterleave4L(b1, b3); Bytes16 c3 = SimdInterleave4R(b1, b3);
+                    // store c0..c3
+                    SimdStore(dstPtr, c0); dstPtr += 16;
+                    SimdStore(dstPtr, c1); dstPtr += 16;
+                    SimdStore(dstPtr, c2); dstPtr += 16;
+                    SimdStore(dstPtr, c3); dstPtr += 16;
+                }
+            }
+        }
+        else
+        {
+            // general case: interleave data
+            uint8_t cur[kMaxChannels * kChunkBytes];
+            uint32_t* cur32 = (uint32_t*)cur;
+            for (int ib = 0; ib < kChunkBytes; ++ib)
+            {
+                for (int ich = 0; ich < channels; ich += 4)
+                {
+                    *cur32 = *(const uint32_t*)(((const uint8_t*)chdata) + ich * kChunkBytes + ib * 4);
+                    cur32++;
+                }
+            }
+            // store
+            // the row address we want from "cur" is interleaved in a funky way due to 4-channels data fetch above.
+            for (int item = 0; item < kChunkSimdSize; ++item)
+            {
+                for (int chgrp = 0; chgrp < 4; ++chgrp)
+                {
+                    uint8_t* curPtr = cur + (chgrp * kChunkSimdSize + item) * 4 * channels;
+                    memcpy(dstPtr, curPtr, channels * 4);
+                    dstPtr += channels * 4;
+                }
+            }
+        }
+    }
+
+    // scalar loop for any non-multiple-of-16 remainder
+    if (channels == 16 && k16Ch)
+    {
+        for (; ip < int64_t(dataElems); ip++)
+        {
+            // read from each channel
+            alignas(16) uint8_t chdata[16];
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < 16; ++ich)
+            {
+                chdata[ich] = *srcPtr;
+                srcPtr += dataElems;
+            }
+            // write into destination
+            SimdStore(dstPtr, SimdLoadA(chdata));
+            dstPtr += 16;
+        }
+    }
+    else
+    {
+        for (; ip < int64_t(dataElems); ip++)
+        {
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < channels; ++ich)
+            {
+                uint8_t v = *srcPtr;
+                *dstPtr = v;
+                srcPtr += dataElems;
+                dstPtr += 1;
+            }
+        }
+    }
+#endif
+}
+
 #if 0
 
 

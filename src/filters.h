@@ -6,6 +6,10 @@
 void Filter_Null(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
 void UnFilter_Null(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
 
+void Filter_Shuffle(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
+void UnFilter_Shuffle(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
+
+
 // Part 6
 void Filter_A(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
 void UnFilter_A(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
