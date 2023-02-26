@@ -412,6 +412,65 @@ void UnFilter_H(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
     }
 }
 
+// same as UnFilter_H but with special case for 16 channels
+void UnFilter_I(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+{
+    // non-16 channels: use "H"
+    if (channels != 16)
+    {
+        UnFilter_H(src, dst, channels, dataElems);
+        return;
+    }
+
+    // 16 channels case:
+    uint8_t* dstPtr = dst;
+    int64_t ip = 0;
+
+    // simd loop: fetch 16 bytes from each stream
+    Bytes16 prev = SimdZero();
+    for (; ip < int64_t(dataElems) - 15; ip += 16)
+    {
+        // fetch 16 bytes from each channel
+        Bytes16 curr[16];
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < 16; ++ich)
+        {
+            Bytes16 v = SimdLoad(srcPtr);
+            curr[ich] = v;
+            srcPtr += dataElems;
+        }
+
+        // transpose 16xChannels matrix
+        Bytes16 currT[16];
+        Transpose((const uint8_t*)curr, (uint8_t*)currT, 16, channels);
+
+        // un-delta and store
+        for (int ib = 0; ib < 16; ++ib)
+        {
+            prev = SimdAdd(prev, currT[ib]);
+            SimdStore(dstPtr, prev);
+            dstPtr += 16;
+        }
+    }
+
+    // any remaining leftover
+    if (ip < int64_t(dataElems))
+    {
+        alignas(16) uint8_t curr1[16];
+        for (; ip < int64_t(dataElems); ip++)
+        {
+            const uint8_t* srcPtr = src + ip;
+            for (int ich = 0; ich < channels; ++ich)
+            {
+                curr1[ich] = *srcPtr;
+                srcPtr += dataElems;
+            }
+            prev = SimdAdd(prev, SimdLoadA(curr1));
+            SimdStore(dstPtr, prev);
+            dstPtr += 16;
+        }
+    }
+}
 
 #if 0
 

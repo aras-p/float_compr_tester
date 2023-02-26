@@ -559,6 +559,7 @@ static FilterDesc g_Filters[] =
 	{ "F-sep", Filter_F, UnFilter_F },
 	{ "G-sep", Filter_F, UnFilter_G },
 	{ "H-16xCh", Filter_H, UnFilter_H },
+	{ "I-16x16", Filter_H, UnFilter_I },
 };
 constexpr int kFilterCount = sizeof(g_Filters) / sizeof(g_Filters[0]);
 
