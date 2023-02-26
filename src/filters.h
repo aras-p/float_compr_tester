@@ -34,3 +34,6 @@ void UnFilter_H(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
 
 // Like H, but special code path for channels==16 case
 void UnFilter_I(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
+
+// Like H, but fetch more than 16 bytes from each channel
+void UnFilter_J(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);

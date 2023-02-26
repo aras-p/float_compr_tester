@@ -473,6 +473,69 @@ void UnFilter_I(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems
 }
 
 
+// Fetch M bytes from N streams, transpose, SIMD undelta, store
+// 16:  288 28.1
+// 64:  335 29.0
+// 128: 351 29.1
+// 256: 258 27.2
+// 384: 257 27.7
+// 512: 259 28.2
+// 768: 275 29.0
+// 1k:  285 29.8
+// 2k:  288 29.9
+void UnFilter_J(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
+{
+    const int kChunkBytes = 256;
+    const int kChunkSimdSize = kChunkBytes / 16;
+    static_assert((kChunkBytes % 16) == 0, "chunk bytes needs to be multiple of simd width");
+    uint8_t* dstPtr = dst;
+    int64_t ip = 0;
+    alignas(16) uint8_t prev[kMaxChannels] = {};
+    for (; ip < int64_t(dataElems) - (kChunkBytes - 1); ip += kChunkBytes)
+    {
+        // read chunk of bytes from each channel
+        Bytes16 curr[kMaxChannels][kChunkSimdSize];
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            memcpy(curr[ich], srcPtr, kChunkBytes);
+            srcPtr += dataElems;
+        }
+
+        // transpose
+        uint8_t currT[kMaxChannels * kChunkBytes];
+        Transpose((const uint8_t*)curr, currT, kChunkBytes, channels);
+
+        // un-delta
+        for (int ib = 0; ib < kChunkBytes; ++ib)
+        {
+            const uint8_t* curPtr = currT + ib * channels;
+            for (int ich = 0; ich < channels; ich += 16)
+            {
+                Bytes16 v = SimdAdd(SimdLoadA(&prev[ich]), SimdLoad(curPtr));
+                SimdStoreA(&prev[ich], v);
+                curPtr += 16;
+            }
+            // store
+            memcpy(dstPtr, prev, channels);
+            dstPtr += channels;
+        }
+    }
+
+    // scalar loop for any remainder
+    for (; ip < int64_t(dataElems); ip++)
+    {
+        const uint8_t* srcPtr = src + ip;
+        for (int ich = 0; ich < channels; ++ich)
+        {
+            uint8_t v = *srcPtr + prev[ich];
+            prev[ich] = v;
+            *dstPtr = v;
+            srcPtr += dataElems;
+            dstPtr += 1;
+        }
+    }
+}
 void Filter_Shuffle(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems)
 {
     Split<uint8_t>(src, dst, channels, dataElems);
