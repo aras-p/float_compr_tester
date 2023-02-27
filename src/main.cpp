@@ -291,7 +291,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 
 					// decompress:
 					memset(decompressed.data(), 0, 4 * tf.fileData.size());
-					memset(filterBuffer, 0, 4 * tf.fileData.size());
+					if (filterBuffer)
+						memset(filterBuffer, 0, 4 * tf.fileData.size());
 					SysInfoFlushCaches();
 					t0 = stm_now();
 					cmp->Decompress(compressed, compressedSize, filter == nullptr ? decompressed.data() : (float*)filterBuffer, tf.width, tf.height, tf.channels);
