@@ -8,12 +8,45 @@
 #include "resultcache.h"
 #include <set>
 #include <math.h>
+#include <memory>
 
 #define SOKOL_TIME_IMPL
 #include "../libs/sokol_time.h"
 
 constexpr bool kWriteResultsCache = true;
-const int kRuns = 5;
+const int kRuns = 3;
+
+struct FilterDesc
+{
+	const char* name;
+	void (*filterFunc)(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
+	void (*unfilterFunc)(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
+};
+static FilterDesc g_Filters[] =
+{
+	{ "0-memcpy", Filter_Null, UnFilter_Null },
+	//{ "1-Shuffle", Filter_Shuffle, UnFilter_Shuffle },
+	{ "A-simple", Filter_A, UnFilter_A },
+	{ "B-part6", Filter_B, UnFilter_B },
+	{ "D-part6", Filter_D, UnFilter_D },
+	{ "F-sep", Filter_F, UnFilter_F },
+	{ "G-sep", Filter_F, UnFilter_G },
+	{ "H-16xCh", Filter_H, UnFilter_H },
+	{ "I-16x16", Filter_H, UnFilter_I },
+	{ "J-256xCh", Filter_H, UnFilter_J },
+	{ "K-384xCh-4x", Filter_H, UnFilter_K },
+};
+constexpr int kFilterCount = sizeof(g_Filters) / sizeof(g_Filters[0]);
+
+static FilterDesc g_FilterSplit8AndDeltaDiff = {"-s8-dif", Filter_A, UnFilter_A }; // part 3 / part 6 beginning
+static FilterDesc g_FilterSplit8Delta = { "-s8dif", Filter_D, UnFilter_D }; // part 6 end
+static FilterDesc g_FilterSplit8DeltaOpt = { "-s8dopt", Filter_H, UnFilter_K };
+
+static std::unique_ptr<GenericCompressor> g_CompZstd = std::make_unique<GenericCompressor>(kCompressionZstd);
+static std::unique_ptr<GenericCompressor> g_CompLZ4 = std::make_unique<GenericCompressor>(kCompressionLZ4);
+#if BUILD_WITH_OODLE
+static std::unique_ptr<GenericCompressor> g_CompKraken = std::make_unique<GenericCompressor>(kCompressionOoodleKraken);
+#endif
 
 struct TestFile
 {
@@ -24,7 +57,47 @@ struct TestFile
 	std::vector<float> fileData;
 };
 
-static std::vector<Compressor*> g_Compressors;
+struct CompressorConfig
+{
+	Compressor* cmp;
+	FilterDesc* filter;
+
+	std::string GetName() const
+	{
+		char buf[100];
+		cmp->PrintName(sizeof(buf), buf);
+		std::string res = buf;
+		if (filter != nullptr)
+			res += filter->name;
+		return res;
+	}
+	const char* GetShapeString() const
+	{
+		if (filter == &g_FilterSplit8DeltaOpt) return "'circle', pointSize: 12, lineWidth: 3";
+		if (filter == &g_FilterSplit8Delta) return "'circle'";
+		if (filter == &g_FilterSplit8AndDeltaDiff) return "{type:'square', rotation: 45}, lineDashStyle: [4, 4]";
+		if (filter == nullptr) return "'circle', lineDashStyle: [4, 2]";
+		return "'circle'";
+	}
+	uint32_t GetColor() const
+	{
+		// https://www.w3schools.com/colors/colors_picker.asp
+		bool faded = filter != &g_FilterSplit8DeltaOpt;
+		if (cmp == g_CompZstd.get()) return faded ? 0x90d596 : 0x0c9618; // green
+		if (cmp == g_CompLZ4.get()) return faded ? 0xd9d18c : 0xb19f00; // yellow
+		//if (cmp == g_CompZlib.get()) return faded ? 0x8cd9cf : 0x00bfa7; // cyan
+		//if (cmp == g_CompLibDeflate.get()) return 0x00786a; // cyan
+		//if (cmp == g_CompBrotli) return faded ? 0xd19a94 : 0xde5546; // orange
+		// purple
+		//if (cmp == g_CompSelkie.get())   return 0xffb0ff;
+		//if (cmp == g_CompMermaid.get())  return 0xdc74ff;
+		if (cmp == g_CompKraken.get())   return faded ? 0xc4b6c9 : 0x8a4b9d; // dark purple regular: 0x8a4b9d lighter: 0xc4b6c9
+		return 0;
+
+	}
+};
+
+static std::vector<CompressorConfig> g_Compressors;
 
 static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 {
@@ -34,26 +107,28 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 #	endif
 
 
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterTest));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterTest));
+	g_Compressors.push_back({g_CompZstd.get(), &g_FilterSplit8DeltaOpt});
+	g_Compressors.push_back({g_CompLZ4.get(), &g_FilterSplit8DeltaOpt});
 #	if BUILD_WITH_OODLE
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterTest));
+	g_Compressors.push_back({g_CompKraken.get(), &g_FilterSplit8DeltaOpt});
 #	endif
 
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8Delta));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8Delta));
+	g_Compressors.push_back({g_CompZstd.get(), &g_FilterSplit8Delta});
+	g_Compressors.push_back({g_CompLZ4.get(), &g_FilterSplit8Delta});
 #	if BUILD_WITH_OODLE
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8Delta));
+	g_Compressors.push_back({g_CompKraken.get(), &g_FilterSplit8Delta});
 #	endif
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4, kFilterSplit8 | kFilterDeltaDiff));
+
+	g_Compressors.push_back({g_CompZstd.get(), &g_FilterSplit8AndDeltaDiff});
+	g_Compressors.push_back({g_CompLZ4.get(), &g_FilterSplit8AndDeltaDiff});
 #	if BUILD_WITH_OODLE
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8 | kFilterDeltaDiff));
+	g_Compressors.push_back({g_CompKraken.get(), &g_FilterSplit8AndDeltaDiff});
 #	endif
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
+
+	g_Compressors.push_back({g_CompZstd.get(), nullptr});
+	g_Compressors.push_back({g_CompLZ4.get(), nullptr});
 #	if BUILD_WITH_OODLE
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
+	g_Compressors.push_back({g_CompKraken.get(), nullptr});
 #	endif
 
 	// For: https://aras-p.info/blog/2023/02/18/Float-Compression-6-Filtering-Optimization/
@@ -159,31 +234,32 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	};
 	typedef std::vector<Result> LevelResults;
 	std::vector<LevelResults> results;
-	for (auto* cmp : g_Compressors)
+	for (auto& cmp : g_Compressors)
 	{
-		auto levels = cmp->GetLevels();
+		auto levels = cmp.cmp->GetLevels();
 		LevelResults res(levels.size());
 		for (size_t i = 0; i < levels.size(); ++i)
 			res[i].level = levels[i];
 		results.emplace_back(res);
 	}
 
-	char cmpName[1000];
+	std::string cmpName;
 	for (int ir = 0; ir < kRuns; ++ir)
 	{
 		printf("Run %i/%i, %zi compressors on %zi files:\n", ir+1, kRuns, g_Compressors.size(), testFileCount);
 		for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 		{
-			Compressor* cmp = g_Compressors[ic];
-			cmp->PrintName(sizeof(cmpName), cmpName);
+			Compressor* cmp = g_Compressors[ic].cmp;
+			FilterDesc* filter = g_Compressors[ic].filter;
+			cmpName = g_Compressors[ic].GetName();
 			LevelResults& levelRes = results[ic];
-			printf("%s: %zi levels:\n", cmpName, levelRes.size());
+			printf("%s: %zi levels:\n", cmpName.c_str(), levelRes.size());
 			for (Result& res : levelRes)
 			{
 				printf(".");
 				size_t cachedSize;
 				double cachedCmpTime, cachedDecTime;
-				if (ResCacheGet(cmpName, res.level, &cachedSize, &cachedCmpTime, &cachedDecTime))
+				if (ResCacheGet(cmpName.c_str(), res.level, &cachedSize, &cachedCmpTime, &cachedDecTime))
 				{
 					res.size += cachedSize;
 					res.cmpTime += cachedCmpTime;
@@ -195,18 +271,37 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 				{
 					const TestFile& tf = testFiles[tfi];
 
+					const float* srcData = tf.fileData.data();
+					SysInfoFlushCaches();
+
+					// filter if needed
+					uint64_t t0 = stm_now();
+					uint8_t* filterBuffer = nullptr;
+					if (filter)
+					{
+						filterBuffer = new uint8_t[4 * tf.fileData.size()];
+						filter->filterFunc((const uint8_t*)srcData, filterBuffer, tf.channels * sizeof(float), tf.width * tf.height);
+						srcData = (const float*)filterBuffer;
+					}
+
 					// compress
 					size_t compressedSize = 0;
-					SysInfoFlushCaches();
-					uint64_t t0 = stm_now();
-					uint8_t* compressed = cmp->Compress(res.level, tf.fileData.data(), tf.width, tf.height, tf.channels, compressedSize);
+					uint8_t* compressed = cmp->Compress(res.level, srcData, tf.width, tf.height, tf.channels, compressedSize);
 					double tComp = stm_sec(stm_since(t0));
 
-					// decompress
+					// decompress:
 					memset(decompressed.data(), 0, 4 * tf.fileData.size());
+					memset(filterBuffer, 0, 4 * tf.fileData.size());
 					SysInfoFlushCaches();
 					t0 = stm_now();
-					cmp->Decompress(compressed, compressedSize, decompressed.data(), tf.width, tf.height, tf.channels);
+					cmp->Decompress(compressed, compressedSize, filter == nullptr ? decompressed.data() : (float*)filterBuffer, tf.width, tf.height, tf.channels);
+
+					// unfilter data if needed
+					if (filter != nullptr)
+					{
+						filter->unfilterFunc(filterBuffer, (uint8_t*)decompressed.data(), tf.channels * sizeof(float), tf.width * tf.height);
+						delete[] filterBuffer;
+					}
 					double tDecomp = stm_sec(stm_since(t0));
 
 					// stats
@@ -217,8 +312,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 					// check validity
 					if (memcmp(tf.fileData.data(), decompressed.data(), 4 * tf.fileData.size()) != 0)
 					{
-						cmp->PrintName(sizeof(cmpName), cmpName);
-						printf("  ERROR, %s level %i did not decompress back to input\n", cmpName, res.level);
+						printf("  ERROR, %s level %i did not decompress back to input\n", cmpName.c_str(), res.level);
 						for (size_t i = 0; i < 4 * tf.fileData.size(); ++i)
 						{
 							float va = tf.fileData[i];
@@ -247,8 +341,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	char cmpVersion[256];
 	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 	{
-		Compressor* cmp = g_Compressors[ic];
-		cmp->PrintName(sizeof(cmpName), cmpName);
+		Compressor* cmp = g_Compressors[ic].cmp;
+		cmpName = g_Compressors[ic].GetName();
 		cmp->PrintVersion(sizeof(cmpVersion), cmpVersion);
 		cmpVersions.insert(cmpVersion);
 		LevelResults& levelRes = results[ic];
@@ -261,7 +355,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			{
 				if (kWriteResultsCache)
 				{
-					ResCacheSet(cmpName, res.level, res.size, res.cmpTime, res.decTime);
+					ResCacheSet(cmpName.c_str(), res.level, res.size, res.cmpTime, res.decTime);
 				}
 			}
 			else
@@ -283,15 +377,14 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	printf("%-22s %7.3f\n", "Raw", rawSize / oneGB);
 	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 	{
-		Compressor* cmp = g_Compressors[ic];
-		cmp->PrintName(sizeof(cmpName), cmpName);
+		cmpName = g_Compressors[ic].GetName();
 		double csize = (double)(sizes[ic]);
 		double ctime = cmpTimes[ic];
 		double dtime = decompTimes[ic];
 		double ratio = rawSize / csize;
 		double cspeed = rawSize / ctime;
 		double dspeed = rawSize / dtime;
-		printf("%-22s %7.3f %6.3f %6.3f %6.3f %5.0f %5.0f\n", cmpName, csize / oneGB, ctime, dtime, ratio, cspeed / oneGB, dspeed / oneGB);
+		printf("%-22s %7.3f %6.3f %6.3f %6.3f %5.0f %5.0f\n", cmpName.c_str(), csize / oneGB, ctime, dtime, ratio, cspeed / oneGB, dspeed / oneGB);
 	}
 	*/
 
@@ -316,17 +409,16 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "var dataDec = new google.visualization.DataTable();\n");
 	fprintf(fout, "dataCmp.addColumn('number', 'Throughput');\n");
 	fprintf(fout, "dataDec.addColumn('number', 'Throughput');\n");
-	for (auto* cmp : g_Compressors)
+	for (auto& cmp : g_Compressors)
 	{
-		cmp->PrintName(sizeof(cmpName), cmpName);
-		fprintf(fout, "dataCmp.addColumn('number', '%s'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});\n", cmpName);
-		fprintf(fout, "dataDec.addColumn('number', '%s'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});\n", cmpName);
+		cmpName = cmp.GetName();
+		fprintf(fout, "dataCmp.addColumn('number', '%s'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});\n", cmpName.c_str());
+		fprintf(fout, "dataDec.addColumn('number', '%s'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});\n", cmpName.c_str());
 	}
 	fprintf(fout, "dataCmp.addRows([\n");
 	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 	{
-		Compressor* cmp = g_Compressors[ic];
-		cmp->PrintName(sizeof(cmpName), cmpName);
+		cmpName = g_Compressors[ic].GetName();
 		const LevelResults& levelRes = results[ic];
 		for (const Result& res : levelRes)
 		{
@@ -338,11 +430,11 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			//double dspeed = rawSize / dtime;
 			fprintf(fout, "  [%.3f", cspeed / oneGB);
 			for (size_t j = 0; j < ic; ++j) fprintf(fout, ",null,null,null");
-			fprintf(fout, ", %.3f,'%s", ratio, cmpName);
+			fprintf(fout, ", %.3f,'%s", ratio, cmpName.c_str());
 			if (levelRes.size() > 1)
 				fprintf(fout, " %i", res.level);
-			if (strcmp(cmpName, "zstd-tst") == 0 && res.level == 1) // TEST TEST TEST
-				printf("%s_%i ratio: %.3f\n", cmpName, res.level, ratio);
+			//if (strcmp(cmpName, "zstd-tst") == 0 && res.level == 1) // TEST TEST TEST
+			//	printf("%s_%i ratio: %.3f\n", cmpName, res.level, ratio);
 			fprintf(fout, "\\n%.3fx at %.3f GB/s\\n%.1FMB %.3fs','' ", ratio, cspeed / oneGB, csize / oneMB, ctime);
 			for (size_t j = ic + 1; j < g_Compressors.size(); ++j) fprintf(fout, ",null,null,null");
 			fprintf(fout, "]%s\n", (ic == g_Compressors.size() - 1) && (&res == &levelRes.back()) ? "" : ",");
@@ -352,8 +444,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "dataDec.addRows([\n");
 	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 	{
-		Compressor* cmp = g_Compressors[ic];
-		cmp->PrintName(sizeof(cmpName), cmpName);
+		cmpName = g_Compressors[ic].GetName();
 		const LevelResults& levelRes = results[ic];
 		for (const Result& res : levelRes)
 		{
@@ -365,7 +456,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 			double dspeed = rawSize / dtime;
 			fprintf(fout, "  [%.3f", dspeed / oneGB);
 			for (size_t j = 0; j < ic; ++j) fprintf(fout, ",null,null,null");
-			fprintf(fout, ", %.3f,'%s", ratio, cmpName);
+			fprintf(fout, ", %.3f,'%s", ratio, cmpName.c_str());
 			if (levelRes.size() > 1)
 				fprintf(fout, " %i", res.level);
 			fprintf(fout, "\\n%.3fx at %.3f GB/s\\n%.1FMB %.3fs','' ", ratio, dspeed / oneGB, csize / oneMB, dtime);
@@ -381,16 +472,14 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "series: {\n");
 	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 	{
-		const Compressor* cmp = g_Compressors[ic];
-		fprintf(fout, "  %zi: {pointShape: %s},\n", ic, cmp->GetShapeString());
+		fprintf(fout, "  %zi: {pointShape: %s},\n", ic, g_Compressors[ic].GetShapeString());
 	}
 	fprintf(fout, "  %zi: {},\n", g_Compressors.size());
 	fprintf(fout, "},\n");
 	fprintf(fout, "colors: [");
 	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 	{
-		const Compressor* cmp = g_Compressors[ic];
-		uint32_t col = cmp->GetColor();
+		uint32_t col = g_Compressors[ic].GetColor();
 		fprintf(fout, "'%02x%02x%02x'%s", (col >> 16)&0xFF, (col >> 8)&0xFF, col&0xFF, ic== g_Compressors.size()-1?"":",");
 	}
 	fprintf(fout, "],\n");
@@ -413,11 +502,6 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fclose(fout);
 
 	// cleanup
-	for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
-	{
-		Compressor* cmp = g_Compressors[ic];
-		delete cmp;
-	}
 	g_Compressors.clear();
 }
 
@@ -542,29 +626,6 @@ static void DumpInputVisualizations(int width, int height, const float* data)
 		fclose(fraw);
 	}
 }
-
-
-struct FilterDesc
-{
-	const char* name;
-	void (*filterFunc)(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
-	void (*unfilterFunc)(const uint8_t* src, uint8_t* dst, int channels, size_t dataElems);
-};
-static FilterDesc g_Filters[] =
-{
-	{ "0-memcpy", Filter_Null, UnFilter_Null },
-	//{ "1-Shuffle", Filter_Shuffle, UnFilter_Shuffle },
-	{ "A-simple", Filter_A, UnFilter_A },
-	{ "B-part6", Filter_B, UnFilter_B },
-	{ "D-part6", Filter_D, UnFilter_D },
-	{ "F-sep", Filter_F, UnFilter_F },
-	{ "G-sep", Filter_F, UnFilter_G },
-	{ "H-16xCh", Filter_H, UnFilter_H },
-	{ "I-16x16", Filter_H, UnFilter_I },
-	{ "J-256xCh", Filter_H, UnFilter_J },
-	{ "K-384xCh-4x", Filter_H, UnFilter_K },
-};
-constexpr int kFilterCount = sizeof(g_Filters) / sizeof(g_Filters[0]);
 
 
 static void TestFiltersOnSyntheticData()
@@ -860,10 +921,10 @@ int main()
 	}
 	ResCacheInit();
 
-	TestFiltersOnSyntheticData();
-	TestFiltersOnFiles(std::size(testFiles), testFiles);
+	//TestFiltersOnSyntheticData();
+	//TestFiltersOnFiles(std::size(testFiles), testFiles);
 
-	//TestCompressors(std::size(testFiles), testFiles);
+	TestCompressors(std::size(testFiles), testFiles);
 
 	ResCacheClose();
 	return 0;
