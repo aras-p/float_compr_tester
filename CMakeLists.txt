@@ -60,6 +60,21 @@ set(LIBDEFLATE_BUILD_SHARED_LIB OFF)
 set(LIBDEFLATE_BUILD_SHARED_LIB OFF)
 FetchContent_MakeAvailable(libdeflate)
 
+# blosc
+FetchContent_Declare(
+	blosc
+	URL https://github.com/Blosc/c-blosc2/archive/refs/tags/v2.7.1.zip # latest (2023 Feb) at time of writing
+)
+set(BUILD_SHARED OFF)
+set(BUILD_TESTS OFF)
+set(BUILD_FUZZERS OFF)
+set(BUILD_BENCHMARKS OFF)
+set(BUILD_EXAMPLES OFF)
+set(BUILD_PLUGINS OFF)
+set(DEACTIVATE_ZLIB ON)
+FetchContent_MakeAvailable(blosc)
+
+
 # zlib
 # Note: do not do FetchContent_MakeAvailable on it, since it builds "example"
 # target which clashes with streamvbyte "example" target. Instead setup manually
@@ -167,9 +182,9 @@ add_executable (float_compr_tester
 	src/systeminfo.h
 	src/resultcache.cpp
 	src/resultcache.h
-	libs/bitshuffle/src/bitshuffle_core.c
-	libs/bitshuffle/src/bitshuffle_core.h
-	libs/bitshuffle/src/iochain.c
+	#libs/bitshuffle/src/bitshuffle_core.c
+	#libs/bitshuffle/src/bitshuffle_core.h
+	#libs/bitshuffle/src/iochain.c
     libs/spdp/spdp_11.c
     libs/spdp/spdp_11.h
 	CMakeLists.txt
@@ -184,7 +199,8 @@ target_include_directories(float_compr_tester PRIVATE
 	${zlib_SOURCE_DIR} ${zlib_BINARY_DIR}
 	${brotli_SOURCE_DIR}/c/include
 	${libdeflate_SOURCE_DIR}
-    ${streamvbyte_SOURCE_DIR/include}
+    ${streamvbyte_SOURCE_DIR}/include
+	${blosc_SOURCE_DIR}/include
 )
 
 target_link_libraries(float_compr_tester PRIVATE
@@ -197,6 +213,7 @@ target_link_libraries(float_compr_tester PRIVATE
 	fpzip
 	zfp
 	streamvbyte_static
+	blosc2_static
 )
 if (BUILD_WITH_NDZIP)
     target_link_libraries(float_compr_tester PRIVATE ndzip)

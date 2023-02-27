@@ -20,9 +20,18 @@ enum CompressionFormat
 	kCompressionOoodleSelkie,
 	kCompressionOoodleMermaid,
 	kCompressionOoodleKraken,
+	kCompressionBloscBLZ,
+	kCompressionBloscLZ4,
+	kCompressionBloscZstd,
+	kCompressionBloscBLZ_Shuf,
+	kCompressionBloscLZ4_Shuf,
+	kCompressionBloscZstd_Shuf,
+	kCompressionBloscBLZ_ShufDelta,
+	kCompressionBloscLZ4_ShufDelta,
+	kCompressionBloscZstd_ShufDelta,
 	kCompressionCount
 };
 size_t compress_calc_bound(size_t srcSize, CompressionFormat format);
-size_t compress_data(const void* src, size_t srcSize, void* dst, size_t dstSize, CompressionFormat format, int level);
+size_t compress_data(const void* src, size_t srcSize, void* dst, size_t dstSize, CompressionFormat format, int level, int stride);
 size_t decompress_data(const void* src, size_t srcSize, void* dst, size_t dstSize, CompressionFormat format);
 void compressor_get_version(CompressionFormat format, size_t bufSize, char* buf);

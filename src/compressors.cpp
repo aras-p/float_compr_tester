@@ -46,6 +46,20 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
         //return { -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8 };
         //return { -4, -3, -2, -1, 1, 2, 3, 4, 5 }; // comp time under 3s
         return { -4, -2, 1, 4 };
+    case kCompressionBloscBLZ:
+    case kCompressionBloscBLZ_Shuf:
+    case kCompressionBloscBLZ_ShufDelta:
+        return { 1, 3, 5, 7, 9 };
+    case kCompressionBloscLZ4:
+    case kCompressionBloscLZ4_Shuf:
+    case kCompressionBloscLZ4_ShufDelta:
+        return { 0, 1 };
+    case kCompressionBloscZstd:
+    case kCompressionBloscZstd_Shuf:
+    case kCompressionBloscZstd_ShufDelta:
+        // blosc levels 1..9 map to zstd levels 1,3,5,7,9,11,13,20,22
+        return { 1, 3, 5 };
+
     default:
         return { 0 };
     }
@@ -89,7 +103,7 @@ uint8_t* GenericCompressor::Compress(int level, const float* data, int width, in
     size_t dataSize = width * height * channels * sizeof(float);
     size_t bound = compress_calc_bound(dataSize, m_Format);
     uint8_t* cmp = new uint8_t[bound];
-    outSize = compress_data(data, dataSize, cmp, bound, m_Format, level);
+    outSize = compress_data(data, dataSize, cmp, bound, m_Format, level, channels * sizeof(float));
     return cmp;
 }
 
@@ -108,6 +122,15 @@ static const char* kCompressionFormatNames[] = {
     "oselkie",
     "omermaid",
     "okraken",
+    "blosc",
+    "blosc_lz4",
+    "blosc_zstd",
+    "blosc-s8",
+    "blosc_lz4-s8",
+    "blosc_zstd-s8",
+    "blosc-s8d",
+    "blosc_lz4-s8d",
+    "blosc_zstd-s8d",
 };
 static_assert(sizeof(kCompressionFormatNames) / sizeof(kCompressionFormatNames[0]) == kCompressionCount);
 
@@ -126,7 +149,7 @@ std::vector<int> GenericCompressor::GetLevels() const
     return GetGenericLevelRange(m_Format);
 }
 
-static uint8_t* CompressGeneric(CompressionFormat format, int level, uint8_t* data, size_t dataSize, size_t& outSize)
+static uint8_t* CompressGeneric(CompressionFormat format, int level, uint8_t* data, size_t dataSize, int stride, size_t& outSize)
 {
     if (format == kCompressionCount)
     {
@@ -136,7 +159,7 @@ static uint8_t* CompressGeneric(CompressionFormat format, int level, uint8_t* da
     size_t bound = compress_calc_bound(dataSize, format);
     uint8_t* cmp = new uint8_t[bound + 4];
     *(uint32_t*)cmp = uint32_t(dataSize); // store orig size at start
-    outSize = compress_data(data, dataSize, cmp + 4, bound, format, level) + 4;
+    outSize = compress_data(data, dataSize, cmp + 4, bound, format, level, stride) + 4;
     delete[] data;
     return cmp;
 }
@@ -162,7 +185,7 @@ uint8_t* MeshOptCompressor::Compress(int level, const float* data, int width, in
     size_t moBound = compress_meshopt_vertex_attribute_bound(vertexCount, stride);
     uint8_t* moCmp = new uint8_t[moBound];
     size_t moSize = compress_meshopt_vertex_attribute(data, vertexCount, stride, moCmp, moBound);
-    return CompressGeneric(m_Format, level, moCmp, moSize, outSize);
+    return CompressGeneric(m_Format, level, moCmp, moSize, channels * sizeof(float), outSize);
 }
 
 void MeshOptCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)
@@ -428,7 +451,7 @@ uint8_t* StreamVByteCompressor::Compress(int level, const float* data, int width
         cmpSize = streamvbyte_encode(split ? split : (const uint32_t*)data, dataElems, cmp);
     delete[] split;
 
-    return CompressGeneric(m_Format, level, cmp, cmpSize, outSize);
+    return CompressGeneric(m_Format, level, cmp, cmpSize, channels * sizeof(float), outSize);
 }
 
 void StreamVByteCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, int width, int height, int channels)

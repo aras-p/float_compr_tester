@@ -106,7 +106,20 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	oodle_init();
 #	endif
 
+	// Blosc
+	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscBLZ), nullptr });
+	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscLZ4), nullptr });
+	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscZstd), nullptr });
 
+	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscBLZ_Shuf), nullptr });
+	g_Compressors.push_back({ new GenericCompressor(kCompressionBloscLZ4_Shuf), nullptr });
+	g_Compressors.push_back({ new GenericCompressor(kCompressionBloscZstd_Shuf), nullptr });
+
+	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscBLZ_ShufDelta), nullptr });
+	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscLZ4_ShufDelta), nullptr });
+	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscZstd_ShufDelta), nullptr });
+
+	// Part 7
 	g_Compressors.push_back({g_CompZstd.get(), &g_FilterSplit8DeltaOpt});
 	g_Compressors.push_back({g_CompLZ4.get(), &g_FilterSplit8DeltaOpt});
 #	if BUILD_WITH_OODLE
@@ -714,7 +727,7 @@ static void TestFiltersOnSyntheticData()
 					// test what is zstd1 size with this filter
 					if (elemCount == maxElemsThisStride && stride == 16 && cmpSizeFilter[fi] == 0)
 					{
-						cmpSizeFilter[fi] = compress_data(encData, stride * elemCount, cmpBuffer, cmpBound, kCompressionZstd, 1);
+						cmpSizeFilter[fi] = compress_data(encData, stride * elemCount, cmpBuffer, cmpBound, kCompressionZstd, 1, stride);
 					}
 
 					// decompression filter
@@ -841,7 +854,7 @@ static void TestFiltersOnFiles(size_t testFileCount, TestFile* testFiles)
 
 				// test what is zstd1 size with this filter
 				if (cmpSizeFilter[fi] == 0)
-					cmpSizeSum += compress_data(&filtered[startIndex[tfi]], tf.channels * 4 * tf.width * tf.height, cmpBuffer.data(), cmpBound, kCompressionZstd, 1);
+					cmpSizeSum += compress_data(&filtered[startIndex[tfi]], tf.channels * 4 * tf.width * tf.height, cmpBuffer.data(), cmpBound, kCompressionZstd, 1, tf.channels * 4);
 
 				// decompression filter
 				SysInfoFlushCaches();
