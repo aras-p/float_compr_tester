@@ -38,6 +38,7 @@ static FilterDesc g_Filters[] =
 };
 constexpr int kFilterCount = sizeof(g_Filters) / sizeof(g_Filters[0]);
 
+static FilterDesc g_FilterSplit8 = { "-s8o", Filter_Shuffle, UnFilter_Shuffle };
 static FilterDesc g_FilterSplit8AndDeltaDiff = {"-s8-dif", Filter_A, UnFilter_A }; // part 3 / part 6 beginning
 static FilterDesc g_FilterSplit8Delta = { "-s8dif", Filter_D, UnFilter_D }; // part 6 end
 static FilterDesc g_FilterSplit8DeltaOpt = { "-s8dopt", Filter_H, UnFilter_K };
@@ -57,10 +58,45 @@ struct TestFile
 	std::vector<float> fileData;
 };
 
+enum BlockSize
+{
+	kBSizeNone,
+	kBSize64k,
+	kBSize256k,
+	kBSize1M,
+	kBSize4M,
+	kBSize16M,
+	kBSize64M,
+	kBSizeCount
+};
+static const size_t kBlockSizeToActualSize[] =
+{
+	0,
+	64 * 1024,
+	256 * 1024,
+	1024 * 1024,
+	4 * 1024 * 1024,
+	16 * 1024 * 1024,
+	64 * 1024 * 1024,
+};
+static_assert(sizeof(kBlockSizeToActualSize)/sizeof(kBlockSizeToActualSize[0]) == kBSizeCount, "block size table size mismatch");
+static const char* kBlockSizeName[] =
+{
+	"",
+	"-64k",
+	"-256k",
+	"-1M",
+	"-4M",
+	"-16M",
+	"-64M",
+};
+static_assert(sizeof(kBlockSizeName) / sizeof(kBlockSizeName[0]) == kBSizeCount, "block size name table size mismatch");
+
 struct CompressorConfig
 {
 	Compressor* cmp;
 	FilterDesc* filter;
+	BlockSize blockSizeEnum = kBSizeNone;
 
 	std::string GetName() const
 	{
@@ -69,11 +105,12 @@ struct CompressorConfig
 		std::string res = buf;
 		if (filter != nullptr)
 			res += filter->name;
+		res += kBlockSizeName[blockSizeEnum];
 		return res;
 	}
 	const char* GetShapeString() const
 	{
-		if (filter == &g_FilterSplit8DeltaOpt) return "'circle', pointSize: 12, lineWidth: 3";
+		if (filter == &g_FilterSplit8DeltaOpt) return "'circle', pointSize: 4, lineWidth: 2";
 		if (filter == &g_FilterSplit8Delta) return "'circle'";
 		if (filter == &g_FilterSplit8AndDeltaDiff) return "{type:'square', rotation: 45}, lineDashStyle: [4, 4]";
 		if (filter == nullptr) return "'circle', lineDashStyle: [4, 2]";
@@ -83,7 +120,13 @@ struct CompressorConfig
 	{
 		// https://www.w3schools.com/colors/colors_picker.asp
 		bool faded = filter != &g_FilterSplit8DeltaOpt;
-		if (cmp == g_CompZstd.get()) return faded ? 0x90d596 : 0x0c9618; // green
+		if (cmp == g_CompZstd.get())
+		{
+			if (blockSizeEnum == kBSize64k) return 0x0c4018;
+			if (blockSizeEnum == kBSize256k) return 0x0c6018;
+			if (blockSizeEnum == kBSize1M) return 0x0c8018;
+			return faded ? 0x90d596 : 0x0c9618; // green
+		}
 		if (cmp == g_CompLZ4.get()) return faded ? 0xd9d18c : 0xb19f00; // yellow
 		//if (cmp == g_CompZlib.get()) return faded ? 0x8cd9cf : 0x00bfa7; // cyan
 		//if (cmp == g_CompLibDeflate.get()) return 0x00786a; // cyan
@@ -94,6 +137,171 @@ struct CompressorConfig
 		if (cmp == g_CompKraken.get())   return faded ? 0xc4b6c9 : 0x8a4b9d; // dark purple regular: 0x8a4b9d lighter: 0xc4b6c9
 		return 0;
 
+	}
+
+	uint8_t* CompressWhole(const TestFile& tf, int level, size_t& outCompressedSize)
+	{
+		const float* srcData = tf.fileData.data();
+		uint8_t* filterBuffer = nullptr;
+		if (filter)
+		{
+			filterBuffer = new uint8_t[4 * tf.fileData.size()];
+			filter->filterFunc((const uint8_t*)srcData, filterBuffer, tf.channels * sizeof(float), tf.width * tf.height);
+			srcData = (const float*)filterBuffer;
+		}
+
+		outCompressedSize = 0;
+		uint8_t* compressed = cmp->Compress(level, srcData, tf.width, tf.height, tf.channels, outCompressedSize);
+		delete[] filterBuffer;
+		return compressed;
+	}
+
+	uint8_t* Compress(const TestFile& tf, int level, size_t& outCompressedSize)
+	{
+		if (blockSizeEnum == kBSizeNone)
+			return CompressWhole(tf, level, outCompressedSize);
+
+		const int stride = tf.channels * sizeof(float);
+		const int rowStride = tf.width * stride;
+
+		size_t blockSize = kBlockSizeToActualSize[blockSizeEnum];
+		// make sure multiple of data elem size
+		blockSize = (blockSize / stride) * stride;
+		// make sure multiple of rows (if longer than a row)
+		if (blockSize > rowStride)
+			blockSize = (blockSize / rowStride) * rowStride;
+
+		uint8_t* filterBuffer = nullptr;
+		if (filter)
+			filterBuffer = new uint8_t[blockSize];
+
+		const size_t dataSize = 4 * tf.fileData.size();
+		const uint8_t* srcData = (const uint8_t*)tf.fileData.data();
+		uint8_t* compressed = new uint8_t[dataSize + 4];
+		size_t srcOffset = 0;
+		size_t cmpOffset = 0;
+		while (srcOffset < dataSize)
+		{
+			size_t thisBlockSize = std::min(blockSize, dataSize - srcOffset);
+			if (filter)
+			{
+				filter->filterFunc(srcData + srcOffset, filterBuffer, stride, thisBlockSize / stride);
+			}
+			size_t thisCmpSize = 0;
+			int blockWidth = tf.width;
+			int blockHeight = tf.height;
+			if (thisBlockSize > rowStride)
+			{
+				blockHeight = thisBlockSize / rowStride;
+			}
+			else
+			{
+				blockWidth = thisBlockSize / stride;
+				blockHeight = 1;
+			}
+			uint8_t* thisCmp = cmp->Compress(level,
+				(const float*)(filter ? filterBuffer : srcData + srcOffset),
+				blockWidth,
+				blockHeight,
+				tf.channels,
+				thisCmpSize);
+			if (cmpOffset + thisCmpSize > dataSize)
+			{
+				// data is not compressible; fallback to just zero indicator + memcpy
+				*(uint32_t*)compressed = 0;
+				memcpy(compressed + 4, srcData, dataSize);
+				outCompressedSize = dataSize + 4;
+				delete[] filterBuffer;
+				delete[] thisCmp;
+				return compressed;
+			}
+			// store this chunk size and data
+			*(uint32_t*)(compressed + cmpOffset) = uint32_t(thisCmpSize);
+			memcpy(compressed + cmpOffset + 4, thisCmp, thisCmpSize);
+			delete[] thisCmp;
+
+			srcOffset += blockSize;
+			cmpOffset += 4 + thisCmpSize;
+		}
+		delete[] filterBuffer;
+		outCompressedSize = cmpOffset;
+		return compressed;
+	}
+
+	void DecompressWhole(const TestFile& tf, const uint8_t* compressed, size_t compressedSize, float* dst)
+	{
+		uint8_t* filterBuffer = nullptr;
+		if (filter)
+			filterBuffer = new uint8_t[4 * tf.fileData.size()];
+		cmp->Decompress(compressed, compressedSize, filter == nullptr ? dst : (float*)filterBuffer, tf.width, tf.height, tf.channels);
+
+		if (filter)
+		{
+			filter->unfilterFunc(filterBuffer, (uint8_t*)dst, tf.channels * sizeof(float), tf.width * tf.height);
+			delete[] filterBuffer;
+		}
+	}
+
+	void Decompress(const TestFile& tf, const uint8_t* compressed, size_t compressedSize, float* dst)
+	{
+		if (blockSizeEnum == kBSizeNone)
+		{
+			DecompressWhole(tf, compressed, compressedSize, dst);
+			return;
+		}
+
+		uint32_t firstBlockCmpSize = *(const uint32_t*)compressed;
+		if (firstBlockCmpSize == 0)
+		{
+			// it was uncompressible data fallback
+			memcpy(dst, compressed + 4, tf.width * tf.height * tf.channels * sizeof(float));
+			return;
+		}
+
+		const int stride = tf.channels * sizeof(float);
+		const int rowStride = tf.width * stride;
+
+		size_t blockSize = kBlockSizeToActualSize[blockSizeEnum];
+		// make sure multiple of data elem size
+		blockSize = (blockSize / stride) * stride;
+		// make sure multiple of rows (if longer than a row)
+		if (blockSize > rowStride)
+			blockSize = (blockSize / rowStride) * rowStride;
+
+		uint8_t* filterBuffer = nullptr;
+		if (filter)
+			filterBuffer = new uint8_t[blockSize];
+
+		uint8_t* dstData = (uint8_t*)dst;
+		const size_t dataSize = 4 * tf.fileData.size();
+		
+		size_t cmpOffset = 0;
+		size_t dstOffset = 0;
+		while (cmpOffset < compressedSize)
+		{
+			size_t thisBlockSize = std::min(blockSize, dataSize - dstOffset);
+			int blockWidth = tf.width;
+			int blockHeight = tf.height;
+			if (thisBlockSize > rowStride)
+			{
+				blockHeight = thisBlockSize / rowStride;
+			}
+			else
+			{
+				blockWidth = thisBlockSize / stride;
+				blockHeight = 1;
+			}
+
+			uint32_t thisCmpSize = *(const uint32_t*)(compressed + cmpOffset);
+			cmp->Decompress(compressed + cmpOffset + 4, thisCmpSize, (float*)(filter == nullptr ? dstData + dstOffset : filterBuffer), blockWidth, blockHeight, tf.channels);
+
+			if (filter)
+				filter->unfilterFunc(filterBuffer, dstData + dstOffset, tf.channels * sizeof(float), thisBlockSize / stride);
+
+			cmpOffset += 4 + thisCmpSize;
+			dstOffset += thisBlockSize;
+		}
+		delete[] filterBuffer;
 	}
 };
 
@@ -112,14 +320,42 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscZstd), nullptr });
 
 	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscBLZ_Shuf), nullptr });
-	g_Compressors.push_back({ new GenericCompressor(kCompressionBloscLZ4_Shuf), nullptr });
-	g_Compressors.push_back({ new GenericCompressor(kCompressionBloscZstd_Shuf), nullptr });
+	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscLZ4_Shuf), nullptr });
+	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscZstd_Shuf), nullptr });
 
 	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscBLZ_ShufDelta), nullptr });
 	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscLZ4_ShufDelta), nullptr });
 	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscZstd_ShufDelta), nullptr });
 
-	// Part 7
+	//g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8 });
+	//g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8 });
+	//g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8, kBSize256k });
+	//g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8, kBSize256k });
+
+	// Part 8 Chunked
+	g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize256k });
+	g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+	g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8DeltaOpt, kBSize256k });
+	g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+#	if BUILD_WITH_OODLE
+	g_Compressors.push_back({ g_CompKraken.get(), &g_FilterSplit8DeltaOpt, kBSize256k });
+	g_Compressors.push_back({ g_CompKraken.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+#	endif
+
+	g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt });
+	g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8DeltaOpt });
+#	if BUILD_WITH_OODLE
+	g_Compressors.push_back({ g_CompKraken.get(), &g_FilterSplit8DeltaOpt });
+#	endif
+	g_Compressors.push_back({ g_CompZstd.get(), nullptr });
+	g_Compressors.push_back({ g_CompLZ4.get(), nullptr });
+#	if BUILD_WITH_OODLE
+	g_Compressors.push_back({ g_CompKraken.get(), nullptr });
+#	endif
+
+
+	// Part 7 opt
+	/*
 	g_Compressors.push_back({g_CompZstd.get(), &g_FilterSplit8DeltaOpt});
 	g_Compressors.push_back({g_CompLZ4.get(), &g_FilterSplit8DeltaOpt});
 #	if BUILD_WITH_OODLE
@@ -143,6 +379,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 #	if BUILD_WITH_OODLE
 	g_Compressors.push_back({g_CompKraken.get(), nullptr});
 #	endif
+	*/
 
 	// For: https://aras-p.info/blog/2023/02/18/Float-Compression-6-Filtering-Optimization/
 	/*
@@ -262,9 +499,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		printf("Run %i/%i, %zi compressors on %zi files:\n", ir+1, kRuns, g_Compressors.size(), testFileCount);
 		for (size_t ic = 0; ic < g_Compressors.size(); ++ic)
 		{
-			Compressor* cmp = g_Compressors[ic].cmp;
-			FilterDesc* filter = g_Compressors[ic].filter;
-			cmpName = g_Compressors[ic].GetName();
+			auto& config = g_Compressors[ic];
+			cmpName = config.GetName();
 			LevelResults& levelRes = results[ic];
 			printf("%s: %zi levels:\n", cmpName.c_str(), levelRes.size());
 			for (Result& res : levelRes)
@@ -287,35 +523,17 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 					const float* srcData = tf.fileData.data();
 					SysInfoFlushCaches();
 
-					// filter if needed
-					uint64_t t0 = stm_now();
-					uint8_t* filterBuffer = nullptr;
-					if (filter)
-					{
-						filterBuffer = new uint8_t[4 * tf.fileData.size()];
-						filter->filterFunc((const uint8_t*)srcData, filterBuffer, tf.channels * sizeof(float), tf.width * tf.height);
-						srcData = (const float*)filterBuffer;
-					}
-
 					// compress
+					uint64_t t0 = stm_now();
 					size_t compressedSize = 0;
-					uint8_t* compressed = cmp->Compress(res.level, srcData, tf.width, tf.height, tf.channels, compressedSize);
+					uint8_t* compressed = config.Compress(tf, res.level, compressedSize);
 					double tComp = stm_sec(stm_since(t0));
 
-					// decompress:
+					// decompress
 					memset(decompressed.data(), 0, 4 * tf.fileData.size());
-					if (filterBuffer)
-						memset(filterBuffer, 0, 4 * tf.fileData.size());
 					SysInfoFlushCaches();
 					t0 = stm_now();
-					cmp->Decompress(compressed, compressedSize, filter == nullptr ? decompressed.data() : (float*)filterBuffer, tf.width, tf.height, tf.channels);
-
-					// unfilter data if needed
-					if (filter != nullptr)
-					{
-						filter->unfilterFunc(filterBuffer, (uint8_t*)decompressed.data(), tf.channels * sizeof(float), tf.width * tf.height);
-						delete[] filterBuffer;
-					}
+					config.Decompress(tf, compressed, compressedSize, decompressed.data());
 					double tDecomp = stm_sec(stm_since(t0));
 
 					// stats
@@ -326,7 +544,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 					// check validity
 					if (memcmp(tf.fileData.data(), decompressed.data(), 4 * tf.fileData.size()) != 0)
 					{
-						printf("  ERROR, %s level %i did not decompress back to input\n", cmpName.c_str(), res.level);
+						printf("  ERROR, %s level %i did not decompress back to input on %s\n", cmpName.c_str(), res.level, tf.path);
 						for (size_t i = 0; i < 4 * tf.fileData.size(); ++i)
 						{
 							float va = tf.fileData[i];
