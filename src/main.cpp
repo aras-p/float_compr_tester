@@ -215,11 +215,11 @@ struct CompressorConfig
 			int blockHeight = tf.height;
 			if (thisBlockSize > rowStride)
 			{
-				blockHeight = thisBlockSize / rowStride;
+				blockHeight = int(thisBlockSize / rowStride);
 			}
 			else
 			{
-				blockWidth = thisBlockSize / stride;
+				blockWidth = int(thisBlockSize / stride);
 				blockHeight = 1;
 			}
 			uint8_t* thisCmp = cmp->Compress(level,
@@ -307,11 +307,11 @@ struct CompressorConfig
 			int blockHeight = tf.height;
 			if (thisBlockSize > rowStride)
 			{
-				blockHeight = thisBlockSize / rowStride;
+				blockHeight = int(thisBlockSize / rowStride);
 			}
 			else
 			{
-				blockWidth = thisBlockSize / stride;
+				blockWidth = int(thisBlockSize / stride);
 				blockHeight = 1;
 			}
 

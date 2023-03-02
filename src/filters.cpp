@@ -286,10 +286,10 @@ static void EvenOddInterleave16(const Bytes16* a, Bytes16* b, int astride = 1)
 static void Transpose16x16(const Bytes16* a, Bytes16* b, int astride = 1)
 {
     Bytes16 tmp1[16], tmp2[16];
-    EvenOddInterleave16((const Bytes16*)a, tmp1, astride);
+    EvenOddInterleave16(a, tmp1, astride);
     EvenOddInterleave16(tmp1, tmp2);
     EvenOddInterleave16(tmp2, tmp1);
-    EvenOddInterleave16(tmp1, (Bytes16*)b);
+    EvenOddInterleave16(tmp1, b);
 }
 static void Transpose(const uint8_t* a, uint8_t* b, int cols, int rows)
 {
