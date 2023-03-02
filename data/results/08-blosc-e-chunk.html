@@ -1,0 +1,271 @@
+<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
+<center style='font-family: Arial;'>
+<div style='border: 1px solid #ccc; width: 1290px;'>
+<div id='chart_cmp' style='width: 640px; height: 480px; display:inline-block;'></div>
+<div id='chart_dec' style='width: 640px; height: 480px; display:inline-block;'></div>
+</div>
+<p>CPU: AMD Ryzen 9 5950X 16-Core Processor Compiler: MSVC 2022 17.4</p>
+<p>lz4-1.9.3 zstd-1.5.2 </p></center><script type='text/javascript'>
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(drawChart);
+function drawChart() {
+var dataCmp = new google.visualization.DataTable();
+var dataDec = new google.visualization.DataTable();
+dataCmp.addColumn('number', 'Throughput');
+dataDec.addColumn('number', 'Throughput');
+dataCmp.addColumn('number', 'zstd-s8d-64k'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd-s8d-64k'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zstd-s8d-256k'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd-s8d-256k'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zstd-s8d-1M'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd-s8d-1M'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zstd-s8d-4M'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd-s8d-4M'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4-s8d-64k'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4-s8d-64k'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4-s8d-256k'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4-s8d-256k'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4-s8d-1M'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4-s8d-1M'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4-s8d-4M'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4-s8d-4M'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zstd-s8d'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd-s8d'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4-s8d'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4-s8d'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zstd'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addRows([
+  [0.996, 3.132,'zstd-s8d-64k -5\n3.132x at 0.996 GB/s\n30.2MB 0.093s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.867, 3.252,'zstd-s8d-64k -3\n3.252x at 0.867 GB/s\n29.0MB 0.106s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.766, 3.393,'zstd-s8d-64k -1\n3.393x at 0.766 GB/s\n27.8MB 0.120s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.643, 3.622,'zstd-s8d-64k 1\n3.622x at 0.643 GB/s\n26.1MB 0.143s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.457, 3.657,'zstd-s8d-64k 3\n3.657x at 0.457 GB/s\n25.8MB 0.202s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.133, 3.704,'zstd-s8d-64k 5\n3.704x at 0.133 GB/s\n25.5MB 0.692s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.104, 3.752,'zstd-s8d-64k 7\n3.752x at 0.104 GB/s\n25.2MB 0.888s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.086, 3.764,'zstd-s8d-64k 9\n3.764x at 0.086 GB/s\n25.1MB 1.077s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.047, 3.777,'zstd-s8d-64k 12\n3.777x at 0.047 GB/s\n25.0MB 1.948s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.024, 3.887,'zstd-s8d-64k 15\n3.887x at 0.024 GB/s\n24.3MB 3.772s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.939,null,null,null, 3.237,'zstd-s8d-256k -5\n3.237x at 0.939 GB/s\n29.2MB 0.098s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.917,null,null,null, 3.360,'zstd-s8d-256k -3\n3.360x at 0.917 GB/s\n28.1MB 0.101s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.786,null,null,null, 3.504,'zstd-s8d-256k -1\n3.504x at 0.786 GB/s\n27.0MB 0.117s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.688,null,null,null, 3.710,'zstd-s8d-256k 1\n3.710x at 0.688 GB/s\n25.5MB 0.134s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.406,null,null,null, 3.771,'zstd-s8d-256k 3\n3.771x at 0.406 GB/s\n25.0MB 0.227s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.161,null,null,null, 3.825,'zstd-s8d-256k 5\n3.825x at 0.161 GB/s\n24.7MB 0.574s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.105,null,null,null, 3.870,'zstd-s8d-256k 7\n3.870x at 0.105 GB/s\n24.4MB 0.883s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.079,null,null,null, 3.884,'zstd-s8d-256k 9\n3.884x at 0.079 GB/s\n24.3MB 1.164s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.036,null,null,null, 3.910,'zstd-s8d-256k 12\n3.910x at 0.036 GB/s\n24.2MB 2.567s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.021,null,null,null, 4.095,'zstd-s8d-256k 15\n4.095x at 0.021 GB/s\n23.1MB 4.398s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.967,null,null,null,null,null,null, 3.247,'zstd-s8d-1M -5\n3.247x at 0.967 GB/s\n29.1MB 0.095s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.942,null,null,null,null,null,null, 3.357,'zstd-s8d-1M -3\n3.357x at 0.942 GB/s\n28.1MB 0.098s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.863,null,null,null,null,null,null, 3.498,'zstd-s8d-1M -1\n3.498x at 0.863 GB/s\n27.0MB 0.107s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.750,null,null,null,null,null,null, 3.869,'zstd-s8d-1M 1\n3.869x at 0.750 GB/s\n24.4MB 0.123s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.396,null,null,null,null,null,null, 3.906,'zstd-s8d-1M 3\n3.906x at 0.396 GB/s\n24.2MB 0.233s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.190,null,null,null,null,null,null, 3.955,'zstd-s8d-1M 5\n3.955x at 0.190 GB/s\n23.9MB 0.485s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.126,null,null,null,null,null,null, 4.007,'zstd-s8d-1M 7\n4.007x at 0.126 GB/s\n23.6MB 0.733s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.093,null,null,null,null,null,null, 4.017,'zstd-s8d-1M 9\n4.017x at 0.093 GB/s\n23.5MB 0.992s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.062,null,null,null,null,null,null, 4.035,'zstd-s8d-1M 12\n4.035x at 0.062 GB/s\n23.4MB 1.486s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.038,null,null,null,null,null,null, 4.048,'zstd-s8d-1M 15\n4.048x at 0.038 GB/s\n23.3MB 2.409s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.020,null,null,null,null,null,null,null,null,null, 3.280,'zstd-s8d-4M -5\n3.280x at 1.020 GB/s\n28.8MB 0.090s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.933,null,null,null,null,null,null,null,null,null, 3.387,'zstd-s8d-4M -3\n3.387x at 0.933 GB/s\n27.9MB 0.099s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.867,null,null,null,null,null,null,null,null,null, 3.524,'zstd-s8d-4M -1\n3.524x at 0.867 GB/s\n26.8MB 0.106s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.774,null,null,null,null,null,null,null,null,null, 3.942,'zstd-s8d-4M 1\n3.942x at 0.774 GB/s\n24.0MB 0.119s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.427,null,null,null,null,null,null,null,null,null, 3.982,'zstd-s8d-4M 3\n3.982x at 0.427 GB/s\n23.7MB 0.216s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.215,null,null,null,null,null,null,null,null,null, 4.033,'zstd-s8d-4M 5\n4.033x at 0.215 GB/s\n23.4MB 0.428s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.147,null,null,null,null,null,null,null,null,null, 4.088,'zstd-s8d-4M 7\n4.088x at 0.147 GB/s\n23.1MB 0.627s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.117,null,null,null,null,null,null,null,null,null, 4.102,'zstd-s8d-4M 9\n4.102x at 0.117 GB/s\n23.0MB 0.791s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.050,null,null,null,null,null,null,null,null,null, 4.123,'zstd-s8d-4M 12\n4.123x at 0.050 GB/s\n22.9MB 1.829s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.030,null,null,null,null,null,null,null,null,null, 4.141,'zstd-s8d-4M 15\n4.141x at 0.030 GB/s\n22.8MB 3.119s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.926,null,null,null,null,null,null,null,null,null,null,null,null, 2.731,'lz4-s8d-64k -5\n2.731x at 1.926 GB/s\n34.6MB 0.048s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.604,null,null,null,null,null,null,null,null,null,null,null,null, 2.939,'lz4-s8d-64k -1\n2.939x at 1.604 GB/s\n32.1MB 0.058s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.248,null,null,null,null,null,null,null,null,null,null,null,null, 3.067,'lz4-s8d-64k 0\n3.067x at 1.248 GB/s\n30.8MB 0.074s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.240,null,null,null,null,null,null,null,null,null,null,null,null, 3.289,'lz4-s8d-64k 1\n3.289x at 0.240 GB/s\n28.7MB 0.384s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.120,null,null,null,null,null,null,null,null,null,null,null,null, 3.424,'lz4-s8d-64k 6\n3.424x at 0.120 GB/s\n27.6MB 0.770s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.043,null,null,null,null,null,null,null,null,null,null,null,null, 3.454,'lz4-s8d-64k 9\n3.454x at 0.043 GB/s\n27.3MB 2.143s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.856,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.797,'lz4-s8d-256k -5\n2.797x at 1.856 GB/s\n33.8MB 0.050s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.563,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.018,'lz4-s8d-256k -1\n3.018x at 1.563 GB/s\n31.3MB 0.059s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.243,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.171,'lz4-s8d-256k 0\n3.171x at 1.243 GB/s\n29.8MB 0.074s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.204,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.377,'lz4-s8d-256k 1\n3.377x at 0.204 GB/s\n28.0MB 0.453s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.102,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.553,'lz4-s8d-256k 6\n3.553x at 0.102 GB/s\n26.6MB 0.908s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.035,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.598,'lz4-s8d-256k 9\n3.598x at 0.035 GB/s\n26.3MB 2.621s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.653,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.857,'lz4-s8d-1M -5\n2.857x at 1.653 GB/s\n33.1MB 0.056s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.371,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.066,'lz4-s8d-1M -1\n3.066x at 1.371 GB/s\n30.8MB 0.067s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.165,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.203,'lz4-s8d-1M 0\n3.203x at 1.165 GB/s\n29.5MB 0.079s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.197,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.439,'lz4-s8d-1M 1\n3.439x at 0.197 GB/s\n27.5MB 0.468s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.089,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.650,'lz4-s8d-1M 6\n3.650x at 0.089 GB/s\n25.9MB 1.033s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.030,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.710,'lz4-s8d-1M 9\n3.710x at 0.030 GB/s\n25.5MB 3.040s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.615,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.893,'lz4-s8d-4M -5\n2.893x at 1.615 GB/s\n32.7MB 0.057s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.393,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.089,'lz4-s8d-4M -1\n3.089x at 1.393 GB/s\n30.6MB 0.066s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.157,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.214,'lz4-s8d-4M 0\n3.214x at 1.157 GB/s\n29.4MB 0.080s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.193,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.468,'lz4-s8d-4M 1\n3.468x at 0.193 GB/s\n27.2MB 0.477s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.084,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.702,'lz4-s8d-4M 6\n3.702x at 0.084 GB/s\n25.5MB 1.101s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.027,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.770,'lz4-s8d-4M 9\n3.770x at 0.027 GB/s\n25.1MB 3.358s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.954,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.289,'zstd-s8d -5\n3.289x at 0.954 GB/s\n28.7MB 0.097s','' ,null,null,null,null,null,null,null,null,null],
+  [0.936,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.394,'zstd-s8d -3\n3.394x at 0.936 GB/s\n27.8MB 0.099s','' ,null,null,null,null,null,null,null,null,null],
+  [0.850,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.530,'zstd-s8d -1\n3.530x at 0.850 GB/s\n26.8MB 0.108s','' ,null,null,null,null,null,null,null,null,null],
+  [0.750,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.945,'zstd-s8d 1\n3.945x at 0.750 GB/s\n23.9MB 0.123s','' ,null,null,null,null,null,null,null,null,null],
+  [0.415,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.989,'zstd-s8d 3\n3.989x at 0.415 GB/s\n23.7MB 0.222s','' ,null,null,null,null,null,null,null,null,null],
+  [0.207,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.049,'zstd-s8d 5\n4.049x at 0.207 GB/s\n23.3MB 0.446s','' ,null,null,null,null,null,null,null,null,null],
+  [0.149,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.106,'zstd-s8d 7\n4.106x at 0.149 GB/s\n23.0MB 0.619s','' ,null,null,null,null,null,null,null,null,null],
+  [0.116,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.119,'zstd-s8d 9\n4.119x at 0.116 GB/s\n22.9MB 0.796s','' ,null,null,null,null,null,null,null,null,null],
+  [0.052,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.142,'zstd-s8d 12\n4.142x at 0.052 GB/s\n22.8MB 1.768s','' ,null,null,null,null,null,null,null,null,null],
+  [0.027,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.166,'zstd-s8d 15\n4.166x at 0.027 GB/s\n22.7MB 3.424s','' ,null,null,null,null,null,null,null,null,null],
+  [1.566,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.903,'lz4-s8d -5\n2.903x at 1.566 GB/s\n32.5MB 0.059s','' ,null,null,null,null,null,null],
+  [1.285,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.095,'lz4-s8d -1\n3.095x at 1.285 GB/s\n30.5MB 0.072s','' ,null,null,null,null,null,null],
+  [1.149,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.218,'lz4-s8d 0\n3.218x at 1.149 GB/s\n29.4MB 0.080s','' ,null,null,null,null,null,null],
+  [0.192,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.476,'lz4-s8d 1\n3.476x at 0.192 GB/s\n27.2MB 0.481s','' ,null,null,null,null,null,null],
+  [0.082,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.715,'lz4-s8d 6\n3.715x at 0.082 GB/s\n25.4MB 1.125s','' ,null,null,null,null,null,null],
+  [0.027,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.786,'lz4-s8d 9\n3.786x at 0.027 GB/s\n24.9MB 3.472s','' ,null,null,null,null,null,null],
+  [0.933,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.960,'zstd -5\n1.960x at 0.933 GB/s\n48.2MB 0.099s','' ,null,null,null],
+  [0.815,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.257,'zstd -3\n2.257x at 0.815 GB/s\n41.8MB 0.113s','' ,null,null,null],
+  [0.696,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.536,'zstd -1\n2.536x at 0.696 GB/s\n37.3MB 0.133s','' ,null,null,null],
+  [0.600,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.628,'zstd 1\n2.628x at 0.600 GB/s\n35.9MB 0.154s','' ,null,null,null],
+  [0.305,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.699,'zstd 3\n2.699x at 0.305 GB/s\n35.0MB 0.302s','' ,null,null,null],
+  [0.160,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.703,'zstd 5\n2.703x at 0.160 GB/s\n34.9MB 0.578s','' ,null,null,null],
+  [0.098,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.797,'zstd 7\n2.797x at 0.098 GB/s\n33.8MB 0.939s','' ,null,null,null],
+  [0.080,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.885,'zstd 9\n2.885x at 0.080 GB/s\n32.7MB 1.155s','' ,null,null,null],
+  [0.030,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.890,'zstd 12\n2.890x at 0.030 GB/s\n32.7MB 3.108s','' ,null,null,null],
+  [0.014,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.871,'zstd 15\n2.871x at 0.014 GB/s\n32.9MB 6.579s','' ,null,null,null],
+  [1.708,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.533,'lz4 -5\n1.533x at 1.708 GB/s\n61.6MB 0.054s','' ],
+  [1.292,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.740,'lz4 -1\n1.740x at 1.292 GB/s\n54.3MB 0.071s','' ],
+  [1.030,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.948,'lz4 0\n1.948x at 1.030 GB/s\n48.5MB 0.090s','' ],
+  [0.150,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.140,'lz4 1\n2.140x at 0.150 GB/s\n44.1MB 0.616s','' ],
+  [0.102,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.214,'lz4 6\n2.214x at 0.102 GB/s\n42.7MB 0.903s','' ],
+  [0.056,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.223,'lz4 9\n2.223x at 0.056 GB/s\n42.5MB 1.653s','' ]
+]);
+dataDec.addRows([
+  [1.834, 3.132,'zstd-s8d-64k -5\n3.132x at 1.834 GB/s\n30.2MB 0.050s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.764, 3.252,'zstd-s8d-64k -3\n3.252x at 1.764 GB/s\n29.0MB 0.052s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.668, 3.393,'zstd-s8d-64k -1\n3.393x at 1.668 GB/s\n27.8MB 0.055s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.272, 3.622,'zstd-s8d-64k 1\n3.622x at 1.272 GB/s\n26.1MB 0.072s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.267, 3.657,'zstd-s8d-64k 3\n3.657x at 1.267 GB/s\n25.8MB 0.073s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.192, 3.704,'zstd-s8d-64k 5\n3.704x at 1.192 GB/s\n25.5MB 0.077s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.219, 3.752,'zstd-s8d-64k 7\n3.752x at 1.219 GB/s\n25.2MB 0.076s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.379, 3.764,'zstd-s8d-64k 9\n3.764x at 1.379 GB/s\n25.1MB 0.067s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.408, 3.777,'zstd-s8d-64k 12\n3.777x at 1.408 GB/s\n25.0MB 0.066s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.220, 3.887,'zstd-s8d-64k 15\n3.887x at 1.220 GB/s\n24.3MB 0.076s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.963,null,null,null, 3.237,'zstd-s8d-256k -5\n3.237x at 1.963 GB/s\n29.2MB 0.047s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.926,null,null,null, 3.360,'zstd-s8d-256k -3\n3.360x at 1.926 GB/s\n28.1MB 0.048s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.805,null,null,null, 3.504,'zstd-s8d-256k -1\n3.504x at 1.805 GB/s\n27.0MB 0.051s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.469,null,null,null, 3.710,'zstd-s8d-256k 1\n3.710x at 1.469 GB/s\n25.5MB 0.063s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.415,null,null,null, 3.771,'zstd-s8d-256k 3\n3.771x at 1.415 GB/s\n25.0MB 0.065s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.596,null,null,null, 3.825,'zstd-s8d-256k 5\n3.825x at 1.596 GB/s\n24.7MB 0.058s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.517,null,null,null, 3.870,'zstd-s8d-256k 7\n3.870x at 1.517 GB/s\n24.4MB 0.061s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.563,null,null,null, 3.884,'zstd-s8d-256k 9\n3.884x at 1.563 GB/s\n24.3MB 0.059s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.627,null,null,null, 3.910,'zstd-s8d-256k 12\n3.910x at 1.627 GB/s\n24.2MB 0.057s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.290,null,null,null, 4.095,'zstd-s8d-256k 15\n4.095x at 1.290 GB/s\n23.1MB 0.071s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.250,null,null,null,null,null,null, 3.247,'zstd-s8d-1M -5\n3.247x at 2.250 GB/s\n29.1MB 0.041s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.217,null,null,null,null,null,null, 3.357,'zstd-s8d-1M -3\n3.357x at 2.217 GB/s\n28.1MB 0.042s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.096,null,null,null,null,null,null, 3.498,'zstd-s8d-1M -1\n3.498x at 2.096 GB/s\n27.0MB 0.044s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.689,null,null,null,null,null,null, 3.869,'zstd-s8d-1M 1\n3.869x at 1.689 GB/s\n24.4MB 0.055s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.638,null,null,null,null,null,null, 3.906,'zstd-s8d-1M 3\n3.906x at 1.638 GB/s\n24.2MB 0.056s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.571,null,null,null,null,null,null, 3.955,'zstd-s8d-1M 5\n3.955x at 1.571 GB/s\n23.9MB 0.059s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.750,null,null,null,null,null,null, 4.007,'zstd-s8d-1M 7\n4.007x at 1.750 GB/s\n23.6MB 0.053s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.731,null,null,null,null,null,null, 4.017,'zstd-s8d-1M 9\n4.017x at 1.731 GB/s\n23.5MB 0.053s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.838,null,null,null,null,null,null, 4.035,'zstd-s8d-1M 12\n4.035x at 1.838 GB/s\n23.4MB 0.050s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.827,null,null,null,null,null,null, 4.048,'zstd-s8d-1M 15\n4.048x at 1.827 GB/s\n23.3MB 0.051s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.082,null,null,null,null,null,null,null,null,null, 3.280,'zstd-s8d-4M -5\n3.280x at 2.082 GB/s\n28.8MB 0.044s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [2.018,null,null,null,null,null,null,null,null,null, 3.387,'zstd-s8d-4M -3\n3.387x at 2.018 GB/s\n27.9MB 0.046s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.860,null,null,null,null,null,null,null,null,null, 3.524,'zstd-s8d-4M -1\n3.524x at 1.860 GB/s\n26.8MB 0.050s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.613,null,null,null,null,null,null,null,null,null, 3.942,'zstd-s8d-4M 1\n3.942x at 1.613 GB/s\n24.0MB 0.057s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.507,null,null,null,null,null,null,null,null,null, 3.982,'zstd-s8d-4M 3\n3.982x at 1.507 GB/s\n23.7MB 0.061s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.500,null,null,null,null,null,null,null,null,null, 4.033,'zstd-s8d-4M 5\n4.033x at 1.500 GB/s\n23.4MB 0.061s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.574,null,null,null,null,null,null,null,null,null, 4.088,'zstd-s8d-4M 7\n4.088x at 1.574 GB/s\n23.1MB 0.059s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.621,null,null,null,null,null,null,null,null,null, 4.102,'zstd-s8d-4M 9\n4.102x at 1.621 GB/s\n23.0MB 0.057s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.585,null,null,null,null,null,null,null,null,null, 4.123,'zstd-s8d-4M 12\n4.123x at 1.585 GB/s\n22.9MB 0.058s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.727,null,null,null,null,null,null,null,null,null, 4.141,'zstd-s8d-4M 15\n4.141x at 1.727 GB/s\n22.8MB 0.053s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.750,null,null,null,null,null,null,null,null,null,null,null,null, 2.731,'lz4-s8d-64k -5\n2.731x at 3.750 GB/s\n34.6MB 0.025s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.225,null,null,null,null,null,null,null,null,null,null,null,null, 2.939,'lz4-s8d-64k -1\n2.939x at 3.225 GB/s\n32.1MB 0.029s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.116,null,null,null,null,null,null,null,null,null,null,null,null, 3.067,'lz4-s8d-64k 0\n3.067x at 3.116 GB/s\n30.8MB 0.030s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.416,null,null,null,null,null,null,null,null,null,null,null,null, 3.289,'lz4-s8d-64k 1\n3.289x at 3.416 GB/s\n28.7MB 0.027s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.876,null,null,null,null,null,null,null,null,null,null,null,null, 3.424,'lz4-s8d-64k 6\n3.424x at 3.876 GB/s\n27.6MB 0.024s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.993,null,null,null,null,null,null,null,null,null,null,null,null, 3.454,'lz4-s8d-64k 9\n3.454x at 3.993 GB/s\n27.3MB 0.023s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.414,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.797,'lz4-s8d-256k -5\n2.797x at 4.414 GB/s\n33.8MB 0.021s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.064,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.018,'lz4-s8d-256k -1\n3.018x at 4.064 GB/s\n31.3MB 0.023s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.843,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.171,'lz4-s8d-256k 0\n3.171x at 3.843 GB/s\n29.8MB 0.024s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.750,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.377,'lz4-s8d-256k 1\n3.377x at 3.750 GB/s\n28.0MB 0.025s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.351,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.553,'lz4-s8d-256k 6\n3.553x at 4.351 GB/s\n26.6MB 0.021s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.456,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.598,'lz4-s8d-256k 9\n3.598x at 4.456 GB/s\n26.3MB 0.021s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.310,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.857,'lz4-s8d-1M -5\n2.857x at 4.310 GB/s\n33.1MB 0.021s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.959,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.066,'lz4-s8d-1M -1\n3.066x at 3.959 GB/s\n30.8MB 0.023s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.780,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.203,'lz4-s8d-1M 0\n3.203x at 3.780 GB/s\n29.5MB 0.024s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.660,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.439,'lz4-s8d-1M 1\n3.439x at 3.660 GB/s\n27.5MB 0.025s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.251,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.650,'lz4-s8d-1M 6\n3.650x at 4.251 GB/s\n25.9MB 0.022s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [4.414,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.710,'lz4-s8d-1M 9\n3.710x at 4.414 GB/s\n25.5MB 0.021s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.632,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.893,'lz4-s8d-4M -5\n2.893x at 3.632 GB/s\n32.7MB 0.025s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.416,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.089,'lz4-s8d-4M -1\n3.089x at 3.416 GB/s\n30.6MB 0.027s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.294,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.214,'lz4-s8d-4M 0\n3.214x at 3.294 GB/s\n29.4MB 0.028s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.214,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.468,'lz4-s8d-4M 1\n3.468x at 3.214 GB/s\n27.2MB 0.029s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.705,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.702,'lz4-s8d-4M 6\n3.702x at 3.705 GB/s\n25.5MB 0.025s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [3.812,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.770,'lz4-s8d-4M 9\n3.770x at 3.812 GB/s\n25.1MB 0.024s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [1.879,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.289,'zstd-s8d -5\n3.289x at 1.879 GB/s\n28.7MB 0.049s','' ,null,null,null,null,null,null,null,null,null],
+  [1.540,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.394,'zstd-s8d -3\n3.394x at 1.540 GB/s\n27.8MB 0.060s','' ,null,null,null,null,null,null,null,null,null],
+  [1.767,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.530,'zstd-s8d -1\n3.530x at 1.767 GB/s\n26.8MB 0.052s','' ,null,null,null,null,null,null,null,null,null],
+  [1.535,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.945,'zstd-s8d 1\n3.945x at 1.535 GB/s\n23.9MB 0.060s','' ,null,null,null,null,null,null,null,null,null],
+  [1.144,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.989,'zstd-s8d 3\n3.989x at 1.144 GB/s\n23.7MB 0.081s','' ,null,null,null,null,null,null,null,null,null],
+  [1.369,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.049,'zstd-s8d 5\n4.049x at 1.369 GB/s\n23.3MB 0.067s','' ,null,null,null,null,null,null,null,null,null],
+  [1.180,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.106,'zstd-s8d 7\n4.106x at 1.180 GB/s\n23.0MB 0.078s','' ,null,null,null,null,null,null,null,null,null],
+  [1.406,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.119,'zstd-s8d 9\n4.119x at 1.406 GB/s\n22.9MB 0.066s','' ,null,null,null,null,null,null,null,null,null],
+  [1.195,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.142,'zstd-s8d 12\n4.142x at 1.195 GB/s\n22.8MB 0.077s','' ,null,null,null,null,null,null,null,null,null],
+  [1.222,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 4.166,'zstd-s8d 15\n4.166x at 1.222 GB/s\n22.7MB 0.075s','' ,null,null,null,null,null,null,null,null,null],
+  [2.957,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.903,'lz4-s8d -5\n2.903x at 2.957 GB/s\n32.5MB 0.031s','' ,null,null,null,null,null,null],
+  [2.365,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.095,'lz4-s8d -1\n3.095x at 2.365 GB/s\n30.5MB 0.039s','' ,null,null,null,null,null,null],
+  [2.721,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.218,'lz4-s8d 0\n3.218x at 2.721 GB/s\n29.4MB 0.034s','' ,null,null,null,null,null,null],
+  [2.666,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.476,'lz4-s8d 1\n3.476x at 2.666 GB/s\n27.2MB 0.035s','' ,null,null,null,null,null,null],
+  [2.359,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.715,'lz4-s8d 6\n3.715x at 2.359 GB/s\n25.4MB 0.039s','' ,null,null,null,null,null,null],
+  [2.513,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 3.786,'lz4-s8d 9\n3.786x at 2.513 GB/s\n24.9MB 0.037s','' ,null,null,null,null,null,null],
+  [1.335,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.960,'zstd -5\n1.960x at 1.335 GB/s\n48.2MB 0.069s','' ,null,null,null],
+  [1.375,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.257,'zstd -3\n2.257x at 1.375 GB/s\n41.8MB 0.067s','' ,null,null,null],
+  [1.349,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.536,'zstd -1\n2.536x at 1.349 GB/s\n37.3MB 0.068s','' ,null,null,null],
+  [1.025,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.628,'zstd 1\n2.628x at 1.025 GB/s\n35.9MB 0.090s','' ,null,null,null],
+  [1.023,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.699,'zstd 3\n2.699x at 1.023 GB/s\n35.0MB 0.090s','' ,null,null,null],
+  [1.018,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.703,'zstd 5\n2.703x at 1.018 GB/s\n34.9MB 0.091s','' ,null,null,null],
+  [1.022,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.797,'zstd 7\n2.797x at 1.022 GB/s\n33.8MB 0.090s','' ,null,null,null],
+  [1.014,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.885,'zstd 9\n2.885x at 1.014 GB/s\n32.7MB 0.091s','' ,null,null,null],
+  [1.032,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.890,'zstd 12\n2.890x at 1.032 GB/s\n32.7MB 0.089s','' ,null,null,null],
+  [1.063,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.871,'zstd 15\n2.871x at 1.063 GB/s\n32.9MB 0.087s','' ,null,null,null],
+  [6.069,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.533,'lz4 -5\n1.533x at 6.069 GB/s\n61.6MB 0.015s','' ],
+  [5.332,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.740,'lz4 -1\n1.740x at 5.332 GB/s\n54.3MB 0.017s','' ],
+  [4.193,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 1.948,'lz4 0\n1.948x at 4.193 GB/s\n48.5MB 0.022s','' ],
+  [4.907,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.140,'lz4 1\n2.140x at 4.907 GB/s\n44.1MB 0.019s','' ],
+  [5.591,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.214,'lz4 6\n2.214x at 5.591 GB/s\n42.7MB 0.017s','' ],
+  [5.765,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.223,'lz4 9\n2.223x at 5.765 GB/s\n42.5MB 0.016s','' ]
+]);
+var titleDec = 'Decompression Ratio vs Throughput';
+var options = {
+title: 'Compression Ratio vs Throughput',
+pointSize: 6,
+series: {
+  0: {pointShape: 'circle', lineWidth: 3},
+  1: {pointShape: 'circle', lineWidth: 3},
+  2: {pointShape: 'circle', lineWidth: 3},
+  3: {pointShape: 'circle', lineWidth: 3},
+  4: {pointShape: 'circle', lineWidth: 3},
+  5: {pointShape: 'circle', lineWidth: 3},
+  6: {pointShape: 'circle', lineWidth: 3},
+  7: {pointShape: 'circle', lineWidth: 3},
+  8: {pointShape: 'circle', pointSize: 4},
+  9: {pointShape: 'circle', pointSize: 4},
+  10: {pointShape: 'circle', lineDashStyle: [4, 2], pointSize: 4},
+  11: {pointShape: 'circle', lineDashStyle: [4, 2], pointSize: 4},
+  12: {},
+},
+colors: ['05470b','075f0e','097712','0b8e16','4d4500','665c00','807300','998a00','90d596','d9d18c','90d596','d9d18c'],
+hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.03, max:2.0}},
+vAxis: {title: 'Ratio', viewWindow: {min:1.0, max:4.5}},
+chartArea: {left:60, right:10, top:50, bottom:50},
+legend: {position: 'top'},
+lineWidth: 1
+};
+var chartCmp = new google.visualization.ScatterChart(document.getElementById('chart_cmp'));
+chartCmp.draw(dataCmp, options);
+options.title = titleDec;
+options.hAxis.title = 'Decompression GB/s';
+options.hAxis.viewWindow.min = 0.5;
+options.hAxis.viewWindow.max = 8.0;
+var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));
+chartDec.draw(dataDec, options);
+}
+</script>
