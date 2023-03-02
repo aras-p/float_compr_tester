@@ -216,6 +216,18 @@ void compressor_get_version(CompressionFormat format, size_t bufSize, char* buf)
 	case kCompressionZlib: snprintf(buf, bufSize, "zlib-%s", ZLIB_VERSION); break;
 	case kCompressionBrotli: snprintf(buf, bufSize, "brotli-%i.%i.%i", BrotliDecoderVersion() >> 24, (BrotliDecoderVersion() >> 12) & 0xFFF, BrotliDecoderVersion() & 0xFFF); break;
 	case kCompressionLibdeflate: snprintf(buf, bufSize, "libdeflate-%s", LIBDEFLATE_VERSION_STRING); break;
+	case kCompressionBloscBLZ:
+	case kCompressionBloscLZ4:
+	case kCompressionBloscZstd:
+	case kCompressionBloscBLZ_Shuf:
+	case kCompressionBloscLZ4_Shuf:
+	case kCompressionBloscZstd_Shuf:
+	case kCompressionBloscBLZ_ShufDelta:
+	case kCompressionBloscLZ4_ShufDelta:
+	case kCompressionBloscZstd_ShufDelta:
+		snprintf(buf, bufSize, "blosc-%s", BLOSC2_VERSION_STRING);
+		break;
+
 #	if BUILD_WITH_OODLE
 	case kCompressionOoodleSelkie:
 	case kCompressionOoodleMermaid:
