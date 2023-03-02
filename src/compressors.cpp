@@ -25,12 +25,12 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
     {
     case kCompressionZstd:
         //return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15, 18, 22 };
-        //return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15 }; // comp time under 3s
-        return { -5, -1, 1, 5, 9 };
+        return { -5, -3, -1, 1, 3, 5, 7, 9, 12, 15 }; // comp time under 3s
+        //return { -5, -1, 1, 5, 9 };
     case kCompressionLZ4:
         //return { -5, -1, 0, 1, 6, 9, 12 };
-        //return { -5, -1, 0, 1, 6, 9 }; // comp time under 3s
-        return { -5, 0, 1 };
+        return { -5, -1, 0, 1, 6, 9 }; // comp time under 3s
+        //return { -5, 0, 1 };
     case kCompressionZlib:
         //return { 1, 3, 5, 6, 7, 9 };
         return { 1, 3, 5, 6, 7 }; // comp time under 3s
@@ -44,8 +44,8 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
     case kCompressionOoodleMermaid:
     case kCompressionOoodleKraken:
         //return { -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 7, 8 };
-        //return { -4, -3, -2, -1, 1, 2, 3, 4, 5 }; // comp time under 3s
-        return { -4, -2, 1, 4 };
+        return { -4, -3, -2, -1, 1, 2, 3, 4, 5 }; // comp time under 3s
+        //return { -4, -2, 1, 4 };
     case kCompressionBloscBLZ:
     case kCompressionBloscBLZ_Shuf:
     case kCompressionBloscBLZ_ShufDelta:
@@ -53,12 +53,12 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
     case kCompressionBloscLZ4:
     case kCompressionBloscLZ4_Shuf:
     case kCompressionBloscLZ4_ShufDelta:
-        return { 0, 1 };
+        return { 0, 1, 6, 9 };
     case kCompressionBloscZstd:
     case kCompressionBloscZstd_Shuf:
     case kCompressionBloscZstd_ShufDelta:
         // blosc levels 1..9 map to zstd levels 1,3,5,7,9,11,13,20,22
-        return { 1, 3, 5 };
+        return { 1, 2, 3, 4, 5, 6, 7 };
 
     default:
         return { 0 };

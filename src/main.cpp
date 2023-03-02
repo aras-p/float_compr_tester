@@ -14,7 +14,7 @@
 #include "../libs/sokol_time.h"
 
 constexpr bool kWriteResultsCache = true;
-const int kRuns = 3;
+const int kRuns = 5;
 
 struct FilterDesc
 {
@@ -48,6 +48,15 @@ static std::unique_ptr<GenericCompressor> g_CompLZ4 = std::make_unique<GenericCo
 #if BUILD_WITH_OODLE
 static std::unique_ptr<GenericCompressor> g_CompKraken = std::make_unique<GenericCompressor>(kCompressionOoodleKraken);
 #endif
+static std::unique_ptr<GenericCompressor> g_CompBlosc = std::make_unique<GenericCompressor>(kCompressionBloscBLZ);
+static std::unique_ptr<GenericCompressor> g_CompBloscLZ4 = std::make_unique<GenericCompressor>(kCompressionBloscLZ4);
+static std::unique_ptr<GenericCompressor> g_CompBloscZstd = std::make_unique<GenericCompressor>(kCompressionBloscZstd);
+static std::unique_ptr<GenericCompressor> g_CompBlosc_Shuf = std::make_unique<GenericCompressor>(kCompressionBloscBLZ_Shuf);
+static std::unique_ptr<GenericCompressor> g_CompBloscLZ4_Shuf = std::make_unique<GenericCompressor>(kCompressionBloscLZ4_Shuf);
+static std::unique_ptr<GenericCompressor> g_CompBloscZstd_Shuf = std::make_unique<GenericCompressor>(kCompressionBloscZstd_Shuf);
+static std::unique_ptr<GenericCompressor> g_CompBlosc_ShufDelta = std::make_unique<GenericCompressor>(kCompressionBloscBLZ_ShufDelta);
+static std::unique_ptr<GenericCompressor> g_CompBloscLZ4_ShufDelta = std::make_unique<GenericCompressor>(kCompressionBloscLZ4_ShufDelta);
+static std::unique_ptr<GenericCompressor> g_CompBloscZstd_ShufDelta = std::make_unique<GenericCompressor>(kCompressionBloscZstd_ShufDelta);
 
 struct TestFile
 {
@@ -110,21 +119,35 @@ struct CompressorConfig
 	}
 	const char* GetShapeString() const
 	{
-		if (filter == &g_FilterSplit8DeltaOpt) return "'circle', pointSize: 4, lineWidth: 2";
+		if (cmp == g_CompBlosc.get() || cmp == g_CompBloscLZ4.get() || cmp == g_CompBloscZstd.get())
+			return "'circle', lineDashStyle: [4, 2]";
+		if (cmp == g_CompBlosc_Shuf.get() || cmp == g_CompBloscLZ4_Shuf.get() || cmp == g_CompBloscZstd_Shuf.get())
+			return "{type:'square', rotation: 45}, pointSize: 10, lineWidth: 3";
+		if (cmp == g_CompBlosc_ShufDelta.get() || cmp == g_CompBloscLZ4_ShufDelta.get() || cmp == g_CompBloscZstd_ShufDelta.get())
+			return "'triangle'";
+		if (filter == &g_FilterSplit8DeltaOpt) return "'circle', pointSize: 4";
 		if (filter == &g_FilterSplit8Delta) return "'circle'";
 		if (filter == &g_FilterSplit8AndDeltaDiff) return "{type:'square', rotation: 45}, lineDashStyle: [4, 4]";
-		if (filter == nullptr) return "'circle', lineDashStyle: [4, 2]";
+		if (filter == nullptr) return "'circle', lineDashStyle: [4, 2], pointSize: 4";
 		return "'circle'";
 	}
 	uint32_t GetColor() const
 	{
 		// https://www.w3schools.com/colors/colors_picker.asp
-		bool faded = filter != &g_FilterSplit8DeltaOpt;
+
+		if (cmp == g_CompBlosc.get() || cmp == g_CompBlosc_Shuf.get() || cmp == g_CompBlosc_ShufDelta.get())
+			return 0xb81466; // rose
+		if (cmp == g_CompBloscZstd.get() || cmp == g_CompBloscZstd_Shuf.get() || cmp == g_CompBloscZstd_ShufDelta.get())
+			return 0x0099cc; // dark cyan
+		if (cmp == g_CompBloscLZ4.get() || cmp == g_CompBloscLZ4_Shuf.get() || cmp == g_CompBloscLZ4_ShufDelta.get())
+			return 0xcc6600; // orange
+
+		bool faded = true; // filter != &g_FilterSplit8DeltaOpt;
 		if (cmp == g_CompZstd.get())
 		{
-			if (blockSizeEnum == kBSize64k) return 0x0c4018;
-			if (blockSizeEnum == kBSize256k) return 0x0c6018;
-			if (blockSizeEnum == kBSize1M) return 0x0c8018;
+			//if (blockSizeEnum == kBSize64k) return 0x0c4018;
+			//if (blockSizeEnum == kBSize256k) return 0x0c6018;
+			//if (blockSizeEnum == kBSize1M) return 0x0c8018;
 			return faded ? 0x90d596 : 0x0c9618; // green
 		}
 		if (cmp == g_CompLZ4.get()) return faded ? 0xd9d18c : 0xb19f00; // yellow
@@ -314,25 +337,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	oodle_init();
 #	endif
 
-	// Blosc
-	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscBLZ), nullptr });
-	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscLZ4), nullptr });
-	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscZstd), nullptr });
-
-	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscBLZ_Shuf), nullptr });
-	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscLZ4_Shuf), nullptr });
-	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscZstd_Shuf), nullptr });
-
-	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscBLZ_ShufDelta), nullptr });
-	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscLZ4_ShufDelta), nullptr });
-	//g_Compressors.push_back({ new GenericCompressor(kCompressionBloscZstd_ShufDelta), nullptr });
-
-	//g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8 });
-	//g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8 });
-	//g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8, kBSize256k });
-	//g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8, kBSize256k });
-
-	// Part 8 Chunked
+	// Part N Chunked
+	/*
 	g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize256k });
 	g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
 	g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8DeltaOpt, kBSize256k });
@@ -352,6 +358,28 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 #	if BUILD_WITH_OODLE
 	g_Compressors.push_back({ g_CompKraken.get(), nullptr });
 #	endif
+	*/
+
+	// Part 8 Blosc
+	g_Compressors.push_back({ g_CompBlosc.get(), nullptr });
+	g_Compressors.push_back({ g_CompBloscLZ4.get(), nullptr });
+	g_Compressors.push_back({ g_CompBloscZstd.get(), nullptr });
+
+	g_Compressors.push_back({ g_CompBlosc_Shuf.get(), nullptr });
+	g_Compressors.push_back({ g_CompBloscLZ4_Shuf.get(), nullptr });
+	g_Compressors.push_back({ g_CompBloscZstd_Shuf.get(), nullptr });
+
+	g_Compressors.push_back({ g_CompBlosc_ShufDelta.get(), nullptr });
+	g_Compressors.push_back({ g_CompBloscLZ4_ShufDelta.get(), nullptr });
+	g_Compressors.push_back({ g_CompBloscZstd_ShufDelta.get(), nullptr });
+
+	g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt });
+	g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8DeltaOpt });
+	g_Compressors.push_back({ g_CompZstd.get(), nullptr });
+	g_Compressors.push_back({ g_CompLZ4.get(), nullptr });
+	//g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8, kBSize256k });
+	//g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8, kBSize256k });
+
 
 
 	// Part 7 opt
