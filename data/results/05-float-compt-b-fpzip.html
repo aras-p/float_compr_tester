@@ -26,7 +26,7 @@ dataDec.addColumn('number', 'zstd'); dataDec.addColumn({type:'string', role:'too
 dataCmp.addColumn('number', 'lz4'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
 dataDec.addColumn('number', 'lz4'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
 dataCmp.addRows([
-  [0.151, 0.805,'zfp-ls\n0.805x at 0.151 GB/s\n117.3MB 0.61s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.151, 2.016,'zfp-ls\n2.016x at 0.151 GB/s\n46.9MB 0.61s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
   [0.162,null,null,null, 3.808,'fpzip-ls\n3.808x at 0.162 GB/s\n24.8MB 0.57s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
   [0.536,null,null,null,null,null,null, 3.289,'zstd-s8-dif -5\n3.289x at 0.536 GB/s\n28.7MB 0.17s','' ,null,null,null,null,null,null,null,null,null],
   [0.504,null,null,null,null,null,null, 3.394,'zstd-s8-dif -3\n3.394x at 0.504 GB/s\n27.8MB 0.18s','' ,null,null,null,null,null,null,null,null,null],
@@ -66,7 +66,7 @@ dataCmp.addRows([
   [0.056,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null, 2.223,'lz4 9\n2.223x at 0.056 GB/s\n42.5MB 1.65s','' ]
 ]);
 dataDec.addRows([
-  [0.245, 0.805,'zfp-ls\n0.805x at 0.245 GB/s\n117.3MB 0.38s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.245, 2.016,'zfp-ls\n2.016x at 0.245 GB/s\n46.9MB 0.38s','' ,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null],
   [0.156,null,null,null, 3.808,'fpzip-ls\n3.808x at 0.156 GB/s\n24.8MB 0.59s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
   [0.653,null,null,null,null,null,null, 3.289,'zstd-s8-dif -5\n3.289x at 0.653 GB/s\n28.7MB 0.14s','' ,null,null,null,null,null,null,null,null,null],
   [0.610,null,null,null,null,null,null, 3.394,'zstd-s8-dif -3\n3.394x at 0.610 GB/s\n27.8MB 0.15s','' ,null,null,null,null,null,null,null,null,null],
@@ -119,8 +119,8 @@ series: {
   6: {},
 },
 colors: ['d74242','7e1b1b','90d596','b0d7e8','90d596','d9d18c'],
-hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.005, max:10.0}},
-vAxis: {title: 'Ratio', viewWindow: {min:0.75, max:4.5}},
+hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.01, max:10.0}},
+vAxis: {title: 'Ratio', viewWindow: {min:1.0, max:4.5}},
 chartArea: {left:60, right:10, top:50, bottom:50},
 legend: {position: 'top'},
 lineWidth: 1

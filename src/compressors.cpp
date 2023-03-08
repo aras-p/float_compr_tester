@@ -297,7 +297,7 @@ uint8_t* ZfpCompressor::Compress(int level, const float* data, int width, int he
     for (int ich = 0; ich < channels; ++ich)
     {
         field.data = (void*)(data + ich);
-        outSize += zfp_compress(zfp, &field);
+        outSize = zfp_compress(zfp, &field); // note: returns cumulative bytes of whole storage
     }
     stream_close(stream);
     zfp_stream_close(zfp);

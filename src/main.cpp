@@ -58,6 +58,18 @@ static std::unique_ptr<GenericCompressor> g_CompBlosc_ShufDelta = std::make_uniq
 static std::unique_ptr<GenericCompressor> g_CompBloscLZ4_ShufDelta = std::make_unique<GenericCompressor>(kCompressionBloscLZ4_ShufDelta);
 static std::unique_ptr<GenericCompressor> g_CompBloscZstd_ShufDelta = std::make_unique<GenericCompressor>(kCompressionBloscZstd_ShufDelta);
 
+static std::unique_ptr<Compressor> g_CompZfp = std::make_unique<ZfpCompressor>();
+static std::unique_ptr<Compressor> g_CompFpzip = std::make_unique<FpzipCompressor>();
+static std::unique_ptr<Compressor> g_CompSpdp = std::make_unique<SpdpCompressor>();
+#if BUILD_WITH_NDZIP
+static std::unique_ptr<Compressor> g_CompNdzip = std::make_unique<NdzipCompressor>();
+#endif
+static std::unique_ptr<Compressor> g_CompStreamVByte = std::make_unique<StreamVByteCompressor>(kCompressionCount, false, false);
+static std::unique_ptr<Compressor> g_CompStreamVByteZstdFilter = std::make_unique<StreamVByteCompressor>(kCompressionZstd, true, true);
+
+static std::unique_ptr<Compressor> g_CompMeshOptZstd = std::make_unique<MeshOptCompressor>(kCompressionZstd);
+
+
 struct TestFile
 {
 	const char* path = nullptr;
@@ -348,7 +360,6 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 #	endif
 
 	// Part 8 Blosc + Chunked
-
 	//g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize64k });
 	//g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize256k });
 	g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
@@ -431,28 +442,19 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 
 	// For: https://aras-p.info/blog/2023/02/03/Float-Compression-5-Science/
 	/*
-	g_Compressors.emplace_back(new ZfpCompressor());
-	g_Compressors.emplace_back(new FpzipCompressor());
-    g_Compressors.emplace_back(new SpdpCompressor());
+	g_Compressors.push_back({ g_CompZfp.get(), nullptr });
+	g_Compressors.push_back({ g_CompFpzip.get(), nullptr });
+	g_Compressors.push_back({ g_CompSpdp.get(), nullptr });
 #   if BUILD_WITH_NDZIP
-	g_Compressors.emplace_back(new NdzipCompressor());
+	g_Compressors.push_back({ g_CompNdzip.get(), nullptr });
 #   endif
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false, false));
-    //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false, false)); // not good/interesting
-    //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, false, true)); // not good/interesting
-    //g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, false, true)); // not good/interesting
-	//g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, true, false)); // not good/interesting
-	//g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true, false)); // not good/interesting
-	//g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionCount, true, true)); // not good/interesting
-	g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionZstd, true, true));
-	//g_Compressors.emplace_back(new StreamVByteCompressor(kCompressionLZ4, true, true)); // not too interesting
+	g_Compressors.push_back({ g_CompStreamVByte.get(), nullptr });
+	g_Compressors.push_back({ g_CompStreamVByteZstdFilter.get(), nullptr });
 	// previous post
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken, kFilterSplit8 | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd, kFilterSplit8 | kFilterDeltaDiff));
-	g_Compressors.emplace_back(new MeshOptCompressor(kCompressionZstd));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionZstd));
-	g_Compressors.emplace_back(new GenericCompressor(kCompressionLZ4));
-	//g_Compressors.emplace_back(new GenericCompressor(kCompressionOoodleKraken));
+	g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8AndDeltaDiff });
+	g_Compressors.push_back({ g_CompMeshOptZstd.get(), nullptr });
+	g_Compressors.push_back({ g_CompZstd.get(), nullptr });
+	g_Compressors.push_back({ g_CompLZ4.get(), nullptr });
 	*/
 
 	// For: https://aras-p.info/blog/2023/02/02/Float-Compression-4-Mesh-Optimizer/
