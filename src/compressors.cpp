@@ -277,7 +277,7 @@ uint8_t* ZfpCompressor::Compress(int level, const float* data, int width, int he
     zfp_field field = {};
     field.type = zfp_type_float;
     field.nx = width;
-    field.ny = height;
+    field.ny = height == 1 ? 0 : height; // note: for 1D data, tell zfp to explicitly treat data as one-dimensional
     field.sx = channels;
     field.sy = channels * width;
 
@@ -309,7 +309,7 @@ void ZfpCompressor::Decompress(const uint8_t* cmp, size_t cmpSize, float* data, 
     zfp_field field = {};
     field.type = zfp_type_float;
     field.nx = width;
-    field.ny = height;
+    field.ny = height == 1 ? 0 : height; // note: for 1D data, tell zfp to explicitly treat data as one-dimensional
     field.sx = channels;
     field.sy = channels * width;
     zfp_stream* zfp = zfp_stream_open(NULL);
