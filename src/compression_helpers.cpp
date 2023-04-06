@@ -11,6 +11,7 @@
 #include <brotli/decode.h>
 #include <stdio.h>
 #include <blosc2.h>
+#include <blosc2/filters-registry.h>
 
 #if BUILD_WITH_OODLE
 #include "oodle_wrapper.h"
@@ -61,6 +62,9 @@ size_t compress_calc_bound(size_t srcSize, CompressionFormat format)
 	case kCompressionBloscBLZ_ShufDelta:
 	case kCompressionBloscLZ4_ShufDelta:
 	case kCompressionBloscZstd_ShufDelta:
+	case kCompressionBloscBLZ_ShufByteDelta:
+	case kCompressionBloscLZ4_ShufByteDelta:
+	case kCompressionBloscZstd_ShufByteDelta:
 		return srcSize + BLOSC2_MAX_OVERHEAD;
 #	if BUILD_WITH_OODLE
 	case kCompressionOoodleSelkie:
@@ -112,13 +116,22 @@ size_t compress_data(const void* src, size_t srcSize, void* dst, size_t dstSize,
 	case kCompressionBloscBLZ_ShufDelta:
 	case kCompressionBloscLZ4_ShufDelta:
 	case kCompressionBloscZstd_ShufDelta:
+	case kCompressionBloscBLZ_ShufByteDelta:
+	case kCompressionBloscLZ4_ShufByteDelta:
+	case kCompressionBloscZstd_ShufByteDelta:
 	{
+		static bool inited = false;
+		if (!inited) {
+			blosc2_init();
+			inited = true;
+		}
+
 		blosc2_cparams params = BLOSC2_CPARAMS_DEFAULTS;
-		if (format == kCompressionBloscBLZ || format == kCompressionBloscBLZ_Shuf || format == kCompressionBloscBLZ_ShufDelta)
+		if (format == kCompressionBloscBLZ || format == kCompressionBloscBLZ_Shuf || format == kCompressionBloscBLZ_ShufDelta || format == kCompressionBloscBLZ_ShufByteDelta)
 			params.compcode = BLOSC_BLOSCLZ;
-		if (format == kCompressionBloscLZ4 || format == kCompressionBloscLZ4_Shuf || format == kCompressionBloscLZ4_ShufDelta)
+		if (format == kCompressionBloscLZ4 || format == kCompressionBloscLZ4_Shuf || format == kCompressionBloscLZ4_ShufDelta || format == kCompressionBloscLZ4_ShufByteDelta)
 			params.compcode = level > 0 ? BLOSC_LZ4HC : BLOSC_LZ4;
-		if (format == kCompressionBloscZstd || format == kCompressionBloscZstd_Shuf || format == kCompressionBloscZstd_ShufDelta)
+		if (format == kCompressionBloscZstd || format == kCompressionBloscZstd_Shuf || format == kCompressionBloscZstd_ShufDelta || format == kCompressionBloscZstd_ShufByteDelta)
 			params.compcode = BLOSC_ZSTD;
 		params.clevel = level;
 		if (params.compcode == BLOSC_LZ4)
@@ -128,10 +141,16 @@ size_t compress_data(const void* src, size_t srcSize, void* dst, size_t dstSize,
 		//params.splitmode = BLOSC_NEVER_SPLIT;
 
 		params.filters[BLOSC2_MAX_FILTERS - 1] = BLOSC_NOFILTER;
-		if (format >= kCompressionBloscBLZ_Shuf && format <= kCompressionBloscZstd_ShufDelta)
+		if (format >= kCompressionBloscBLZ_Shuf && format <= kCompressionBloscZstd_ShufByteDelta)
 			params.filters[BLOSC2_MAX_FILTERS - 1] = BLOSC_SHUFFLE;
 		if (format >= kCompressionBloscBLZ_ShufDelta && format <= kCompressionBloscZstd_ShufDelta)
 			params.filters[BLOSC2_MAX_FILTERS - 2] = BLOSC_DELTA;
+		if (format >= kCompressionBloscBLZ_ShufByteDelta && format <= kCompressionBloscZstd_ShufByteDelta)
+		{
+			params.filters[BLOSC2_MAX_FILTERS - 2] = BLOSC_SHUFFLE;
+			params.filters[BLOSC2_MAX_FILTERS - 1] = BLOSC_FILTER_BYTEDELTA;
+			params.filters_meta[BLOSC2_MAX_FILTERS - 1] = stride;
+		}
 		blosc2_context* ctx = blosc2_create_cctx(params);
 		int size = blosc2_compress_ctx(ctx, src, (int)srcSize, dst, (int)dstSize);
 		blosc2_free_ctx(ctx);
@@ -189,6 +208,9 @@ size_t decompress_data(const void* src, size_t srcSize, void* dst, size_t dstSiz
 	case kCompressionBloscBLZ_ShufDelta:
 	case kCompressionBloscLZ4_ShufDelta:
 	case kCompressionBloscZstd_ShufDelta:
+	case kCompressionBloscBLZ_ShufByteDelta:
+	case kCompressionBloscLZ4_ShufByteDelta:
+	case kCompressionBloscZstd_ShufByteDelta:
 	{
 		blosc2_dparams params = BLOSC2_DPARAMS_DEFAULTS;
 		blosc2_context* ctx = blosc2_create_dctx(params);
@@ -225,6 +247,9 @@ void compressor_get_version(CompressionFormat format, size_t bufSize, char* buf)
 	case kCompressionBloscBLZ_ShufDelta:
 	case kCompressionBloscLZ4_ShufDelta:
 	case kCompressionBloscZstd_ShufDelta:
+	case kCompressionBloscBLZ_ShufByteDelta:
+	case kCompressionBloscLZ4_ShufByteDelta:
+	case kCompressionBloscZstd_ShufByteDelta:
 		snprintf(buf, bufSize, "blosc-%s", BLOSC2_VERSION_STRING);
 		break;
 
