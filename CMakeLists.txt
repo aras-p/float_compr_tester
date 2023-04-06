@@ -17,7 +17,7 @@ include(FetchContent)
 # zstd
 FetchContent_Declare(
 	zstd
-	URL https://github.com/facebook/zstd/archive/refs/tags/v1.5.2.zip # latest at time of writing
+	URL https://github.com/facebook/zstd/archive/refs/tags/v1.5.5.zip # latest (2023 Apr) at time of writing
 	SOURCE_SUBDIR build/cmake
 )
 set(ZSTD_LEGACY_SUPPORT OFF)
@@ -32,7 +32,7 @@ FetchContent_MakeAvailable(zstd)
 # lz4
 FetchContent_Declare(
 	lz4
-	URL https://github.com/lz4/lz4/archive/refs/tags/v1.9.3.zip # latest at time of writing
+	URL https://github.com/lz4/lz4/archive/refs/tags/v1.9.4.zip # latest (2022 Aug) at time of writing
 	SOURCE_SUBDIR build/cmake
 )
 set(LZ4_BUILD_LEGACY_LZ4C OFF)
@@ -63,7 +63,7 @@ FetchContent_MakeAvailable(libdeflate)
 # blosc
 FetchContent_Declare(
 	blosc
-	URL https://github.com/Blosc/c-blosc2/archive/refs/tags/v2.7.1.zip # latest (2023 Feb) at time of writing
+	URL https://github.com/Blosc/c-blosc2/archive/refs/tags/v2.8.0.zip # latest (2023 Mar) at time of writing
 )
 set(BUILD_SHARED OFF)
 set(BUILD_TESTS OFF)
