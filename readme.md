@@ -30,6 +30,7 @@ Code here uses 3rd party libraries:
 * [sokol_time](https://github.com/floooh/sokol), zlib license.
 * [ini.h](https://github.com/mattiasgustavsson/libs/blob/main/ini.h), 2022 Sep (aef7d92), MIT or Public Domain.
 * [lzsse](https://github.com/ConorStokes/LZSSE), 2019 Apr 18 (1847c3e), BSD license.
+* [sse2neon](https://github.com/DLTcollab/sse2neon), 2023 Apr 14 (32ad00d), MIT license.
 
 Oodle SDK is not public, so that one is not compiled in unless you put:
 * Oodle wrapper functions implementation file into `src/oodle_wrapper.cpp`,
