@@ -52,11 +52,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  GCC
 */
 
+#if defined(__aarch64__)
+#include "../../sse2neon/sse2neon.h"
+#else
 /*
  Note: including just <smmintrin.h> would be sufficient, but including x86intrin is a better match to intrin.h on Visual Studio as
  both include all intrinsics for the enabled processor, rather than just SSE4.1.
 */
 #include <x86intrin.h>
+#endif
 /* _BitScanForward is Visual Studio specific. */
 #define _BitScanForward(x, m) *(x) = __builtin_ctz(m)
 
