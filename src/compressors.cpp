@@ -62,7 +62,8 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
     case kCompressionBloscZstd_ShufByteDelta:
         // blosc levels 1..9 map to zstd levels 1,3,5,7,9,11,13,20,22
         return { 1, 2, 3, 4, 5, 6, 7 };
-
+    case kCompressionLZSSE8:
+        return { 0, 1, 2, 3, 4, 5, 7, 9 };
     default:
         return { 0 };
     }
@@ -137,6 +138,7 @@ static const char* kCompressionFormatNames[] = {
     "blosc-s8bd",
     "blosc_lz4-s8bd",
     "blosc_zstd-s8bd",
+    "lzsse8",
 };
 static_assert(sizeof(kCompressionFormatNames) / sizeof(kCompressionFormatNames[0]) == kCompressionCount);
 

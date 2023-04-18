@@ -32,6 +32,7 @@ enum CompressionFormat
 	kCompressionBloscBLZ_ShufByteDelta,
 	kCompressionBloscLZ4_ShufByteDelta,
 	kCompressionBloscZstd_ShufByteDelta,
+    kCompressionLZSSE8,
 	kCompressionCount
 };
 size_t compress_calc_bound(size_t srcSize, CompressionFormat format);

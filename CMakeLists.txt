@@ -187,6 +187,9 @@ add_executable (float_compr_tester
 	#libs/bitshuffle/src/iochain.c
     libs/spdp/spdp_11.c
     libs/spdp/spdp_11.h
+    libs/lzsse/lzsse8/lzsse8.cpp
+    libs/lzsse/lzsse8/lzsse8.h
+    libs/lzsse/lzsse8/lzsse8_platform.h
 	CMakeLists.txt
 	CMakePresets.json
 )

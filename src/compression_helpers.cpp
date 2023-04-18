@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <blosc2.h>
 #include <blosc2/filters-registry.h>
+#include "../libs/lzsse/lzsse8/lzsse8.h"
 
 #if BUILD_WITH_OODLE
 #include "oodle_wrapper.h"
@@ -66,6 +67,8 @@ size_t compress_calc_bound(size_t srcSize, CompressionFormat format)
 	case kCompressionBloscLZ4_ShufByteDelta:
 	case kCompressionBloscZstd_ShufByteDelta:
 		return srcSize + BLOSC2_MAX_OVERHEAD;
+    case kCompressionLZSSE8:
+        return srcSize;
 #	if BUILD_WITH_OODLE
 	case kCompressionOoodleSelkie:
 	case kCompressionOoodleMermaid:
@@ -158,6 +161,23 @@ size_t compress_data(const void* src, size_t srcSize, void* dst, size_t dstSize,
 			size = 0;
 		return size;
 	}
+    case kCompressionLZSSE8:
+    {
+        size_t size = 0;
+        if (level > 0)
+        {
+            LZSSE8_OptimalParseState* state = LZSSE8_MakeOptimalParseState(srcSize);
+            size = LZSSE8_CompressOptimalParse(state, src, srcSize, dst, dstSize, level);
+            LZSSE8_FreeOptimalParseState(state);
+        }
+        else
+        {
+            LZSSE8_FastParseState* state = LZSSE8_MakeFastParseState();
+            size = LZSSE8_CompressFast(state, src, srcSize, dst, dstSize);
+            LZSSE8_FreeFastParseState(state);
+        }
+        return size;
+    }
 #	if BUILD_WITH_OODLE
 	case kCompressionOoodleSelkie:
 	case kCompressionOoodleMermaid:
@@ -220,6 +240,11 @@ size_t decompress_data(const void* src, size_t srcSize, void* dst, size_t dstSiz
 			size = 0;
 		return size;
 	}
+    case kCompressionLZSSE8:
+    {
+        size_t size = LZSSE8_Decompress(src, srcSize, dst, dstSize);
+        return size;
+    }
 #	if BUILD_WITH_OODLE
 	case kCompressionOoodleSelkie:
 	case kCompressionOoodleMermaid:
@@ -252,6 +277,7 @@ void compressor_get_version(CompressionFormat format, size_t bufSize, char* buf)
 	case kCompressionBloscZstd_ShufByteDelta:
 		snprintf(buf, bufSize, "blosc-%s", BLOSC2_VERSION_STRING);
 		break;
+    case kCompressionLZSSE8: snprintf(buf, bufSize, "lzsse8-2019"); break;
 
 #	if BUILD_WITH_OODLE
 	case kCompressionOoodleSelkie:

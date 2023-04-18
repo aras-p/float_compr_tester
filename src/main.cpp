@@ -45,8 +45,11 @@ static FilterDesc g_FilterSplit8DeltaOpt = { "-s8d", Filter_H, UnFilter_K };
 
 static std::unique_ptr<GenericCompressor> g_CompZstd = std::make_unique<GenericCompressor>(kCompressionZstd);
 static std::unique_ptr<GenericCompressor> g_CompLZ4 = std::make_unique<GenericCompressor>(kCompressionLZ4);
+static std::unique_ptr<GenericCompressor> g_CompLZSSE8 = std::make_unique<GenericCompressor>(kCompressionLZSSE8);
 #if BUILD_WITH_OODLE
 static std::unique_ptr<GenericCompressor> g_CompKraken = std::make_unique<GenericCompressor>(kCompressionOoodleKraken);
+static std::unique_ptr<GenericCompressor> g_CompSelkie = std::make_unique<GenericCompressor>(kCompressionOoodleSelkie);
+static std::unique_ptr<GenericCompressor> g_CompMermaid = std::make_unique<GenericCompressor>(kCompressionOoodleMermaid);
 #endif
 static std::unique_ptr<GenericCompressor> g_CompBlosc = std::make_unique<GenericCompressor>(kCompressionBloscBLZ);
 static std::unique_ptr<GenericCompressor> g_CompBloscLZ4 = std::make_unique<GenericCompressor>(kCompressionBloscLZ4);
@@ -363,9 +366,29 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	void oodle_init();
 	oodle_init();
 #	endif
+  
+  //
+  g_Compressors.push_back({ g_CompLZSSE8.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+  g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+  g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+#   if BUILD_WITH_OODLE
+    g_Compressors.push_back({ g_CompKraken.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+    g_Compressors.push_back({ g_CompSelkie.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+    g_Compressors.push_back({ g_CompMermaid.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+#    endif
 
-	// Part 8 Blosc + Chunked
+  g_Compressors.push_back({ g_CompLZSSE8.get(), nullptr });
+  g_Compressors.push_back({ g_CompZstd.get(), nullptr });
+  g_Compressors.push_back({ g_CompLZ4.get(), nullptr });
+#   if BUILD_WITH_OODLE
+  g_Compressors.push_back({ g_CompKraken.get(), nullptr });
+  g_Compressors.push_back({ g_CompSelkie.get(), nullptr });
+  g_Compressors.push_back({ g_CompMermaid.get(), nullptr });
+#    endif
 
+	// Part 8 Blosc + Chunked: https://aras-p.info/blog/2023/03/02/Float-Compression-8-Blosc/
+
+  /*
 	g_Compressors.push_back({ g_CompBlosc_ShufByteDelta.get(), nullptr });
 	g_Compressors.push_back({ g_CompBloscLZ4_ShufByteDelta.get(), nullptr });
 	g_Compressors.push_back({ g_CompBloscZstd_ShufByteDelta.get(), nullptr });
@@ -388,7 +411,6 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	//g_Compressors.push_back({ g_CompBloscZstd.get(), nullptr });
 
 
-
 	g_Compressors.push_back({ g_CompBlosc_Shuf.get(), nullptr });
 	g_Compressors.push_back({ g_CompBloscLZ4_Shuf.get(), nullptr });
 	g_Compressors.push_back({ g_CompBloscZstd_Shuf.get(), nullptr });
@@ -400,7 +422,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 
 	//g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8, kBSize256k });
 	//g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8, kBSize256k });
-
+   */
 
 
 	// Part 7 opt
@@ -755,7 +777,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		fprintf(fout, "'%02x%02x%02x'%s", (col >> 16)&0xFF, (col >> 8)&0xFF, col&0xFF, ic== g_Compressors.size()-1?"":",");
 	}
 	fprintf(fout, "],\n");
-	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.03, max:2.0}},\n");
+	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.001, max:2.0}},\n");
 	fprintf(fout, "vAxis: {title: 'Ratio', viewWindow: {min:1.0, max:4.5}},\n");
 	fprintf(fout, "chartArea: {left:60, right:10, top:50, bottom:50},\n");
 	fprintf(fout, "legend: {position: 'top'},\n");
@@ -766,7 +788,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "options.title = titleDec;\n");
 	fprintf(fout, "options.hAxis.title = 'Decompression GB/s';\n");
 	fprintf(fout, "options.hAxis.viewWindow.min = 0.5;\n");
-	fprintf(fout, "options.hAxis.viewWindow.max = 8.0;\n");
+	fprintf(fout, "options.hAxis.viewWindow.max = 10.0;\n");
 	fprintf(fout, "var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));\n");
 	fprintf(fout, "chartDec.draw(dataDec, options);\n");
 	fprintf(fout, "}\n");
@@ -1207,4 +1229,4 @@ int main()
 // DCTZ https://github.com/swson/DCTZ
 // digitroundingZ https://github.com/disheng222/digitroundingZ
 // BitGroomingZ https://github.com/disheng222/BitGroomingZ
-
+// Change a Bit to save Bytes: Compression for Floating Point Time-Series Data: https://arxiv.org/abs/2303.04478
