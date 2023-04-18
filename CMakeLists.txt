@@ -190,6 +190,11 @@ add_executable (float_compr_tester
     libs/lzsse/lzsse8/lzsse8.cpp
     libs/lzsse/lzsse8/lzsse8.h
     libs/lzsse/lzsse8/lzsse8_platform.h
+    libs/lizard/lizard_compress.c
+    libs/lizard/lizard_compress.h
+    libs/lizard/lizard_decompress.c
+    libs/lizard/lizard_decompress.h
+
 	CMakeLists.txt
 	CMakePresets.json
 )
@@ -227,6 +232,7 @@ target_compile_definitions(float_compr_tester PRIVATE
 	_CRT_SECURE_NO_DEPRECATE
 	_CRT_NONSTDC_NO_WARNINGS
 	NOMINMAX
+	LIZARD_NO_HUFFMAN
 )
 
 if((CMAKE_CXX_COMPILER_ID MATCHES "Clang") AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64"))

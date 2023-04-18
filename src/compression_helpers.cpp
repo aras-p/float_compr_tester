@@ -13,6 +13,8 @@
 #include <blosc2.h>
 #include <blosc2/filters-registry.h>
 #include "../libs/lzsse/lzsse8/lzsse8.h"
+#include "../libs/lizard/lizard_compress.h"
+#include "../libs/lizard/lizard_decompress.h"
 
 #if BUILD_WITH_OODLE
 #include "oodle_wrapper.h"
@@ -67,8 +69,10 @@ size_t compress_calc_bound(size_t srcSize, CompressionFormat format)
 	case kCompressionBloscLZ4_ShufByteDelta:
 	case kCompressionBloscZstd_ShufByteDelta:
 		return srcSize + BLOSC2_MAX_OVERHEAD;
-    case kCompressionLZSSE8:
-        return srcSize;
+    case kCompressionLZSSE8: return srcSize;
+	case kCompressionLizard1x:
+	case kCompressionLizard2x:
+		return Lizard_compressBound(int(srcSize));
 #	if BUILD_WITH_OODLE
 	case kCompressionOoodleSelkie:
 	case kCompressionOoodleMermaid:
@@ -178,6 +182,9 @@ size_t compress_data(const void* src, size_t srcSize, void* dst, size_t dstSize,
         }
         return size;
     }
+	case kCompressionLizard1x:
+	case kCompressionLizard2x:
+		return Lizard_compress((const char*)src, (char*)dst, (int)srcSize, (int)dstSize, level);
 #	if BUILD_WITH_OODLE
 	case kCompressionOoodleSelkie:
 	case kCompressionOoodleMermaid:
@@ -240,11 +247,10 @@ size_t decompress_data(const void* src, size_t srcSize, void* dst, size_t dstSiz
 			size = 0;
 		return size;
 	}
-    case kCompressionLZSSE8:
-    {
-        size_t size = LZSSE8_Decompress(src, srcSize, dst, dstSize);
-        return size;
-    }
+    case kCompressionLZSSE8: return LZSSE8_Decompress(src, srcSize, dst, dstSize);
+	case kCompressionLizard1x:
+	case kCompressionLizard2x:
+		return Lizard_decompress_safe((const char*)src, (char*)dst, (int)srcSize, (int)dstSize);
 #	if BUILD_WITH_OODLE
 	case kCompressionOoodleSelkie:
 	case kCompressionOoodleMermaid:
@@ -278,6 +284,9 @@ void compressor_get_version(CompressionFormat format, size_t bufSize, char* buf)
 		snprintf(buf, bufSize, "blosc-%s", BLOSC2_VERSION_STRING);
 		break;
     case kCompressionLZSSE8: snprintf(buf, bufSize, "lzsse8-2019"); break;
+	case kCompressionLizard1x:
+	case kCompressionLizard2x:
+		snprintf(buf, bufSize, "lizard-%i.%i", LIZARD_VERSION_MAJOR, LIZARD_VERSION_MINOR); break;
 
 #	if BUILD_WITH_OODLE
 	case kCompressionOoodleSelkie:

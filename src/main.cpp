@@ -13,8 +13,8 @@
 #define SOKOL_TIME_IMPL
 #include "../libs/sokol_time.h"
 
-constexpr bool kWriteResultsCache = true;
-const int kRuns = 5;
+constexpr int kRuns = 5;
+constexpr bool kWriteResultsCache = kRuns >= 3;
 
 struct FilterDesc
 {
@@ -46,6 +46,8 @@ static FilterDesc g_FilterSplit8DeltaOpt = { "-s8d", Filter_H, UnFilter_K };
 static std::unique_ptr<GenericCompressor> g_CompZstd = std::make_unique<GenericCompressor>(kCompressionZstd);
 static std::unique_ptr<GenericCompressor> g_CompLZ4 = std::make_unique<GenericCompressor>(kCompressionLZ4);
 static std::unique_ptr<GenericCompressor> g_CompLZSSE8 = std::make_unique<GenericCompressor>(kCompressionLZSSE8);
+static std::unique_ptr<GenericCompressor> g_CompLizard1x = std::make_unique<GenericCompressor>(kCompressionLizard1x);
+static std::unique_ptr<GenericCompressor> g_CompLizard2x = std::make_unique<GenericCompressor>(kCompressionLizard2x);
 #if BUILD_WITH_OODLE
 static std::unique_ptr<GenericCompressor> g_CompKraken = std::make_unique<GenericCompressor>(kCompressionOoodleKraken);
 static std::unique_ptr<GenericCompressor> g_CompSelkie = std::make_unique<GenericCompressor>(kCompressionOoodleSelkie);
@@ -377,6 +379,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
   
 	//
 	g_Compressors.push_back({ g_CompLZSSE8.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+	g_Compressors.push_back({ g_CompLizard1x.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+	g_Compressors.push_back({ g_CompLizard2x.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
 	g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
 	g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
 //#	if BUILD_WITH_OODLE
@@ -386,6 +390,8 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 //#	endif
 
 	g_Compressors.push_back({ g_CompLZSSE8.get(), nullptr });
+	g_Compressors.push_back({ g_CompLizard1x.get(), nullptr });
+	g_Compressors.push_back({ g_CompLizard2x.get(), nullptr });
 	g_Compressors.push_back({ g_CompZstd.get(), nullptr });
 	g_Compressors.push_back({ g_CompLZ4.get(), nullptr });
 //#   if BUILD_WITH_OODLE

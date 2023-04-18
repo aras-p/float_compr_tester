@@ -63,7 +63,11 @@ static std::vector<int> GetGenericLevelRange(CompressionFormat format)
         // blosc levels 1..9 map to zstd levels 1,3,5,7,9,11,13,20,22
         return { 1, 2, 3, 4, 5, 6, 7 };
     case kCompressionLZSSE8:
-        return { 0, 1, 2, 3, 4, 5, 7, 9 };
+        return { 0, 1, 2, 3, 4, 5 }; // only 0, 1 keeps comp time under 3s
+    case kCompressionLizard1x:
+        return { 10, 11, 12, 13, 14, 16 };
+    case kCompressionLizard2x:
+        return { 20, 21, 22, 23, 24, 26 };
     default:
         return { 0 };
     }
@@ -139,6 +143,8 @@ static const char* kCompressionFormatNames[] = {
     "blosc_lz4-s8bd",
     "blosc_zstd-s8bd",
     "lzsse8",
+    "lizard1x",
+    "lizard2x",
 };
 static_assert(sizeof(kCompressionFormatNames) / sizeof(kCompressionFormatNames[0]) == kCompressionCount);
 
