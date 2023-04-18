@@ -1,0 +1,126 @@
+<script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
+<center style='font-family: Arial;'>
+<div style='border: 1px solid #ccc; width: 1290px;'>
+<div id='chart_cmp' style='width: 640px; height: 480px; display:inline-block;'></div>
+<div id='chart_dec' style='width: 640px; height: 480px; display:inline-block;'></div>
+</div>
+<p>CPU: Apple M1 Max Compiler: Clang 14.0</p>
+<p>lizard-1.0 lz4-1.9.4 lzsse8-2019 zstd-1.5.5 </p></center><script type='text/javascript'>
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(drawChart);
+function drawChart() {
+var dataCmp = new google.visualization.DataTable();
+var dataDec = new google.visualization.DataTable();
+dataCmp.addColumn('number', 'Throughput');
+dataDec.addColumn('number', 'Throughput');
+dataCmp.addColumn('number', 'lzsse8'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lzsse8'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lizard1x'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lizard1x'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lizard2x'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lizard2x'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'zstd'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'zstd'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addColumn('number', 'lz4'); dataCmp.addColumn({type:'string', role:'tooltip'}); dataCmp.addColumn({type:'string', role:'style'});
+dataDec.addColumn('number', 'lz4'); dataDec.addColumn({type:'string', role:'tooltip'}); dataDec.addColumn({type:'string', role:'style'});
+dataCmp.addRows([
+  [0.413, 1.861,'lzsse8 0\n1.861x at 0.413 GB/s\n50.8MB 0.223s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.031, 2.029,'lzsse8 1\n2.029x at 0.031 GB/s\n46.6MB 2.981s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.023, 2.055,'lzsse8 2\n2.055x at 0.023 GB/s\n46.0MB 4.067s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.015, 2.076,'lzsse8 3\n2.076x at 0.015 GB/s\n45.5MB 5.989s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.011, 2.094,'lzsse8 4\n2.094x at 0.011 GB/s\n45.1MB 8.334s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.009, 2.105,'lzsse8 5\n2.105x at 0.009 GB/s\n44.9MB 10.418s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [0.747,null,null,null, 1.946,'lizard1x 10\n1.946x at 0.747 GB/s\n48.5MB 0.123s','' ,null,null,null,null,null,null,null,null,null],
+  [0.544,null,null,null, 2.008,'lizard1x 11\n2.008x at 0.544 GB/s\n47.0MB 0.170s','' ,null,null,null,null,null,null,null,null,null],
+  [0.292,null,null,null, 2.073,'lizard1x 12\n2.073x at 0.292 GB/s\n45.6MB 0.316s','' ,null,null,null,null,null,null,null,null,null],
+  [0.188,null,null,null, 2.131,'lizard1x 13\n2.131x at 0.188 GB/s\n44.3MB 0.491s','' ,null,null,null,null,null,null,null,null,null],
+  [0.178,null,null,null, 2.156,'lizard1x 14\n2.156x at 0.178 GB/s\n43.8MB 0.519s','' ,null,null,null,null,null,null,null,null,null],
+  [0.144,null,null,null, 2.185,'lizard1x 16\n2.185x at 0.144 GB/s\n43.2MB 0.641s','' ,null,null,null,null,null,null,null,null,null],
+  [0.644,null,null,null,null,null,null, 1.902,'lizard2x 20\n1.902x at 0.644 GB/s\n49.7MB 0.143s','' ,null,null,null,null,null,null],
+  [0.410,null,null,null,null,null,null, 2.145,'lizard2x 21\n2.145x at 0.410 GB/s\n44.0MB 0.225s','' ,null,null,null,null,null,null],
+  [0.310,null,null,null,null,null,null, 2.167,'lizard2x 22\n2.167x at 0.310 GB/s\n43.6MB 0.297s','' ,null,null,null,null,null,null],
+  [0.120,null,null,null,null,null,null, 2.344,'lizard2x 23\n2.344x at 0.120 GB/s\n40.3MB 0.769s','' ,null,null,null,null,null,null],
+  [0.053,null,null,null,null,null,null, 2.363,'lizard2x 24\n2.363x at 0.053 GB/s\n40.0MB 1.728s','' ,null,null,null,null,null,null],
+  [0.011,null,null,null,null,null,null, 2.518,'lizard2x 26\n2.518x at 0.011 GB/s\n37.5MB 8.637s','' ,null,null,null,null,null,null],
+  [0.938,null,null,null,null,null,null,null,null,null, 1.960,'zstd -5\n1.960x at 0.938 GB/s\n48.2MB 0.098s','' ,null,null,null],
+  [0.849,null,null,null,null,null,null,null,null,null, 2.257,'zstd -3\n2.257x at 0.849 GB/s\n41.8MB 0.109s','' ,null,null,null],
+  [0.739,null,null,null,null,null,null,null,null,null, 2.536,'zstd -1\n2.536x at 0.739 GB/s\n37.3MB 0.125s','' ,null,null,null],
+  [0.623,null,null,null,null,null,null,null,null,null, 2.628,'zstd 1\n2.628x at 0.623 GB/s\n35.9MB 0.148s','' ,null,null,null],
+  [0.426,null,null,null,null,null,null,null,null,null, 2.699,'zstd 3\n2.699x at 0.426 GB/s\n35.0MB 0.216s','' ,null,null,null],
+  [0.202,null,null,null,null,null,null,null,null,null, 2.703,'zstd 5\n2.703x at 0.202 GB/s\n34.9MB 0.458s','' ,null,null,null],
+  [0.110,null,null,null,null,null,null,null,null,null, 2.797,'zstd 7\n2.797x at 0.110 GB/s\n33.8MB 0.838s','' ,null,null,null],
+  [0.086,null,null,null,null,null,null,null,null,null, 2.885,'zstd 9\n2.885x at 0.086 GB/s\n32.7MB 1.070s','' ,null,null,null],
+  [0.039,null,null,null,null,null,null,null,null,null, 2.890,'zstd 12\n2.890x at 0.039 GB/s\n32.7MB 2.340s','' ,null,null,null],
+  [0.014,null,null,null,null,null,null,null,null,null, 2.871,'zstd 15\n2.871x at 0.014 GB/s\n32.9MB 6.516s','' ,null,null,null],
+  [1.387,null,null,null,null,null,null,null,null,null,null,null,null, 1.533,'lz4 -5\n1.533x at 1.387 GB/s\n61.6MB 0.067s','' ],
+  [1.014,null,null,null,null,null,null,null,null,null,null,null,null, 1.740,'lz4 -1\n1.740x at 1.014 GB/s\n54.3MB 0.091s','' ],
+  [0.792,null,null,null,null,null,null,null,null,null,null,null,null, 1.948,'lz4 0\n1.948x at 0.792 GB/s\n48.5MB 0.116s','' ],
+  [0.138,null,null,null,null,null,null,null,null,null,null,null,null, 2.140,'lz4 1\n2.140x at 0.138 GB/s\n44.1MB 0.668s','' ],
+  [0.086,null,null,null,null,null,null,null,null,null,null,null,null, 2.214,'lz4 6\n2.214x at 0.086 GB/s\n42.7MB 1.071s','' ],
+  [0.045,null,null,null,null,null,null,null,null,null,null,null,null, 2.223,'lz4 9\n2.223x at 0.045 GB/s\n42.5MB 2.031s','' ]
+]);
+dataDec.addRows([
+  [2.928, 1.861,'lzsse8 0\n1.861x at 2.928 GB/s\n50.8MB 0.032s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [5.301, 2.029,'lzsse8 1\n2.029x at 5.301 GB/s\n46.6MB 0.017s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [5.729, 2.055,'lzsse8 2\n2.055x at 5.729 GB/s\n46.0MB 0.016s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [5.951, 2.076,'lzsse8 3\n2.076x at 5.951 GB/s\n45.5MB 0.015s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [6.109, 2.094,'lzsse8 4\n2.094x at 6.109 GB/s\n45.1MB 0.015s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [6.191, 2.105,'lzsse8 5\n2.105x at 6.191 GB/s\n44.9MB 0.015s','' ,null,null,null,null,null,null,null,null,null,null,null,null],
+  [7.207,null,null,null, 1.946,'lizard1x 10\n1.946x at 7.207 GB/s\n48.5MB 0.013s','' ,null,null,null,null,null,null,null,null,null],
+  [6.783,null,null,null, 2.008,'lizard1x 11\n2.008x at 6.783 GB/s\n47.0MB 0.014s','' ,null,null,null,null,null,null,null,null,null],
+  [6.542,null,null,null, 2.073,'lizard1x 12\n2.073x at 6.542 GB/s\n45.6MB 0.014s','' ,null,null,null,null,null,null,null,null,null],
+  [6.636,null,null,null, 2.131,'lizard1x 13\n2.131x at 6.636 GB/s\n44.3MB 0.014s','' ,null,null,null,null,null,null,null,null,null],
+  [6.684,null,null,null, 2.156,'lizard1x 14\n2.156x at 6.684 GB/s\n43.8MB 0.014s','' ,null,null,null,null,null,null,null,null,null],
+  [6.684,null,null,null, 2.185,'lizard1x 16\n2.185x at 6.684 GB/s\n43.2MB 0.014s','' ,null,null,null,null,null,null,null,null,null],
+  [3.892,null,null,null,null,null,null, 1.902,'lizard2x 20\n1.902x at 3.892 GB/s\n49.7MB 0.024s','' ,null,null,null,null,null,null],
+  [3.942,null,null,null,null,null,null, 2.145,'lizard2x 21\n2.145x at 3.942 GB/s\n44.0MB 0.023s','' ,null,null,null,null,null,null],
+  [3.765,null,null,null,null,null,null, 2.167,'lizard2x 22\n2.167x at 3.765 GB/s\n43.6MB 0.025s','' ,null,null,null,null,null,null],
+  [3.170,null,null,null,null,null,null, 2.344,'lizard2x 23\n2.344x at 3.170 GB/s\n40.3MB 0.029s','' ,null,null,null,null,null,null],
+  [3.192,null,null,null,null,null,null, 2.363,'lizard2x 24\n2.363x at 3.192 GB/s\n40.0MB 0.029s','' ,null,null,null,null,null,null],
+  [3.976,null,null,null,null,null,null, 2.518,'lizard2x 26\n2.518x at 3.976 GB/s\n37.5MB 0.023s','' ,null,null,null,null,null,null],
+  [2.059,null,null,null,null,null,null,null,null,null, 1.960,'zstd -5\n1.960x at 2.059 GB/s\n48.2MB 0.045s','' ,null,null,null],
+  [2.023,null,null,null,null,null,null,null,null,null, 2.257,'zstd -3\n2.257x at 2.023 GB/s\n41.8MB 0.046s','' ,null,null,null],
+  [1.906,null,null,null,null,null,null,null,null,null, 2.536,'zstd -1\n2.536x at 1.906 GB/s\n37.3MB 0.048s','' ,null,null,null],
+  [1.165,null,null,null,null,null,null,null,null,null, 2.628,'zstd 1\n2.628x at 1.165 GB/s\n35.9MB 0.079s','' ,null,null,null],
+  [1.107,null,null,null,null,null,null,null,null,null, 2.699,'zstd 3\n2.699x at 1.107 GB/s\n35.0MB 0.083s','' ,null,null,null],
+  [1.094,null,null,null,null,null,null,null,null,null, 2.703,'zstd 5\n2.703x at 1.094 GB/s\n34.9MB 0.084s','' ,null,null,null],
+  [1.146,null,null,null,null,null,null,null,null,null, 2.797,'zstd 7\n2.797x at 1.146 GB/s\n33.8MB 0.081s','' ,null,null,null],
+  [1.203,null,null,null,null,null,null,null,null,null, 2.885,'zstd 9\n2.885x at 1.203 GB/s\n32.7MB 0.077s','' ,null,null,null],
+  [1.222,null,null,null,null,null,null,null,null,null, 2.890,'zstd 12\n2.890x at 1.222 GB/s\n32.7MB 0.075s','' ,null,null,null],
+  [1.248,null,null,null,null,null,null,null,null,null, 2.871,'zstd 15\n2.871x at 1.248 GB/s\n32.9MB 0.074s','' ,null,null,null],
+  [6.589,null,null,null,null,null,null,null,null,null,null,null,null, 1.533,'lz4 -5\n1.533x at 6.589 GB/s\n61.6MB 0.014s','' ],
+  [5.426,null,null,null,null,null,null,null,null,null,null,null,null, 1.740,'lz4 -1\n1.740x at 5.426 GB/s\n54.3MB 0.017s','' ],
+  [4.907,null,null,null,null,null,null,null,null,null,null,null,null, 1.948,'lz4 0\n1.948x at 4.907 GB/s\n48.5MB 0.019s','' ],
+  [4.730,null,null,null,null,null,null,null,null,null,null,null,null, 2.140,'lz4 1\n2.140x at 4.730 GB/s\n44.1MB 0.019s','' ],
+  [5.013,null,null,null,null,null,null,null,null,null,null,null,null, 2.214,'lz4 6\n2.214x at 5.013 GB/s\n42.7MB 0.018s','' ],
+  [5.013,null,null,null,null,null,null,null,null,null,null,null,null, 2.223,'lz4 9\n2.223x at 5.013 GB/s\n42.5MB 0.018s','' ]
+]);
+var titleDec = 'Decompression Ratio vs Throughput';
+var options = {
+title: 'Compression Ratio vs Throughput',
+pointSize: 6,
+series: {
+  0: {pointShape: 'triangle', pointSize: 10, lineWidth: 2},
+  1: {pointShape: 'square', pointSize: 10, lineWidth: 2},
+  2: {pointShape: {type:'square', rotation: 45}, pointSize: 10, lineWidth: 2},
+  3: {pointShape: 'circle', lineDashStyle: [4, 2], pointSize: 4},
+  4: {pointShape: 'circle', lineDashStyle: [4, 2], pointSize: 4},
+  5: {},
+},
+colors: ['0099cc','b81466','cc6600','90d596','d9d18c'],
+hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.01, max:2.0}},
+vAxis: {title: 'Ratio', viewWindow: {min:1.0, max:4.5}},
+chartArea: {left:60, right:10, top:50, bottom:50},
+legend: {position: 'top'},
+lineWidth: 1
+};
+var chartCmp = new google.visualization.ScatterChart(document.getElementById('chart_cmp'));
+chartCmp.draw(dataCmp, options);
+options.title = titleDec;
+options.hAxis.title = 'Decompression GB/s';
+options.hAxis.viewWindow.min = 0.5;
+options.hAxis.viewWindow.max = 8.0;
+var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));
+chartDec.draw(dataDec, options);
+}
+</script>
