@@ -142,9 +142,23 @@ struct CompressorConfig
 		if (cmp == g_CompLZSSE8.get())
 		{
 			if (filter == &g_FilterSplit8DeltaOpt)
-				return "'triangle', pointSize: 10, lineWidth: 3, lineDashStyle: [4, 4]";
+				return "'triangle', pointSize: 10, lineWidth: 2";
 			else
-				return "'triangle', pointSize: 10, lineWidth: 3";
+				return "'triangle', pointSize: 8, lineDashStyle: [4, 2]";
+		}
+		if (cmp == g_CompLizard1x.get())
+		{
+			if (filter == &g_FilterSplit8DeltaOpt)
+				return "'square', pointSize: 10, lineWidth: 2";
+			else
+				return "'square', pointSize: 8, lineDashStyle: [4, 2]";
+		}
+		if (cmp == g_CompLizard2x.get())
+		{
+			if (filter == &g_FilterSplit8DeltaOpt)
+				return "{type:'square', rotation: 45}, pointSize: 10, lineWidth: 2";
+			else
+				return "{type:'square', rotation: 45}, pointSize: 8, lineDashStyle: [4, 2]";
 		}
 		if (cmp == g_CompBlosc.get() || cmp == g_CompBloscLZ4.get() || cmp == g_CompBloscZstd.get())
 			return "'circle', lineDashStyle: [4, 2]";
@@ -190,7 +204,9 @@ struct CompressorConfig
 			if (blockSizeEnum == kBSize64k) return 0x4d4500;
 			return faded ? 0xd9d18c : 0xb19f00; // yellow
 		}
-		if (cmp == g_CompLZSSE8.get()) return 0xb81466; // rose
+		if (cmp == g_CompLZSSE8.get()) return 0x0099cc; // dark cyan
+		if (cmp == g_CompLizard1x.get()) return 0xb81466; // rose
+		if (cmp == g_CompLizard2x.get()) return 0xcc6600; // orange
 		//if (cmp == g_CompZlib.get()) return faded ? 0x8cd9cf : 0x00bfa7; // cyan
 		//if (cmp == g_CompLibDeflate.get()) return 0x00786a; // cyan
 		//if (cmp == g_CompBrotli) return faded ? 0xd19a94 : 0xde5546; // orange
@@ -377,7 +393,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	oodle_init();
 #	endif
   
-	//
+	// Part 9 LZSSE + Lizard
 	g_Compressors.push_back({ g_CompLZSSE8.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
 	g_Compressors.push_back({ g_CompLizard1x.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
 	g_Compressors.push_back({ g_CompLizard2x.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
