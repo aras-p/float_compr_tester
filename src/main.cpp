@@ -137,6 +137,13 @@ struct CompressorConfig
 	}
 	const char* GetShapeString() const
 	{
+		if (cmp == g_CompLZSSE8.get())
+		{
+			if (filter == &g_FilterSplit8DeltaOpt)
+				return "'triangle', pointSize: 10, lineWidth: 3, lineDashStyle: [4, 4]";
+			else
+				return "'triangle', pointSize: 10, lineWidth: 3";
+		}
 		if (cmp == g_CompBlosc.get() || cmp == g_CompBloscLZ4.get() || cmp == g_CompBloscZstd.get())
 			return "'circle', lineDashStyle: [4, 2]";
 		if (cmp == g_CompBlosc_Shuf.get() || cmp == g_CompBloscLZ4_Shuf.get() || cmp == g_CompBloscZstd_Shuf.get())
@@ -181,6 +188,7 @@ struct CompressorConfig
 			if (blockSizeEnum == kBSize64k) return 0x4d4500;
 			return faded ? 0xd9d18c : 0xb19f00; // yellow
 		}
+		if (cmp == g_CompLZSSE8.get()) return 0xb81466; // rose
 		//if (cmp == g_CompZlib.get()) return faded ? 0x8cd9cf : 0x00bfa7; // cyan
 		//if (cmp == g_CompLibDeflate.get()) return 0x00786a; // cyan
 		//if (cmp == g_CompBrotli) return faded ? 0xd19a94 : 0xde5546; // orange
@@ -367,24 +375,24 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	oodle_init();
 #	endif
   
-  //
-  g_Compressors.push_back({ g_CompLZSSE8.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
-  g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
-  g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
-#   if BUILD_WITH_OODLE
-    g_Compressors.push_back({ g_CompKraken.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
-    g_Compressors.push_back({ g_CompSelkie.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
-    g_Compressors.push_back({ g_CompMermaid.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
-#    endif
+	//
+	g_Compressors.push_back({ g_CompLZSSE8.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+	g_Compressors.push_back({ g_CompZstd.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+	g_Compressors.push_back({ g_CompLZ4.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+//#	if BUILD_WITH_OODLE
+//	g_Compressors.push_back({ g_CompKraken.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+//	g_Compressors.push_back({ g_CompSelkie.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+//	g_Compressors.push_back({ g_CompMermaid.get(), &g_FilterSplit8DeltaOpt, kBSize1M });
+//#	endif
 
-  g_Compressors.push_back({ g_CompLZSSE8.get(), nullptr });
-  g_Compressors.push_back({ g_CompZstd.get(), nullptr });
-  g_Compressors.push_back({ g_CompLZ4.get(), nullptr });
-#   if BUILD_WITH_OODLE
-  g_Compressors.push_back({ g_CompKraken.get(), nullptr });
-  g_Compressors.push_back({ g_CompSelkie.get(), nullptr });
-  g_Compressors.push_back({ g_CompMermaid.get(), nullptr });
-#    endif
+	g_Compressors.push_back({ g_CompLZSSE8.get(), nullptr });
+	g_Compressors.push_back({ g_CompZstd.get(), nullptr });
+	g_Compressors.push_back({ g_CompLZ4.get(), nullptr });
+//#   if BUILD_WITH_OODLE
+//	g_Compressors.push_back({ g_CompKraken.get(), nullptr });
+//	g_Compressors.push_back({ g_CompSelkie.get(), nullptr });
+//	g_Compressors.push_back({ g_CompMermaid.get(), nullptr });
+//#    endif
 
 	// Part 8 Blosc + Chunked: https://aras-p.info/blog/2023/03/02/Float-Compression-8-Blosc/
 
@@ -777,7 +785,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 		fprintf(fout, "'%02x%02x%02x'%s", (col >> 16)&0xFF, (col >> 8)&0xFF, col&0xFF, ic== g_Compressors.size()-1?"":",");
 	}
 	fprintf(fout, "],\n");
-	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.001, max:2.0}},\n");
+	fprintf(fout, "hAxis: {title: 'Compression GB/s', logScale: true, viewWindow: {min:0.01, max:2.0}},\n");
 	fprintf(fout, "vAxis: {title: 'Ratio', viewWindow: {min:1.0, max:4.5}},\n");
 	fprintf(fout, "chartArea: {left:60, right:10, top:50, bottom:50},\n");
 	fprintf(fout, "legend: {position: 'top'},\n");
@@ -788,7 +796,7 @@ static void TestCompressors(size_t testFileCount, TestFile* testFiles)
 	fprintf(fout, "options.title = titleDec;\n");
 	fprintf(fout, "options.hAxis.title = 'Decompression GB/s';\n");
 	fprintf(fout, "options.hAxis.viewWindow.min = 0.5;\n");
-	fprintf(fout, "options.hAxis.viewWindow.max = 10.0;\n");
+	fprintf(fout, "options.hAxis.viewWindow.max = 8.0;\n");
 	fprintf(fout, "var chartDec = new google.visualization.ScatterChart(document.getElementById('chart_dec'));\n");
 	fprintf(fout, "chartDec.draw(dataDec, options);\n");
 	fprintf(fout, "}\n");
